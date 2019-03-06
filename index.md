@@ -1,5 +1,4 @@
-Download
---------
+# Download
 
 Download this file:
 
@@ -9,12 +8,39 @@ Download this file:
 Save it on your system and make sure it is executable.
 
 
-Usage
------
+# Usage: Interactive mode
 
-To build, e.g., Cbc, run
+Run `coinbrew` without arguments.
+
+# Usage: Batch mode
+
+## Fetch source
+
+To get the source of a project with all its depencencies, use
+```
+/path/to/coinbrew fetch --main-proj=<ProjectName>
+```
+
+For example,
+```
+/path/to/coinbrew fetch --main-proj=Cbc
+```
+
+
+## Build source
 
 ```
-/path/to/coinbrew fetch --main-proj Cbc
-/path/to/coinbrew build --quiet --test
+/path/to/coinbrew build --main-proj=<ProjectName>
+```
+
+For example,
+```
+/path/to/coinbrew build --main-proj=Cbc --quiet --test
+```
+
+
+## Install executables, libraries, and header files
+
+```
+/path/to/coinbrew install --main-proj=<ProjectName>
 ```
