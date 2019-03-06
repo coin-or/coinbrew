@@ -1,20 +1,29 @@
-# Download
+# COIN-OR build and install helper
 
-Download this file:
+This script resembles a package manager that installs COIN-OR projects
+with its dependencies from source.
+It fetches the source from GitHub, builds the code, and installs the
+binaries, libraries, and header files.
+
+
+## Download
+
+`coinbrew` consists of a single bash script. To use it, download the file
+
 
    [https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew](https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew)
 
 
-Save it on your system and make sure it is executable.
+to your system and make sure that it is executable.
 
 
-# Usage: Interactive mode
+## Usage: Interactive mode
 
 Run `coinbrew` without arguments.
 
-# Usage: Batch mode
+## Usage: Batch mode
 
-## Fetch source
+### Fetch source
 
 To get the source of a project with all its depencencies, use
 ```
@@ -27,7 +36,7 @@ For example,
 ```
 
 
-## Build source
+### Build source
 
 ```
 /path/to/coinbrew build --main-proj=<ProjectName>
@@ -39,7 +48,7 @@ For example,
 ```
 
 
-## Install executables, libraries, and header files
+### Install executables, libraries, and header files
 
 ```
 /path/to/coinbrew install --main-proj=<ProjectName>
