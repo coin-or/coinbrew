@@ -14,7 +14,7 @@
 #PS4='${LINENO}:${PWD}: '
 
 function help {
-    echo "Usage: coin.install.sh <command> --option1 --option2"
+    echo "Usage: coin.brew <command> --option1 --option2"
     echo "       Run without arguments for interactive mode"
     echo
     echo "Commands:"
