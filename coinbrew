@@ -706,6 +706,9 @@ function fetch_proj {
             fi
             cd $root_dir
         else
+            if [ $version = "trunk" ] ; then
+                version=master
+            fi
             current_version=`git branch | grep \* | cut -d ' ' -f 2`
             current_rev=`git rev-parse HEAD`
             if [ $current_version != $version ]; then
@@ -749,28 +752,24 @@ function fetch_proj {
         if [ $version = "trunk" ] ; then
             version=master
         fi
-        if [ -d $dir ]; then
+        print_action "Fetching $dir $version"
+        if [ $sparse = "true" ]; then
+            mkdir $dir
             cd $dir
+            git init
+            git remote add origin $url
+            git config core.sparsecheckout true
+            echo $proj/ >> .git/info/sparse-checkout
+            git fetch
+            git checkout $version
+            new_rev=`git rev-parse HEAD`
+            cd root_dir
         else
-            print_action "Fetching $dir $version"
-            if [ $sparse = "true" ]; then
-                mkdir $dir
-                cd $dir
-                git init
-                git remote add origin $url
-                git config core.sparsecheckout true
-                echo $proj/ >> .git/info/sparse-checkout
-                git fetch
-                git checkout $version
-                new_rev=`git rev-parse HEAD`
-                cd root_dir
-            else
-                git clone --branch=$version $url $dir
-                cd $dir
-                new_rev=`git rev-parse HEAD`
-                cd $root_dir                
-            fi     
-        fi
+            git clone --branch=$version $url $dir
+            cd $dir
+            new_rev=`git rev-parse HEAD`
+            cd $root_dir                
+        fi     
     fi
 
     # If this is a third party project, fetch the source if desired
