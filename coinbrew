@@ -38,9 +38,9 @@ function help {
     echo "             --test-all run unit tests of all projects before install"
     echo "             --verbosity=i set verbosity level (1-4)"
     echo "             --reconfigure re-run configure"
+    echo "             --prefix=\dir\to\install (where to install, default: $PWD/build)"
     echo
-    echo "  install: Install all projects in location specified by prefix"
-    echo "    options: --prefix=\dir\to\install (where to install, default: $PWD/build)"
+    echo "  install: Install all projects in location specified by prefix (after build and test)"
     echo
     echo "  uninstall: Uninstall all projects"
     echo
@@ -76,12 +76,22 @@ function get_cached_options {
 }
 
 function invoke_make {
-    if [ $1 = 1 ]; then
-        $MAKE -j $jobs $2 >& /dev/null
-    elif [ $1 = 2 ]; then
-        $MAKE -j $jobs $2 > /dev/null
+    if [ $# = 2 ]; then
+        if [ $1 = 1 ]; then
+            $MAKE -j $jobs $2 >& /dev/null
+        elif [ $1 = 2 ]; then
+            $MAKE -j $jobs $2 > /dev/null
+        else
+            $MAKE -j $jobs $2
+        fi
     else
-        $MAKE -j $jobs $2
+        if [ $1 = 1 ]; then
+            $MAKE -j $jobs $2 $3 >& /dev/null
+        elif [ $1 = 2 ]; then
+            $MAKE -j $jobs $2 $3 > /dev/null
+        else
+            $MAKE -j $jobs $2 $3
+        fi
     fi
 }
 
@@ -315,8 +325,8 @@ function user_prompts {
         fi
     fi
 
-    if [ x"$prefix" != x ] && [ install = "false" ]; then
-        echo "Prefix should only be specified at install"
+    if [ x"$prefix" != x ] && [ build = "false" ]; then
+        echo "Prefix should only be specified at build time"
         exit 3
     fi
     if [ x"$prefix" = x ]; then
@@ -813,9 +823,9 @@ function build_proj {
             if [ $verbosity -ge 3 ] || ( [ $verbosity -ge 2 ] &&
                                              [ x$main_proj != x ] &&
                                              [ $main_proj_dir = $dir ]); then
-                "$config_script" --disable-dependency-tracking --with-coin-instdir=$1 --prefix=$1 "${!configure_options[@]}"
+                "$config_script" --disable-dependency-tracking --with-coin-instdir=$build_dir --prefix=$prefix "${!configure_options[@]}"
             else
-                "$config_script" --disable-dependency-tracking --with-coin-instdir=$1 --prefix=$1 "${!configure_options[@]}" > /dev/null
+                "$config_script" --disable-dependency-tracking --with-coin-instdir=$build_dir --prefix=$prefix "${!configure_options[@]}" > /dev/null
             fi
         fi
         print_action "Building $dir"
@@ -837,29 +847,23 @@ function build_proj {
                 invoke_make "false" test
             fi
         fi
-        if [ $1 = $build_dir ]; then
-            print_action "Pre-installing $dir"
-        else
-            print_action "Installing $dir"
-        fi
+        print_action "Pre-installing $dir"
         if [ $verbosity -ge 3 ]; then
-            invoke_make $(($verbosity-1)) install
+            invoke_make $(($verbosity-1)) DESTDIR=$build_dir install
         else
-            invoke_make 1 install
+            invoke_make 1 DESTDIR=$build_dir install
         fi
         cd $root_dir
     fi
 }
 
 function install_proj {
-    if [ $prefix != $build_dir ]; then
-        print_action "Reconfiguring projects and doing final install"
-        reconfigure=true
-        build_proj $prefix
+    print_action "Doing final install for $dir"
+    cd $build_dir/$dir
+    if [ $verbosity -ge 3 ]; then
+        invoke_make $(($verbosity-1)) install
     else
-        echo
-        echo "Please specify a prefix to install with --prefix"
-        echo
+        invoke_make 1 install
     fi
 }
 
@@ -941,6 +945,9 @@ parse_args "$@"
 if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
     if [ x$build_dir = x ] ; then
         build_dir=$PWD/build
+    fi
+    if [ x$prefix = x ] ; then
+        prefix=$build_dir
     fi
 fi
 
@@ -1064,13 +1071,13 @@ do
     
     # Build the project (if requested)
     if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ -d $dir ]; then
-        build_proj $build_dir
+        build_proj 
     fi
 
     # Install the project (if requested)
     if [ $install = "true" ] &&
            [ $dir != "BuildTools" ] && get_project $dir; then
-        install_proj $prefix
+        install_proj
     fi
     
 done
