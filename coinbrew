@@ -76,22 +76,14 @@ function get_cached_options {
 }
 
 function invoke_make {
-    if [ $# = 2 ]; then
-        if [ $1 = 1 ]; then
-            $MAKE -j $jobs $2 >& /dev/null
-        elif [ $1 = 2 ]; then
-            $MAKE -j $jobs $2 > /dev/null
-        else
-            $MAKE -j $jobs $2
-        fi
+    v=$1
+    shift
+    if [ $v = 1 ]; then
+        $MAKE -j $jobs $@ >& /dev/null
+    elif [ $v = 2 ]; then
+        $MAKE -j $jobs $@ > /dev/null
     else
-        if [ $1 = 1 ]; then
-            $MAKE -j $jobs $2 $3 >& /dev/null
-        elif [ $1 = 2 ]; then
-            $MAKE -j $jobs $2 $3 > /dev/null
-        else
-            $MAKE -j $jobs $2 $3
-        fi
+        $MAKE -j $jobs $@
     fi
 }
 
