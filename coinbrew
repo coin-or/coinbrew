@@ -107,7 +107,7 @@ function parse_args {
     do
         echo $1
         case $1 in
-            --prefix)
+            -p|--prefix)
                 shift
                 if [[ "$1" != -* ]]; then
                     case $1 in
@@ -124,7 +124,7 @@ function parse_args {
                     exit 3
                 fi
                 ;;
-            --build-dir)
+            -b|--build-dir)
                 shift
                 if [[ "$1" != -* ]]; then
                     case $1 in
@@ -140,7 +140,7 @@ function parse_args {
                     exit 3
                 fi
                 ;;
-            --parallel-jobs)
+            -j|--parallel-jobs)
                 shift
                 if [[ "$1" != -* ]]; then
                     jobs=$1
@@ -155,7 +155,7 @@ function parse_args {
                 echo "Please re-run with correct argument name"
                 exit 3
                 ;;
-            --verbosity)
+            -v|--verbosity)
                 shift
                 if [[ "$1" != -* ]]; then
                     verbosity=$1
@@ -182,13 +182,13 @@ function parse_args {
                     exit 3
                 fi
                 ;;
-            --skip)
+            -s|--skip)
                 shift
                 if [[ "$1" != -* ]]; then
                     coin_skip_projects=$1
                 fi
                 ;;
-            --help)
+            -h|--help)
                 help
                 exit 0
                 ;;
@@ -201,13 +201,13 @@ function parse_args {
             --git)
                 VCS=git
                 ;;
-            --debug)
+            -d|--debug)
                 set -x
                 ;;
-            --reconfigure)
+            -r|--reconfigure)
                 reconfigure=true
                 ;;
-            --test)
+            -t|--test)
                 run_test=true
                 ;;
             --test-all)
@@ -216,7 +216,7 @@ function parse_args {
             --no-third-party)
                 get_third_party=false
                 ;;
-            --no-prompt)
+            -n|--no-prompt)
                 no_prompt=true
                 ;;
             --skip-update)
