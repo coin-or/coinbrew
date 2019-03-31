@@ -270,47 +270,42 @@ function user_prompts {
     fi
     if [ $num_actions = 0 ]; then
         if [ $no_prompt = "false" ]; then
-            echo "Please choose an action by typing 1-3."
+            echo "Please choose an action by typing 1-4."
             echo " 1. Fetch source code of a project and its dependencies."
             echo " 2. Build a project and its dependencies."
             echo " 3. Install a project and its dependencies."
             echo " 4. Help"
-            continue=false
-            while [ $continue = "false" ]; do
-                echo -n "=> "
-                read choice
-                case $choice in
-                    1)
-                        fetch=true
-                        ;;
-                    2)
-                        build=true
-                        echo "Please specify a build directory (can be relative or absolute)."
-                        echo -n "=> "
-                        read user_build_dir
-                        case $user_build_dir in
-                            [\\/$]* | ?:[\\/]* | NONE | '' )
-                                build_dir=$user_build_dir
-                                ;;
-                            *)
-                                build_dir=$PWD/$user_build_dir
-                                ;;
-                        esac
-                        ;;
-                    3) 
-                        install=true
-                        echo "Please specify an install directory (can be relative or absolute)."
-                        echo -n "=> "
-                        read prefix
-                        ;;
-                    4)
-                        help
-                        exit 0
-                        ;;
-                    done) continue=true;;
-                esac
-                echo "You may choose another action to be performed or type 'done'"
-            done
+            echo -n "=> "
+            read choice
+            case $choice in
+                1)
+                    fetch=true
+                    ;;
+                2)
+                    build=true
+                    echo "Please specify a build directory (can be relative or absolute)."
+                    echo -n "=> "
+                    read user_build_dir
+                    case $user_build_dir in
+                        [\\/$]* | ?:[\\/]* | NONE | '' )
+                            build_dir=$user_build_dir
+                            ;;
+                        *)
+                            build_dir=$PWD/$user_build_dir
+                            ;;
+                    esac
+                    ;;
+                3) 
+                    install=true
+                    echo "Please specify an install directory (can be relative or absolute)."
+                    echo -n "=> "
+                    read prefix
+                    ;;
+                4)
+                    help
+                    exit 0
+                    ;;
+            esac
         else
             help
             exit 0
@@ -318,7 +313,7 @@ function user_prompts {
     fi
 
     if [ x"$prefix" != x ] && [ build = "false" ]; then
-        echo "Prefix should only be specified at build time"
+        echo "Prefix should only be specified with the build command"
         exit 3
     fi
     if [ x"$prefix" = x ]; then
@@ -394,7 +389,7 @@ function user_prompts {
             18)  main_proj=OS;;
             19)  main_proj=MibS;;
             20)  main_proj=DisCO;;
-            21)  ;;
+            21)  main_proj=CoinAll;;
             22)
                 echo "Enter the name or URL of the project"
                 echo -n "=> "
