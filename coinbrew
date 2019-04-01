@@ -389,7 +389,7 @@ function user_prompts {
             18)  main_proj=OS;;
             19)  main_proj=MibS;;
             20)  main_proj=DisCO;;
-            21)  main_proj=CoinAll;;
+            21)  main_proj=COIN-OR-OptimizationSuite;;
             22)
                 echo "Enter the name or URL of the project"
                 echo -n "=> "
