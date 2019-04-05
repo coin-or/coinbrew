@@ -264,7 +264,7 @@ function parse_args {
 function user_prompts {
 
     echo "For help, re-run with --help"
-    if [ $no_prompt = fals ]; then
+    if [ $no_prompt = false ]; then
         echo "Entering interactive mode (suppress with --no-prompt)..."
         echo 
     fi
@@ -449,7 +449,7 @@ function user_prompts {
                 fi
                 main_proj_url="https://projects.coin-or.org/svn/$main_proj/$main_proj_version/$main_proj"
             fi    
-            if [ $fetch = "false" ]; then
+            if [ $fetch = "false" ] && [ $build = "true" ]; then
                 if [ -d .git ]; then
                     current_version=`git branch | grep \* | cut -d ' ' -f 2`
                     if [ $current_version = "(HEAD" ]; then
@@ -463,7 +463,7 @@ function user_prompts {
                     fi
                 fi
                 echo "################################################"
-                echo "### Building/installing version $current_version"
+                echo "### Building version $current_version"
                 echo "### with existing versions of dependencies."
                 echo "### Run 'fetch' first to switch versions" 
                 echo "### or to ensure correct dependencies"
@@ -836,9 +836,17 @@ function build_proj {
         fi
         print_action "Pre-installing $dir"
         if [ $verbosity -ge 3 ]; then
-            invoke_make $(($verbosity-1)) DESTDIR=$build_dir install
+            if [ $prefix != $build_dir ]; then
+                invoke_make $(($verbosity-1)) DESTDIR=$build_dir install
+            else
+                invoke_make $(($verbosity-1)) install
+            fi
         else
-            invoke_make 1 DESTDIR=$build_dir install
+            if [ $prefix != $build_dir ]; then
+                invoke_make 1 DESTDIR=$build_dir install
+            else
+                invoke_make 1 install
+            fi
         fi
         cd $root_dir
     fi
