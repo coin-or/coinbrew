@@ -515,8 +515,8 @@ function user_prompts {
                 esac
             fi
             if [ $fetch = "false" ]; then
-                echo "Exiting..."
-                exit 10
+                echo "Fetching automatically..."
+                fetch_proj
             fi
         fi
     fi
@@ -1065,8 +1065,12 @@ do
     fi
     
     # Build the project (if requested)
-    if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ -d $dir ]; then
-        build_proj 
+    if [ $build = "true" ] && [ $dir != "BuildTools" ]; then
+        if [ ! -d $dir ]; then
+            print_action "Warning: project $dir is missing"
+            fetch_proj
+        fi
+        build_proj
     fi
 
     # Install the project (if requested)
