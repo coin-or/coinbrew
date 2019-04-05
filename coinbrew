@@ -105,13 +105,37 @@ function get_project {
 function parse_args {
     while (( "$#" ))
     do
-        case $1 in
+        arg=$1
+        shift
+        case $arg in
+            *=*) 
+                option=${arg%%=*}
+                option_arg=${arg#*=}
+                ;;
+            -*)
+                option=$arg
+                if [ "$#" = 0 ]; then
+                    option_arg=
+                else
+                    if [[ "$1" == -* ]]; then
+                        option_arg=
+                    else
+                        option_arg=$1
+                        shift
+                    fi
+                fi
+                ;;
+            *)
+                option=$arg
+                option_arg=
+                ;;
+        esac
+        case $option in
             -p|--prefix)
-                shift
-                if [[ "$1" != -* ]]; then
-                    case $1 in
+                if [ x"$option_arg" != x ]; then
+                    case $option_arg in
                         [\\/$]* | ?:[\\/]* | NONE | '' )
-                            prefix=$1
+                            prefix=$option_arg
                             ;;
                         *)  
                             echo "Prefix path must be absolute."
@@ -124,14 +148,13 @@ function parse_args {
                 fi
                 ;;
             -b|--build-dir)
-                shift
-                if [[ "$1" != -* ]]; then
-                    case $1 in
+                if [ x"$option_arg" != x ]; then
+                    case $option_arg in
                         [\\/$]* | ?:[\\/]* | NONE | '' )
-                            build_dir=$1
+                            build_dir=$option_arg
                             ;;
                         *)
-                            build_dir=$PWD/$1
+                            build_dir=$PWD/$option_arg
                             ;;
                     esac
                 else
@@ -140,9 +163,8 @@ function parse_args {
                 fi
                 ;;
             -j|--parallel-jobs)
-                shift
-                if [[ "$1" != -* ]]; then
-                    jobs=$1
+                if [ x"$option_arg" != x ]; then
+                    jobs=$option_arg
                 else
                     echo "No number specified for --parallel-jobs"
                     exit 3
@@ -155,36 +177,35 @@ function parse_args {
                 exit 3
                 ;;
             -v|--verbosity)
-                shift
-                if [[ "$1" != -* ]]; then
-                    verbosity=$1
+                if [ x"$option_arg" != x ]; then
+                    verbosity=$option_arg
                 else
                     echo "No verbosity specified for --verbosity"
                     exit 3
                 fi
                 ;;
             --main-proj)
-                shift
-                if [[ "$1" != -* ]]; then
-                    main_proj=$1
+                if [ x"$option_arg" != x ]; then
+                    main_proj=$option_arg
                 else
                     echo "No main project specified"
                     exit 3
                 fi
                 ;;
             --main-proj-version)
-                shift
-                if [[ "$1" != -* ]]; then
-                    main_proj_version=$1
+                if [ x"$option_arg" != x ]; then
+                    main_proj_version=$option_arg
                 else
                     echo "No main project specified"
                     exit 3
                 fi
                 ;;
             -s|--skip)
-                shift
-                if [[ "$1" != -* ]]; then
-                    coin_skip_projects=$1
+                if [ x"$option_arg" != x ]; then
+                    coin_skip_projects=$option_arg
+                else
+                    echo "No projects specified to skip"
+                    exit 3
                 fi
                 ;;
             -h|--help)
@@ -221,9 +242,6 @@ function parse_args {
             --skip-update)
                 skip_update=true
                 ;;
-            --*|*=*)
-                configure_options["$1"]=""
-                ;;
             fetch)
                 num_actions+=1
                 fetch=true
@@ -241,15 +259,18 @@ function parse_args {
                 uninstall=true
                 ;;
             *)
-                if [[ $1 == *:* ]]; then
-                    main_proj=`echo $1 | cut -d ':' -f 1`
-                    main_proj_version=`echo $1 | cut -d ':' -f 2`
+                if [[ "$arg" == *=* ]] || [[ "$arg" == --* ]]; then
+                    configure_options["$arg"]=""
                 else
-                    main_proj=$1
+                    if [[ $arg == *:* ]]; then
+                        main_proj=`echo $arg | cut -d ':' -f 1`
+                        main_proj_version=`echo $arg | cut -d ':' -f 2`
+                    else
+                        main_proj=$arg
+                    fi
                 fi
                 ;;
         esac
-        shift
     done
     echo
 }
