@@ -107,8 +107,9 @@ function parse_args {
     do
         arg=$1
         shift
+        echo $arg
         case $arg in
-            *=*) 
+            *=*)
                 option=${arg%%=*}
                 option_arg=${arg#*=}
                 ;;
@@ -121,7 +122,6 @@ function parse_args {
                         option_arg=
                     else
                         option_arg=$1
-                        shift
                     fi
                 fi
                 ;;
@@ -142,6 +142,7 @@ function parse_args {
                             exit 3
                             ;;
                     esac
+                    shift
                 else
                     echo "No path provided for --prefix"
                     exit 3
@@ -157,6 +158,7 @@ function parse_args {
                             build_dir=$PWD/$option_arg
                             ;;
                     esac
+                    shift
                 else
                     echo "No path provided for --build-dir"
                     exit 3
@@ -165,6 +167,7 @@ function parse_args {
             -j|--parallel-jobs)
                 if [ x"$option_arg" != x ]; then
                     jobs=$option_arg
+                    shift
                 else
                     echo "No number specified for --parallel-jobs"
                     exit 3
@@ -179,6 +182,7 @@ function parse_args {
             -v|--verbosity)
                 if [ x"$option_arg" != x ]; then
                     verbosity=$option_arg
+                    shift
                 else
                     echo "No verbosity specified for --verbosity"
                     exit 3
@@ -187,6 +191,7 @@ function parse_args {
             --main-proj)
                 if [ x"$option_arg" != x ]; then
                     main_proj=$option_arg
+                    shift
                 else
                     echo "No main project specified"
                     exit 3
@@ -195,6 +200,7 @@ function parse_args {
             --main-proj-version)
                 if [ x"$option_arg" != x ]; then
                     main_proj_version=$option_arg
+                    shift
                 else
                     echo "No main project specified"
                     exit 3
@@ -203,6 +209,7 @@ function parse_args {
             -s|--skip)
                 if [ x"$option_arg" != x ]; then
                     coin_skip_projects=$option_arg
+                    shift
                 else
                     echo "No projects specified to skip"
                     exit 3
