@@ -121,6 +121,7 @@ function parse_args {
                         option_arg=
                     else
                         option_arg=$1
+                        shift
                     fi
                 fi
                 ;;
@@ -141,7 +142,6 @@ function parse_args {
                             exit 3
                             ;;
                     esac
-                    shift
                 else
                     echo "No path provided for --prefix"
                     exit 3
@@ -157,7 +157,6 @@ function parse_args {
                             build_dir=$PWD/$option_arg
                             ;;
                     esac
-                    shift
                 else
                     echo "No path provided for --build-dir"
                     exit 3
@@ -166,14 +165,12 @@ function parse_args {
             -j|--parallel-jobs)
                 if [ x"$option_arg" != x ]; then
                     jobs=$option_arg
-                    shift
                 else
                     echo "No number specified for --parallel-jobs"
                     exit 3
                 fi
                 ;;
             --threads)
-                shift
                 echo "The 'threads' argument has been re-named 'parallel-jobs'."
                 echo "Please re-run with correct argument name"
                 exit 3
@@ -181,7 +178,6 @@ function parse_args {
             -v|--verbosity)
                 if [ x"$option_arg" != x ]; then
                     verbosity=$option_arg
-                    shift
                 else
                     echo "No verbosity specified for --verbosity"
                     exit 3
@@ -190,7 +186,6 @@ function parse_args {
             --main-proj)
                 if [ x"$option_arg" != x ]; then
                     main_proj=$option_arg
-                    shift
                 else
                     echo "No main project specified"
                     exit 3
@@ -199,7 +194,6 @@ function parse_args {
             --main-proj-version)
                 if [ x"$option_arg" != x ]; then
                     main_proj_version=$option_arg
-                    shift
                 else
                     echo "No main project specified"
                     exit 3
@@ -208,7 +202,6 @@ function parse_args {
             -s|--skip)
                 if [ x"$option_arg" != x ]; then
                     coin_skip_projects=$option_arg
-                    shift
                 else
                     echo "No projects specified to skip"
                     exit 3
@@ -723,6 +716,8 @@ function fetch_proj {
         else
             if [ $version = "trunk" ] ; then
                 version=master
+            elif [ `echo $version | cut -d '/' -f 1` = "branches" ]; then
+                version=`echo $version | cut -d '/' -f 2`
             fi
             current_version=`git branch | grep \* | cut -d ' ' -f 2`
             current_rev=`git rev-parse HEAD`
@@ -965,7 +960,6 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
 fi
 
 user_prompts
-
 
 # Fetch main project first
 
