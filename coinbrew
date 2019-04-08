@@ -103,103 +103,119 @@ function get_project {
 
 # Parse arguments
 function parse_args {
-    echo "Script run with the following arguments:"
-    for arg in "$@"
+    while (( "$#" ))
     do
+        arg=$1
+        shift
         echo $arg
-        option=
-        option_arg=
         case $arg in
             *=*)
-                option=`expr "x$arg" : 'x\(.*\)=[^=]*'`
-                option_arg=`expr "x$arg" : 'x[^=]*=\(.*\)'`
-                # with bash, one could also do it in the following way:
-                # option=${arg%%=*}    # remove longest suffix matching =*
-                # option_arg=${arg#*=} # remove shortest prefix matching *=
-                case $option in
-                    --prefix)
-                        if [ "x$option_arg" != x ]; then
-                            case $option_arg in
-                                [\\/$]* | ?:[\\/]* | NONE | '' )
-                                    prefix=$option_arg
-                                    ;;
-                                *)  
-                                    echo "Prefix path must be absolute."
-                                    exit 3
-                                    ;;
-                            esac
-                        else
-                            echo "No path provided for --prefix"
-                            exit 3
-                        fi
-                        ;;
-                    --build-dir)
-                        if [ "x$option_arg" != x ]; then
-                            case $option_arg in
-                                [\\/$]* | ?:[\\/]* | NONE | '' )
-                                    build_dir=$option_arg
-                                    ;;
-                                *)
-                                    build_dir=$PWD/$option_arg
-                                    ;;
-                            esac
-                        else
-                            echo "No path provided for --build-dir"
-                            exit 3
-                        fi
-                        ;;
-                    --parallel-jobs)
-                        if [ "x$option_arg" != x ]; then
-                            jobs=$option_arg
-                        else
-                            echo "No number specified for --parallel-jobs"
-                            exit 3
-                        fi
-                        ;;
-                    --threads)
-                        echo "The 'threads' argument has been re-named 'parallel-jobs'."
-                        echo "Please re-run with correct argument name"
-                        exit 3
-                        ;;
-                    --verbosity)
-                        if [ "x$option_arg" != x ]; then
-                            verbosity=$option_arg
-                        else
-                            echo "No verbosity specified for --verbosity"
-                            exit 3
-                        fi
-                        ;;
-                    --main-proj)
-                        if [ "x$option_arg" != x ]; then
-                            main_proj=$option_arg
-                        else
-                            echo "No main project specified"
-                            exit 3
-                        fi
-                        ;;
-                    --main-proj-version)
-                        if [ "x$option_arg" != x ]; then
-                            main_proj_version=$option_arg
-                        else
-                            echo "No main project specified"
-                            exit 3
-                        fi
-                        ;;
-                    DESTDIR)
-                        echo "DESTDIR installation not supported"
-                        exit 3
-                        ;;
-                    --skip)
-                        if [ "x$option_arg" != x ]; then
-                            coin_skip_projects=$option_arg
-                        fi
-                        ;;
-                    *)
-                        configure_options["$arg"]=""
-                        ;;            
-                esac
+                option=${arg%%=*}
+                option_arg=${arg#*=}
                 ;;
-            --help)
+            -*)
+                option=$arg
+                if [ "$#" = 0 ]; then
+                    option_arg=
+                else
+                    if [[ "$1" == -* ]]; then
+                        option_arg=
+                    else
+                        option_arg=$1
+                    fi
+                fi
+                ;;
+            *)
+                option=$arg
+                option_arg=
+                ;;
+        esac
+        case $option in
+            -p|--prefix)
+                if [ x"$option_arg" != x ]; then
+                    case $option_arg in
+                        [\\/$]* | ?:[\\/]* | NONE | '' )
+                            prefix=$option_arg
+                            ;;
+                        *)  
+                            echo "Prefix path must be absolute."
+                            exit 3
+                            ;;
+                    esac
+                    shift
+                else
+                    echo "No path provided for --prefix"
+                    exit 3
+                fi
+                ;;
+            -b|--build-dir)
+                if [ x"$option_arg" != x ]; then
+                    case $option_arg in
+                        [\\/$]* | ?:[\\/]* | NONE | '' )
+                            build_dir=$option_arg
+                            ;;
+                        *)
+                            build_dir=$PWD/$option_arg
+                            ;;
+                    esac
+                    shift
+                else
+                    echo "No path provided for --build-dir"
+                    exit 3
+                fi
+                ;;
+            -j|--parallel-jobs)
+                if [ x"$option_arg" != x ]; then
+                    jobs=$option_arg
+                    shift
+                else
+                    echo "No number specified for --parallel-jobs"
+                    exit 3
+                fi
+                ;;
+            --threads)
+                shift
+                echo "The 'threads' argument has been re-named 'parallel-jobs'."
+                echo "Please re-run with correct argument name"
+                exit 3
+                ;;
+            -v|--verbosity)
+                if [ x"$option_arg" != x ]; then
+                    verbosity=$option_arg
+                    shift
+                else
+                    echo "No verbosity specified for --verbosity"
+                    exit 3
+                fi
+                ;;
+            --main-proj)
+                if [ x"$option_arg" != x ]; then
+                    main_proj=$option_arg
+                    shift
+                else
+                    echo "No main project specified"
+                    exit 3
+                fi
+                ;;
+            --main-proj-version)
+                if [ x"$option_arg" != x ]; then
+                    main_proj_version=$option_arg
+                    shift
+                else
+                    echo "No main project specified"
+                    exit 3
+                fi
+                ;;
+            -s|--skip)
+                if [ x"$option_arg" != x ]; then
+                    coin_skip_projects=$option_arg
+                    shift
+                else
+                    echo "No projects specified to skip"
+                    exit 3
+                fi
+                ;;
+            -h|--help)
                 help
                 exit 0
                 ;;
@@ -212,13 +228,13 @@ function parse_args {
             --git)
                 VCS=git
                 ;;
-            --debug)
+            -d|--debug)
                 set -x
                 ;;
-            --reconfigure)
+            -r|--reconfigure)
                 reconfigure=true
                 ;;
-            --test)
+            -t|--test)
                 run_test=true
                 ;;
             --test-all)
@@ -227,14 +243,11 @@ function parse_args {
             --no-third-party)
                 get_third_party=false
                 ;;
-            --no-prompt)
+            -n|--no-prompt)
                 no_prompt=true
                 ;;
             --skip-update)
                 skip_update=true
-                ;;
-            --*)
-                configure_options["$arg"]=""
                 ;;
             fetch)
                 num_actions+=1
@@ -253,8 +266,14 @@ function parse_args {
                 uninstall=true
                 ;;
             *)
-                echo "Unrecognized command...exiting"
-                exit 3
+                if [[ "$arg" == *=* ]] || [[ "$arg" == --* ]]; then
+                    configure_options["$arg"]=""
+                elif [[ $arg == *:* ]]; then
+                    main_proj=${arg%%:*}
+                    main_proj_version=${arg#*:}
+                else
+                    main_proj=$arg
+                fi
                 ;;
         esac
     done
