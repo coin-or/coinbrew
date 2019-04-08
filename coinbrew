@@ -107,7 +107,6 @@ function parse_args {
     do
         arg=$1
         shift
-        echo $arg
         case $arg in
             *=*)
                 option=${arg%%=*}
