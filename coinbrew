@@ -268,13 +268,11 @@ function parse_args {
             *)
                 if [[ "$arg" == *=* ]] || [[ "$arg" == --* ]]; then
                     configure_options["$arg"]=""
+                elif [[ $arg == *:* ]]; then
+                    main_proj=${arg%%:*}
+                    main_proj_version=${arg#*:}
                 else
-                    if [[ $arg == *:* ]]; then
-                        main_proj=`echo $arg | cut -d ':' -f 1`
-                        main_proj_version=`echo $arg | cut -d ':' -f 2`
-                    else
-                        main_proj=$arg
-                    fi
+                    main_proj=$arg
                 fi
                 ;;
         esac
