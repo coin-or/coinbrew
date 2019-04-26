@@ -107,7 +107,7 @@ function parse_args {
     do
         arg=$1
         shift
-        legacy_format=falsee
+        legacy_format=false
         case $arg in
             *=*)
                 option=${arg%%=*}
@@ -541,7 +541,7 @@ function user_prompts {
                 done
                 case $choice in
                     y)
-                        fetch="true"
+                        fetch=true
                         ;;
                     n)
                         ;;
@@ -549,7 +549,7 @@ function user_prompts {
             fi
             if [ $fetch = "false" ]; then
                 echo "Fetching automatically..."
-                fetch_proj
+                fetch=true
             fi
         fi
     fi
