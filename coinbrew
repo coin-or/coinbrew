@@ -107,10 +107,12 @@ function parse_args {
     do
         arg=$1
         shift
+        legacy_format=falsee
         case $arg in
             *=*)
                 option=${arg%%=*}
                 option_arg=${arg#*=}
+                legacy_format=true
                 ;;
             -*)
                 option=$arg
@@ -121,7 +123,6 @@ function parse_args {
                         option_arg=
                     else
                         option_arg=$1
-                        shift
                     fi
                 fi
                 ;;
@@ -146,6 +147,9 @@ function parse_args {
                     echo "No path provided for --prefix"
                     exit 3
                 fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
                 ;;
             -b|--build-dir)
                 if [ x"$option_arg" != x ]; then
@@ -161,6 +165,9 @@ function parse_args {
                     echo "No path provided for --build-dir"
                     exit 3
                 fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
                 ;;
             -j|--parallel-jobs)
                 if [ x"$option_arg" != x ]; then
@@ -168,6 +175,9 @@ function parse_args {
                 else
                     echo "No number specified for --parallel-jobs"
                     exit 3
+                fi
+                if [ $legacy_format = false ]; then
+                    shift
                 fi
                 ;;
             --threads)
@@ -182,6 +192,9 @@ function parse_args {
                     echo "No verbosity specified for --verbosity"
                     exit 3
                 fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
                 ;;
             --main-proj)
                 if [ x"$option_arg" != x ]; then
@@ -189,6 +202,9 @@ function parse_args {
                 else
                     echo "No main project specified"
                     exit 3
+                fi
+                if [ $legacy_format = false ]; then
+                    shift
                 fi
                 ;;
             --main-proj-version)
@@ -198,6 +214,9 @@ function parse_args {
                     echo "No main project specified"
                     exit 3
                 fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
                 ;;
             -s|--skip)
                 if [ x"$option_arg" != x ]; then
@@ -205,6 +224,9 @@ function parse_args {
                 else
                     echo "No projects specified to skip"
                     exit 3
+                fi
+                if [ $legacy_format = false ]; then
+                    shift
                 fi
                 ;;
             -h|--help)
