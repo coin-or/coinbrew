@@ -705,23 +705,26 @@ function fetch_proj {
                 fi
             fi
             if [ $current_version != $version ]; then
-                print_action "Switching $dir to $version"
-                svn --non-interactive --trust-server-cert switch $url
-                if [ $dir = $main_proj_dir ]; then
-                    rm -f Dependencies
-                    svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
-                fi
-                new_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
-                if [ x$build_dir != x ] && [ -e $build_dir/$dir ]; then
-                    cd $build_dir/$dir
-                    if [ -e config.status ]; then
-                        print_action "Cleaning previous build"
-                        make clean
+                if [ $skip_update = "false" ]; then
+                    print_action "Switching $dir to $version"
+                    svn --non-interactive --trust-server-cert switch $url
+                    if [ $dir = $main_proj_dir ]; then
+                        rm -f Dependencies
+                        svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
                     fi
-                elif [ x$build_dir = x ]; then
-                    echo
-                    echo "### Warning: Switching versions, may need to 'make clean'" 
-                    echo "###          when re-building in existing build directory"
+                    if [ x$build_dir != x ] && [ -e $build_dir/$dir ]; then
+                        cd $build_dir/$dir
+                        if [ -e config.status ]; then
+                            print_action "Cleaning previous build"
+                            make clean
+                        fi
+                    elif [ x$build_dir = x ]; then
+                        echo
+                        echo "### Warning: Switching versions, may need to 'make clean'" 
+                        echo "###          when re-building in existing build directory"
+                    fi
+                else
+                    print_action "Skipping update of $dir"
                 fi
             else
                 if [ $skip_update = "false" ]; then
@@ -731,10 +734,11 @@ function fetch_proj {
                         rm -f Dependencies
                         svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
                     fi
+                else
+                    print_action "Skipping update of $dir"
                 fi
-                new_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
             fi
-            cd $root_dir
+            new_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
         else
             if [ $version = "trunk" ] ; then
                 version=master
@@ -747,23 +751,26 @@ function fetch_proj {
             fi
             current_rev=`git rev-parse HEAD`
             if [ $current_version != $version ]; then
-                print_action "Switching $dir to $version"
-                git fetch --tags
-                git checkout $version
-                if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
-                    git pull
-                fi
-                new_rev=`git rev-parse HEAD`
-                if [ x$build_dir != x ] && [ -e $build_dir/$dir ]; then
-                    cd $build_dir/$dir
-                    if [ -e config.status ]; then
-                        print_action "Cleaning previous build"
-                        make clean
+                if [ $skip_update = "false" ]; then
+                    print_action "Switching $dir to $version"
+                    git fetch --tags
+                    git checkout $version
+                    if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
+                        git pull
                     fi
-                elif [ x$build_dir = x ]; then
-                    echo
-                    echo "### Warning: Switching versions, may need to 'make clean'" 
-                    echo "###          when re-building in existing build directory"
+                    if [ x$build_dir != x ] && [ -e $build_dir/$dir ]; then
+                        cd $build_dir/$dir
+                        if [ -e config.status ]; then
+                            print_action "Cleaning previous build"
+                            make clean
+                        fi
+                    elif [ x$build_dir = x ]; then
+                        echo
+                        echo "### Warning: Switching versions, may need to 'make clean'" 
+                        echo "###          when re-building in existing build directory"
+                    fi
+                else
+                    print_action "Skipping update of $dir"
                 fi
             else
                 if [ $skip_update = "false" ]; then
@@ -771,10 +778,11 @@ function fetch_proj {
                     if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
                         git pull
                     fi
+                else
+                    print_action "Skipping update of $dir"
                 fi
-                new_rev=`git rev-parse HEAD`
             fi
-            cd $root_dir
+            new_rev=`git rev-parse HEAD`
         fi
     elif [ `echo $url | cut -d '/' -f 3` = "projects.coin-or.org" ]; then
         print_action "Fetching $dir $version"
@@ -785,7 +793,6 @@ function fetch_proj {
             svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
         fi
         new_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
-        cd $root_dir
     else
         if [ $version = "trunk" ] ; then
             version=master
@@ -800,15 +807,13 @@ function fetch_proj {
             echo $proj/ >> .git/info/sparse-checkout
             git fetch --tags
             git checkout $version
-            new_rev=`git rev-parse HEAD`
-            cd root_dir
         else
             git clone --branch=$version $url $dir
             cd $dir
-            new_rev=`git rev-parse HEAD`
-            cd $root_dir                
         fi     
+        new_rev=`git rev-parse HEAD`
     fi
+    cd $root_dir
 
     # If this is a third party project, fetch the source if desired
     if [ $get_third_party = "true" ] &&
