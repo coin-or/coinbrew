@@ -745,8 +745,9 @@ function fetch_proj {
             current_rev=`git rev-parse HEAD`
             if [ $current_version != $version ]; then
                 print_action "Switching $dir to $version"
+                git fetch --tags
                 git checkout $version
-                if [ `echo $current_version | cut -d " " -f 1` != "(HEAD" ]; then
+                if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
                     git pull
                 fi
                 new_rev=`git rev-parse HEAD`
@@ -792,7 +793,7 @@ function fetch_proj {
             git remote add origin $url
             git config core.sparsecheckout true
             echo $proj/ >> .git/info/sparse-checkout
-            git fetch
+            git fetch --tags
             git checkout $version
             new_rev=`git rev-parse HEAD`
             cd root_dir
