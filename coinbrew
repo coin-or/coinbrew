@@ -262,6 +262,7 @@ function parse_args {
                 ;;
             --skip-update)
                 skip_update=true
+                get_third_party=false
                 ;;
             fetch)
                 num_actions+=1
