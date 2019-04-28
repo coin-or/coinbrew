@@ -742,6 +742,9 @@ function fetch_proj {
                 version=`echo $version | cut -d '/' -f 2`
             fi
             current_version=`git branch | grep \* | cut -d ' ' -f 2`
+            if [ $current_version = "(HEAD" ]; then
+                current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
+            fi
             current_rev=`git rev-parse HEAD`
             if [ $current_version != $version ]; then
                 print_action "Switching $dir to $version"
@@ -765,7 +768,9 @@ function fetch_proj {
             else
                 if [ $skip_update = "false" ]; then
                     print_action "Updating $dir"
-                    git pull
+                    if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
+                        git pull
+                    fi
                 fi
                 new_rev=`git rev-parse HEAD`
             fi
