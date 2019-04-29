@@ -14,17 +14,15 @@
 #PS4='${LINENO}:${PWD}: '
 
 function help {
-    echo "Usage: coin.brew <command1> --option1 --option2 <command2> ..."
+    echo "Usage: coinbrew <command1> <command2> <name|URL:branch> --option option_par ..."
     echo "       Run without arguments for interactive mode"
     echo
     echo "Commands:"
     echo
     echo "  fetch: Checkout source code for project and dependencies"
-    echo "    options: --main-proj=Xxx (check out project Xxx from COIN-OR)"
-    echo "             --main-proj=URL (check out git fork from URL)"
-    echo "             --main-proj-version=x.y.z (check out version x.y.z)"
-    echo "             --svn (check out SVN projects with SVN)"
+    echo "    options: --svn (check out SVN projects with SVN)"
     echo "             --git (check out all projects from git)"
+    echo "             --ssh (checkout git projects using ssh"
     echo "             --skip='proj1 proj2' skip listed projects"
     echo "             --no-third-party don't download third party source (getter-scripts)"
     echo "             --skip-update Skip updating projects that are already checked out (useful if you have local changes)"
@@ -242,6 +240,9 @@ function parse_args {
             --git)
                 VCS=git
                 ;;
+            --ssh)
+                ssh_checkout=true
+                ;;
             -d|--debug)
                 set -x
                 ;;
@@ -284,8 +285,14 @@ function parse_args {
                 if [[ "$arg" == *=* ]] || [[ "$arg" == --* ]]; then
                     configure_options["$arg"]=""
                 elif [[ $arg == *:* ]]; then
-                    main_proj=${arg%%:*}
-                    main_proj_version=${arg#*:}
+                    if [ `echo $arg | cut -d ':' -f 1` = https ] ||
+                       [ `echo $arg | cut -d '@' -f 1` = git ]; then
+                        main_proj=`echo $arg | cut -d ':' -f 1-2`
+                        main_proj_version=`echo $arg | cut -d ':' -f 3`
+                    else
+                        main_proj=${arg%%:*}
+                        main_proj_version=${arg#*:}
+                    fi
                 else
                     main_proj=$arg
                 fi
@@ -436,12 +443,21 @@ function user_prompts {
 
     if [ x$main_proj != x ]; then
         # First guess at correct values, change later if project already exists)
-        if [ `echo $main_proj | cut -d ":" -f 1` = https ]; then
-            #We assume this is a fork of a git project 
-            main_proj=`echo $main_proj | cut -d '/' -f 5 | cut -d '.' -f 1`
-            main_proj_url="https://github.com/coin-or/$main_proj"
+        if [ `echo $main_proj | cut -d ':' -f 1` = https ] ||
+           [ `echo $main_proj | cut -d '@' -f 1` = git ]; then
+            #We assume this is a fork of a git project
+            main_proj_url=$main_proj
+            if [ `echo $main_proj | cut -d ':' -f 1` = https ]; then
+                main_proj=`echo $main_proj_url | cut -d '/' -f 5 | cut -d '.' -f 1`
+            else
+                main_proj=`echo $main_proj | cut -d '/' -f 2 | cut -d '.' -f 1`
+            fi
         elif [ $VCS = "git" ]; then
-            main_proj_url="https://github.com/coin-or/$main_proj"
+            if [ $ssh_checkout = "false" ]; then
+                main_proj_url="https://github.com/coin-or/$main_proj"
+            else
+                main_proj_url="git@github.com:coin-or/$main_proj"
+            fi
         else
             main_proj_url="https://projects.coin-or.org/svn/$main_proj/$main_proj_version/$main_proj"
         fi
@@ -452,7 +468,7 @@ function user_prompts {
                 main_proj_version=master
             fi
         fi
-        if [ `echo $main_proj | cut -d '-' -f 1` = "CHiPPS" ]; then
+        if [ x`echo $main_proj | cut -d '-' -f 1` = x"CHiPPS" ]; then
             case `echo $main_proj | cut -d '-' -f 2` in
                 ALPS)
                     main_proj_dir=Alps
@@ -785,7 +801,7 @@ function fetch_proj {
             fi
             new_rev=`git rev-parse HEAD`
         fi
-    elif [ `echo $url | cut -d '/' -f 3` = "projects.coin-or.org" ]; then
+    elif [ x`echo $url | cut -d '/' -f 3` = x"projects.coin-or.org" ]; then
         print_action "Fetching $dir $version"
         svn co --non-interactive --trust-server-cert $url $dir
         cd $dir
@@ -793,7 +809,7 @@ function fetch_proj {
             rm -f Dependencies
             svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
         fi
-        new_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
+        new_rev=`svn info | fgrep "Revision:" | cut -d ' ' -f 2`
     else
         if [ $version = "trunk" ] ; then
             version=master
@@ -976,6 +992,7 @@ MAKE=make
 VCS=git
 no_prompt=false
 skip_update=false
+ssh_checkout=false
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
@@ -1078,9 +1095,17 @@ do
         
         if [ ! -d $dir ] && [ $VCS = "git" ]; then
             if [ $proj = "BuildTools" ] || [ $proj = "Data" ]; then
-                url="https://github.com/coin-or-tools/"
+                if [ $ssh_checkout = "false" ]; then
+                    url="https://github.com/coin-or-tools/"
+                else
+                    url="git@github.com:coin-or-tools/"
+                fi
             else
-                url="https://github.com/coin-or/"
+                if [ $ssh_checkout = "false" ]; then
+                    url="https://github.com/coin-or/"
+                else
+                    url="git@github.com:coin-or/"
+                fi
             fi
             # Convert SVN URL to a Github one and check out with git
             if [ `echo $version | cut -d '/' -f 1` = "branches" ]; then
