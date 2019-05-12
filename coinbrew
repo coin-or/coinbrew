@@ -1143,7 +1143,9 @@ do
             print_action "Warning: project $dir is missing"
             fetch_proj
         fi
-        build_proj
+        if get_project $dir; then
+            build_proj
+        fi
     fi
 
     # Install the project (if requested)
