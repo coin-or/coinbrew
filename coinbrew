@@ -873,9 +873,9 @@ function build_proj {
             if [ $verbosity -ge 3 ] || ( [ $verbosity -ge 2 ] &&
                                              [ x$main_proj != x ] &&
                                              [ $main_proj_dir = $dir ]); then
-                "$config_script" --disable-dependency-tracking --with-coin-instdir=$build_dir --prefix=$prefix "${!configure_options[@]}"
+                "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
             else
-                "$config_script" --disable-dependency-tracking --with-coin-instdir=$build_dir --prefix=$prefix "${!configure_options[@]}" > /dev/null
+                "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" > /dev/null
             fi
         fi
         print_action "Building $dir"
@@ -993,6 +993,8 @@ VCS=git
 no_prompt=false
 skip_update=false
 ssh_checkout=false
+
+export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
