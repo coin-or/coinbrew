@@ -28,8 +28,7 @@ function help {
     echo "             --skip-update Skip updating projects that are already checked out (useful if you have local changes)"
     echo
     echo "  build: Configure, build, test (optional), and pre-install all projects"
-    echo "    options: --main-proj=Xxx (main project is Xxx)"
-    echo "             --xxx=yyy (will be passed through to configure)"
+    echo "    options: --xxx=yyy (will be passed through to configure)"
     echo "             --parallel-jobs=n build in parallel with maximum 'n' jobs"
     echo "             --build-dir=\dir\to\build\in do a VPATH build (default: $PWD/build)"
     echo "             --test run unit test of main project before install"
@@ -231,6 +230,10 @@ function parse_args {
                 help
                 exit 0
                 ;;
+            -c|--configure-help)
+                configure_help=true
+                no_prompt=true
+                ;;
             --sparse)
                 sparse=true
                 ;;
@@ -299,12 +302,10 @@ function parse_args {
                 ;;
         esac
     done
-    echo
 }
 
 function user_prompts {
 
-    echo "For help, re-run with --help"
     if [ $no_prompt = false ]; then
         echo "Entering interactive mode (suppress with --no-prompt)..."
         echo 
@@ -348,8 +349,10 @@ function user_prompts {
                     ;;
             esac
         else
-            help
-            exit 0
+            if [ $configure_help = false ]; then
+                help
+                exit 0
+            fi
         fi
     fi
 
@@ -683,7 +686,6 @@ function user_prompts {
         fi
         echo "Options to be passed to configure: ${!configure_options[@]}"
     fi
-    echo
 }
 
 
@@ -993,6 +995,7 @@ VCS=git
 no_prompt=false
 skip_update=false
 ssh_checkout=false
+configure_help=false
 
 export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
 
@@ -1017,12 +1020,24 @@ user_prompts
 # Fetch main project first
 
 if [ x$main_proj != x ]; then
+    url=$main_proj_url
+    dir=$main_proj_dir
+    proj=$main_proj
+    version=$main_proj_version
     if [ $fetch = true ]; then
-        url=$main_proj_url
-        dir=$main_proj_dir
-        proj=$main_proj
-        version=$main_proj_version
         fetch_proj
+    fi
+    if [ $configure_help = true ]; then
+        echo "Here is the help output for the main configure script."
+        echo
+        if [ -e $dir/$dir/configure ]; then
+            $dir/$dir/configure --help
+        elif [ -e $dir/configure ]; then
+            $dir/confgure --help
+        else
+            echo "Can't find configure file for main project!"
+        fi
+        exit 0
     fi
 fi
 
