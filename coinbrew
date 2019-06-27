@@ -1072,9 +1072,11 @@ if [ build = "true" ]; then
     rm -f $build_dir/coin_subdirs.txt
 fi
 
-# Go through each project in order and fetch, build, install (as instructed
+# Go through each project in order and fetch, build, install (as instructed).
+# Skip comments (lines starting with '#').
 for entry in $deps
 do
+    if expr "$entry" : '^#' &>/dev/null ; then continue ; fi
     dir=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1`
     url=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
     proj=`echo $url | cut -d '/' -f 5`
