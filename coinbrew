@@ -997,7 +997,8 @@ skip_update=false
 ssh_checkout=false
 configure_help=false
 
-export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
+#TKR: For now, we need to use the uninstalled .pc files
+#export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
