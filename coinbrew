@@ -686,8 +686,124 @@ function user_prompts {
         fi
         echo "Options to be passed to configure: ${!configure_options[@]}"
     fi
-}
 
+    #Find out if we're supposed to skip any projects
+    for c in ${!configure_options[@]} ; do
+        if [[ $c == --without-* ]]; then
+            found_project=true
+            proj_name=`echo "$c" | cut -d '-' -f 4`
+            proj_name=${proj_name,,}
+            case $proj_name in
+                asl)
+                    proj_dir="ThirdParty/ASL"
+                    ;;
+                blas)
+                    proj_dir="ThirdParty/Blas"
+                    ;;
+                filtersqp)
+                    proj_dir="ThirdParty/FilterSQP"
+                    ;;
+                glpk)
+                    proj_dir="ThirdParty/Glpk"
+                    ;;
+                hsl)
+                    proj_dir="ThirdParty/HSL"
+                    ;;
+                lapack)
+                    proj_dir="ThirdParty/Lapack"
+                    ;;
+                metic)
+                    proj_dir="ThirdParty/Metis"
+                    ;;
+                mumps)
+                    proj_dir="ThirdParty/Mumps"
+                    ;;
+                scip)
+                    proj_dir="ThirdParty/SCIP"
+                    ;;
+                alps)
+                    proj_dir="Alps"
+                    ;;
+                bcp)
+                    proj_dir="Bcp"
+                    ;;
+                bcps)
+                    proj_dir="Bcps"
+                    ;;
+                blis)
+                    proj_dir="Blis"
+                    ;;
+                bonmin)
+                    proj_dir="Bonmin"
+                    ;;
+                cbc)
+                    proj_dir="Cbc"
+                    ;;
+                cgl)
+                    proj_dir="Cgl"
+                    ;;
+                clp)
+                    proj_dir="Clp"
+                    ;;
+                coinmp)
+                    proj_dir="CoinMP"
+                    ;;
+                coinutils)
+                    proj_dir="CoinUtils"
+                    ;;
+                couenne)
+                    proj_dir="Couenne"
+                    ;;
+                dip)
+                    proj_dir="Dip"
+                    ;;
+                disco)
+                    proj_dir="DisCO"
+                    ;;
+                dylp)
+                    proj_dir="DyLP"
+                    ;;
+                flopcpp)
+                    proj_dir="FlopCpp"
+                    ;;
+                ipopt)
+                    proj_dir="Ipopt"
+                    ;;
+                mibs)
+                    proj_dir="MibS"
+                    ;;
+                os)
+                    proj_dir="OS"
+                    ;;
+                osi)
+                    proj_dir="Osi"
+                    ;;
+                symphony)
+                    proj_dir="SYMPHONY"
+                    ;;
+                smi)
+                    proj_dir="Smi"
+                    ;;
+                vol)
+                    proj_dir="Vol"
+                    ;;
+                cppad)
+                    proj_dir="cppad"
+                    ;;
+                *)
+                    echo "Warning: Unknow project $proj_name"
+                    found_project=false
+            esac
+            if [ $found_project = "true" ]; then
+                if [ x"$coin_skip_projects" != x ]; then
+                    coin_skip_projects=$proj_dir
+                else
+                    coin_skip_projects="${coin_skip_projects} $proj_dir"
+                fi
+            fi
+        fi
+    done
+}
 
 function fetch_proj {
     current_rev=
@@ -723,8 +839,8 @@ function fetch_proj {
                     current_version=`echo $url | cut -d '/' -f 6-7`
                 fi
             fi
-            if [ $current_version != $version ]; then
-                if [ $skip_update = "false" ]; then
+            if [ $skip_update = "false" ]; then
+                if [ $current_version != $version ]; then
                     print_action "Switching $dir to $version"
                     svn --non-interactive --trust-server-cert switch $url
                     if [ $dir = $main_proj_dir ]; then
@@ -743,19 +859,15 @@ function fetch_proj {
                         echo "###          when re-building in existing build directory"
                     fi
                 else
-                    print_action "Skipping update of $dir"
-                fi
-            else
-                if [ $skip_update = "false" ]; then
                     print_action "Updating $dir"
                     svn --non-interactive --trust-server-cert update
                     if [ $dir = $main_proj_dir ]; then
                         rm -f Dependencies
                         svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
                     fi
-                else
-                    print_action "Skipping update of $dir"
                 fi
+            else
+                print_action "Skipping update of $dir"
             fi
             new_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
         else
@@ -769,8 +881,8 @@ function fetch_proj {
                 current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
             fi
             current_rev=`git rev-parse HEAD`
-            if [ $current_version != $version ]; then
-                if [ $skip_update = "false" ]; then
+            if [ $skip_update = "false" ]; then
+                if [ $current_version != $version ]; then
                     print_action "Switching $dir to $version"
                     git fetch --tags
                     git checkout $version
@@ -789,17 +901,13 @@ function fetch_proj {
                         echo "###          when re-building in existing build directory"
                     fi
                 else
-                    print_action "Skipping update of $dir"
-                fi
-            else
-                if [ $skip_update = "false" ]; then
                     print_action "Updating $dir"
                     if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
                         git pull
                     fi
-                else
-                    print_action "Skipping update of $dir"
                 fi
+            else
+                print_action "Skipping update of $dir"
             fi
             new_rev=`git rev-parse HEAD`
         fi
@@ -1069,10 +1177,6 @@ if [ x$main_proj != x ]; then
     fi
 fi
 
-if [ build = "true" ]; then
-    rm -f $build_dir/coin_subdirs.txt
-fi
-
 # Go through each project in order and fetch, build, install (as instructed).
 # Skip comments (lines starting with '#').
 for entry in $deps
@@ -1151,7 +1255,7 @@ do
                 fetch_proj
             fi
         else
-            echo "Skipping $proj..."
+            print_action "Skipping $proj"
         fi
     fi
     
@@ -1163,6 +1267,8 @@ do
         fi
         if get_project $dir; then
             build_proj
+        else
+            print_action "Skipping $dir"
         fi
     fi
 
