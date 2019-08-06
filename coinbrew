@@ -76,11 +76,11 @@ function invoke_make {
     v=$1
     shift
     if [ $v = 1 ]; then
-        $MAKE -j $jobs $@ >& /dev/null
+        $sudo $MAKE -j $jobs $@ >& /dev/null
     elif [ $v = 2 ]; then
-        $MAKE -j $jobs $@ > /dev/null
+        $sudo $MAKE -j $jobs $@ > /dev/null
     else
-        $MAKE -j $jobs $@
+        $sudo $MAKE -j $jobs $@
     fi
 }
 
@@ -1007,27 +1007,21 @@ function build_proj {
                 invoke_make "false" test
             fi
         fi
-        print_action "Pre-installing $dir"
-        if [ $verbosity -ge 3 ]; then
-            if [ $prefix != $build_dir ]; then
-                invoke_make $(($verbosity-1)) DESTDIR=$build_dir install
-            else
-                invoke_make $(($verbosity-1)) install
-            fi
-        else
-            if [ $prefix != $build_dir ]; then
-                invoke_make 1 DESTDIR=$build_dir install
-            else
-                invoke_make 1 install
-            fi
-        fi
         cd $root_dir
     fi
 }
 
 function install_proj {
-    print_action "Doing final install for $dir"
+    print_action "Installing $dir"
     cd $build_dir/$dir
+    sudo=""
+    if [ ! -w $prefix ]; then
+        if [ ! $(id -u) = 0 ]; then
+            echo "Prefix is not writable."
+            echo "Install step needs to be run with sudo"
+            sudo=sudo
+        fi
+    fi
     if [ $verbosity -ge 3 ]; then
         invoke_make $(($verbosity-1)) install
     else
@@ -1104,9 +1098,7 @@ no_prompt=false
 skip_update=false
 ssh_checkout=false
 configure_help=false
-
-#TKR: For now, we need to use the uninstalled .pc files
-#export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
+sudo=""
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
@@ -1115,19 +1107,34 @@ echo
 
 parse_args "$@"
 
+# This changes the default separator used in for loops to carriage return.
+# We need this later.
+IFS=$'\n'
+
+#Set the build and install directories
 if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
     if [ x$build_dir = x ] ; then
         build_dir=$PWD/build
     fi
-    if [ x$prefix = x ] ; then
-        prefix=$build_dir
+    if [ -e $build_dir/.config ]; then
+        for i in `cat $build_dir/.config`
+        do
+            if [[ $i == --with-coin-instdir* ]]; then
+                prefix=`echo $i | cut -d '=' -f 2`
+            fi
+        done
+    fi
+    if [ $build = "true"]; then
+        if [ x$prefix = x ]; then
+            prefix=$build_dir
+        fi
+        configure_options["--with-coin-instdir=$prefix"]=""
     fi
 fi
 
 user_prompts
 
 # Fetch main project first
-
 if [ x$main_proj != x ]; then
     url=$main_proj_url
     dir=$main_proj_dir
@@ -1150,10 +1157,6 @@ if [ x$main_proj != x ]; then
     fi
 fi
 
-# This changes the default separator used in for loops to carriage return.
-# We need this later.
-IFS=$'\n'
-
 # Build list of dependencies
 if [ -e Dependencies ] && [ x$main_proj = x ]; then
     deps=`cat Dependencies | tr '\t' ' ' | tr -s ' '`
@@ -1175,6 +1178,13 @@ if [ x$main_proj != x ]; then
     else
         deps+="$main_proj_dir $main_proj_url"
     fi
+fi
+
+#If we are going to build against installed packages, we need to disable
+#the uninstalled .pc files. Otherwise, they are preferred.
+if [ $install = "true" ] || [ $prefix = $build_dir ]; then
+    export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
+    echo "Disabling uninstalled packages"
 fi
 
 # Go through each project in order and fetch, build, install (as instructed).
@@ -1273,7 +1283,7 @@ do
     fi
 
     # Install the project (if requested)
-    if [ $install = "true" ] &&
+    if ([ $install = "true" ] || [ $prefix = $build_dir ]) &&
            [ $dir != "BuildTools" ] && get_project $dir; then
         install_proj
     fi
