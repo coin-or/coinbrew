@@ -30,12 +30,12 @@ function help {
     echo "  build: Configure, build, test (optional), and pre-install all projects"
     echo "    options: --xxx=yyy (will be passed through to configure)"
     echo "             --parallel-jobs=n build in parallel with maximum 'n' jobs"
-    echo "             --build-dir=\dir\to\build\in do a VPATH build (default: $PWD/build)"
+    echo "             --build-dir=/dir/to/build/in do a VPATH build (default: $PWD/build)"
     echo "             --test run unit test of main project before install"
     echo "             --test-all run unit tests of all projects before install"
     echo "             --verbosity=i set verbosity level (1-4)"
     echo "             --reconfigure re-run configure"
-    echo "             --prefix=\dir\to\install (where to install, default: $PWD/build)"
+    echo "             --prefix=/dir/to/install (where to install, default: $PWD/build)"
     echo
     echo "  install: Install all projects in location specified by prefix (after build and test)"
     echo
@@ -999,7 +999,7 @@ function build_proj {
             invoke_make 1 ""
         fi
         if [ $run_all_tests = "true" ]; then
-            print_action "Running $proj unit test"
+            print_action "Running $dir unit test"
             invoke_make "false" test
         elif [ $run_test = "true" ] && [ x$main_proj != x ]; then
             if [ $main_proj_dir = $dir ]; then
@@ -1027,6 +1027,7 @@ function install_proj {
     else
         invoke_make 1 install
     fi
+    cd $root_dir
 }
 
 function uninstall {
