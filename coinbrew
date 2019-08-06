@@ -1119,12 +1119,13 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
     if [ -e $build_dir/.config ]; then
         for i in `cat $build_dir/.config`
         do
-            if [[ $i == --with-coin-instdir* ]]; then
+            echo $i
+            if [[ "$i" == --with-coin-instdir* ]]; then
                 prefix=`echo $i | cut -d '=' -f 2`
             fi
         done
     fi
-    if [ $build = "true"]; then
+    if [ $build = "true" ]; then
         if [ x$prefix = x ]; then
             prefix=$build_dir
         fi
