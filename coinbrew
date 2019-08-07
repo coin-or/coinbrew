@@ -1286,7 +1286,8 @@ do
     fi
 
     # Install the project (if requested)
-    if ([ $install = "true" ] || [ $prefix = $build_dir ]) &&
+    if ([ $install = "true" ] ||
+            ([ $build = "true" ] && [[ $prefix == $root_dir/* ]])) &&
            [ $dir != "BuildTools" ] && get_project $dir; then
         install_proj
     fi
