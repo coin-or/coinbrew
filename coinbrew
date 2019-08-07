@@ -94,6 +94,11 @@ function get_project {
             return 1
         fi
     done
+    if [ `echo $dir | cut -d '/' -f 1` = ThirdParty ] &&
+           [ ! -e $dir/.build ]; then
+        IFS=$TMP_IFS
+        return 1
+    fi
     IFS=$TMP_IFS
     return 0
 }
@@ -807,55 +812,48 @@ function fetch_proj {
 }
         
 function build_proj {
-    if [ `echo $dir | cut -d '/' -f 1` = ThirdParty ] &&
-           [ ! -e $dir/.build ]; then
-        echo
-        echo "Skipping build of $dir"
-        echo
-    else
-        mkdir -p $build_dir/$dir/$version
-        echo -n $dir/$version" " >> $build_dir/coin_subdirs.txt
-        cd $build_dir/$dir/$version
-        if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
-            if [ $reconfigure = "true" ]; then
-                print_action "Reconfiguring $dir"
-            else
-                print_action "Configuring $dir"
-            fi
-            if [ -e $root_dir/$dir/$dir/configure ]; then
-                config_script="$root_dir/$dir/$dir/configure"
-            else
-                config_script="$root_dir/$dir/configure"
-            fi
-            if [ $verbosity -ge 3 ] || ( [ $verbosity -ge 2 ] &&
-                                             [ x$main_proj != x ] &&
-                                             [ $main_proj_dir = $dir ]); then
-                "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
-            else
-                "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" > /dev/null
-            fi
-        fi
-        print_action "Building $dir"
-        if [ $verbosity -ge 2 ]; then
-            if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
-                invoke_make $verbosity ""
-            else
-                invoke_make $(($verbosity-1)) ""
-            fi
+    mkdir -p $build_dir/$dir/$version
+    echo -n $dir/$version" " >> $build_dir/coin_subdirs.txt
+    cd $build_dir/$dir/$version
+    if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
+        if [ $reconfigure = "true" ]; then
+            print_action "Reconfiguring $dir"
         else
-            invoke_make 1 ""
+            print_action "Configuring $dir"
         fi
-        if [ $run_all_tests = "true" ]; then
-            print_action "Running $dir unit test"
-            invoke_make "false" test
-        elif [ $run_test = "true" ] && [ x$main_proj != x ]; then
-            if [ $main_proj_dir = $dir ]; then
-                print_action "Running $proj unit test"
-                invoke_make "false" test
-            fi
+        if [ -e $root_dir/$dir/$dir/configure ]; then
+            config_script="$root_dir/$dir/$dir/configure"
+        else
+            config_script="$root_dir/$dir/configure"
         fi
-        cd $root_dir
+        if [ $verbosity -ge 3 ] || ( [ $verbosity -ge 2 ] &&
+                                         [ x$main_proj != x ] &&
+                                         [ $main_proj_dir = $dir ]); then
+            "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
+        else
+            "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" > /dev/null
+        fi
     fi
+    print_action "Building $dir"
+    if [ $verbosity -ge 2 ]; then
+        if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
+            invoke_make $verbosity ""
+        else
+            invoke_make $(($verbosity-1)) ""
+        fi
+    else
+        invoke_make 1 ""
+    fi
+    if [ $run_all_tests = "true" ]; then
+        print_action "Running $dir unit test"
+        invoke_make "false" test
+    elif [ $run_test = "true" ] && [ x$main_proj != x ]; then
+        if [ $main_proj_dir = $dir ]; then
+            print_action "Running $proj unit test"
+            invoke_make "false" test
+        fi
+    fi
+    cd $root_dir
 }
 
 function install_proj {
