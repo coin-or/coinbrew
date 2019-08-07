@@ -1291,7 +1291,7 @@ do
                 fetch_proj
             fi
         else
-            print_action "Skipping $proj"
+            print_action "Skipping $dir"
         fi
     fi
     
