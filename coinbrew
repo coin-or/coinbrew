@@ -220,6 +220,17 @@ function parse_args {
                     shift
                 fi
                 ;;
+            --main-proj-sha)
+                if [ x"$option_arg" != x ]; then
+                    main_proj_sha=$option_arg
+                else
+                    echo "No main project specified"
+                    exit 3
+                fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
+                ;;                
             -s|--skip)
                 if [ x"$option_arg" != x ]; then
                     coin_skip_projects=$option_arg
@@ -745,10 +756,16 @@ function fetch_proj {
             fi
             current_rev=`git rev-parse HEAD`
             if [ $skip_update = "false" ]; then
-                if [ $current_version != $version ]; then
-                    print_action "Switching $dir to $version"
+                if [ $current_version != $version ] ||
+                   [ x$sha != x ] && [[ $current_rev != $sha* ]]; then
                     git fetch --tags
-                    git checkout $version
+                    if [ x$sha = x ]; then
+                        print_action "Switching $dir to $version"
+                        git checkout $version
+                    else
+                        print_action "Switching $dir to SHA $sha"
+                        git checkout $sha
+                    fi
                     if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
                         git pull
                     fi
@@ -776,8 +793,8 @@ function fetch_proj {
         if [ $version = "trunk" ] ; then
             version=master
         fi
-        print_action "Fetching $dir $version"
         if [ $sparse = "true" ]; then
+            print_action "Fetching $dir $version"
             mkdir $dir
             cd $dir
             git init
@@ -787,7 +804,16 @@ function fetch_proj {
             git fetch --tags
             git checkout $version
         else
-            git clone --branch=$version $url $dir
+            if [ x$sha = x ]; then
+                print_action "Fetching $dir $version"
+                git clone --branch=$version $url $dir
+            else
+                print_action "Fetching $dir SHA $sha"
+                git clone $url $dir
+                cd $dir
+                git checkout $sha
+                cd -
+            fi
             cd $dir
         fi     
         new_rev=`git rev-parse HEAD`
@@ -937,6 +963,7 @@ get_third_party=true
 verbosity=4
 main_proj=
 main_proj_version=
+main_proj_sha=
 main_proj_dir=
 MAKE=make
 VCS=git
@@ -1137,6 +1164,7 @@ if [ x$main_proj != x ]; then
     dir=$main_proj_dir
     proj=$main_proj
     version=$main_proj_version
+    sha=$main_proj_sha
     if [ $fetch = true ]; then
         fetch_proj
     fi
@@ -1192,6 +1220,7 @@ do
     dir=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1`
     url=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
     proj=`echo $url | cut -d '/' -f 5`
+    sha=
     # Set the URL of the project, the version, and the build dir
     if [ `echo $url | cut -d '/' -f 3` != "projects.coin-or.org" ]; then
         # This is a git project
