@@ -1108,17 +1108,19 @@ echo
 
 parse_args "$@"
 
+#Set the build directory
+if [ x$build_dir = x ] ; then
+    build_dir=$PWD/build
+fi
+
 user_prompts
 
 # This changes the default separator used in for loops to carriage return.
 # We need this later.
 IFS=$'\n'
 
-#Set the build and install directories
+#Set the install directory
 if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
-    if [ x$build_dir = x ] ; then
-        build_dir=$PWD/build
-    fi
     if [ -e $build_dir/.config ]; then
         for i in `cat $build_dir/.config`
         do
