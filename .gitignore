@@ -26,3 +26,7 @@ Data/*
 Dip/*
 DyLP/*
 FlopCpp/*
+DisCO/*
+COIN-OR-OptimizationSuite/*
+build*
+tmp/*

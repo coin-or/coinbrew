@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Author: Ted Ralphs (ted@lehigh.edu)
-# Copyright 2016-2018, Ted Ralphs
+# Copyright 2016-2019, Ted Ralphs
 # Released Under the Eclipse Public License 
 #
 # TODO
@@ -30,12 +30,12 @@ function help {
     echo "  build: Configure, build, test (optional), and pre-install all projects"
     echo "    options: --xxx=yyy (will be passed through to configure)"
     echo "             --parallel-jobs=n build in parallel with maximum 'n' jobs"
-    echo "             --build-dir=/dir/to/build/in do a VPATH build (default: $PWD/build)"
+    echo "             --build-dir=/dir/to/build/in where to build (default: $PWD/build)"
     echo "             --test run unit test of main project before install"
     echo "             --test-all run unit tests of all projects before install"
     echo "             --verbosity=i set verbosity level (1-4)"
     echo "             --reconfigure re-run configure"
-    echo "             --prefix=/dir/to/install (where to install, default: $PWD/build)"
+    echo "             --prefix=/dir/to/install (where to install, default: $PWD/dist)"
     echo
     echo "  install: Install all projects in location specified by prefix (after build and test)"
     echo
@@ -360,9 +360,6 @@ function user_prompts {
         echo "Prefix should only be specified with the build command"
         exit 3
     fi
-    if [ x"$prefix" = x ]; then
-        prefix=$build_dir
-    fi
     
     if [ x$main_proj = x ] && [ $no_prompt = false ]; then
         echo
@@ -674,135 +671,7 @@ function user_prompts {
     if [ x"${#configure_options[*]}" != x0 ] && [ $build = "false" ]; then
         echo "Configuration options should be specified only with build command"
         exit 3
-    fi
-    
-    if [ $build = "true" ]; then
-        if [ ! -e $build_dir/.config ] || [ $reconfigure = "true" ]; then
-            echo "Caching configuration options..."
-            mkdir -p $build_dir
-            printf "%s\n" "${!configure_options[@]}" > $build_dir/.config
-        else
-            get_cached_options
-        fi
-        echo "Options to be passed to configure: ${!configure_options[@]}"
-    fi
-
-    #Find out if we're supposed to skip any projects
-    for c in ${!configure_options[@]} ; do
-        if [[ $c == --without-* ]]; then
-            found_project=true
-            proj_name=`echo "$c" | cut -d '-' -f 4`
-            proj_name=${proj_name,,}
-            case $proj_name in
-                asl)
-                    proj_dir="ThirdParty/ASL"
-                    ;;
-                blas)
-                    proj_dir="ThirdParty/Blas"
-                    ;;
-                filtersqp)
-                    proj_dir="ThirdParty/FilterSQP"
-                    ;;
-                glpk)
-                    proj_dir="ThirdParty/Glpk"
-                    ;;
-                hsl)
-                    proj_dir="ThirdParty/HSL"
-                    ;;
-                lapack)
-                    proj_dir="ThirdParty/Lapack"
-                    ;;
-                metic)
-                    proj_dir="ThirdParty/Metis"
-                    ;;
-                mumps)
-                    proj_dir="ThirdParty/Mumps"
-                    ;;
-                scip)
-                    proj_dir="ThirdParty/SCIP"
-                    ;;
-                alps)
-                    proj_dir="Alps"
-                    ;;
-                bcp)
-                    proj_dir="Bcp"
-                    ;;
-                bcps)
-                    proj_dir="Bcps"
-                    ;;
-                blis)
-                    proj_dir="Blis"
-                    ;;
-                bonmin)
-                    proj_dir="Bonmin"
-                    ;;
-                cbc)
-                    proj_dir="Cbc"
-                    ;;
-                cgl)
-                    proj_dir="Cgl"
-                    ;;
-                clp)
-                    proj_dir="Clp"
-                    ;;
-                coinmp)
-                    proj_dir="CoinMP"
-                    ;;
-                coinutils)
-                    proj_dir="CoinUtils"
-                    ;;
-                couenne)
-                    proj_dir="Couenne"
-                    ;;
-                dip)
-                    proj_dir="Dip"
-                    ;;
-                disco)
-                    proj_dir="DisCO"
-                    ;;
-                dylp)
-                    proj_dir="DyLP"
-                    ;;
-                flopcpp)
-                    proj_dir="FlopCpp"
-                    ;;
-                ipopt)
-                    proj_dir="Ipopt"
-                    ;;
-                mibs)
-                    proj_dir="MibS"
-                    ;;
-                os)
-                    proj_dir="OS"
-                    ;;
-                osi)
-                    proj_dir="Osi"
-                    ;;
-                symphony)
-                    proj_dir="SYMPHONY"
-                    ;;
-                smi)
-                    proj_dir="Smi"
-                    ;;
-                vol)
-                    proj_dir="Vol"
-                    ;;
-                cppad)
-                    proj_dir="cppad"
-                    ;;
-                *)
-                    echo "Warning: Unknow project $proj_name"
-                    found_project=false
-            esac
-            if [ $found_project = "true" ]; then
-                if [ x"$coin_skip_projects" != x ]; then
-                    coin_skip_projects=$proj_dir
-                else
-                    coin_skip_projects="${coin_skip_projects} $proj_dir"
-                fi
-            fi
-        fi
-    done
+    fi    
 }
 
 function fetch_proj {
@@ -847,17 +716,6 @@ function fetch_proj {
                         rm -f Dependencies
                         svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
                     fi
-                    if [ x$build_dir != x ] && [ -e $build_dir/$dir ]; then
-                        cd $build_dir/$dir
-                        if [ -e config.status ]; then
-                            print_action "Cleaning previous build"
-                            make clean
-                        fi
-                    elif [ x$build_dir = x ]; then
-                        echo
-                        echo "### Warning: Switching versions, may need to 'make clean'" 
-                        echo "###          when re-building in existing build directory"
-                    fi
                 else
                     print_action "Updating $dir"
                     svn --non-interactive --trust-server-cert update
@@ -888,17 +746,6 @@ function fetch_proj {
                     git checkout $version
                     if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
                         git pull
-                    fi
-                    if [ x$build_dir != x ] && [ -e $build_dir/$dir ]; then
-                        cd $build_dir/$dir
-                        if [ -e config.status ]; then
-                            print_action "Cleaning previous build"
-                            make clean
-                        fi
-                    elif [ x$build_dir = x ]; then
-                        echo
-                        echo "### Warning: Switching versions, may need to 'make clean'" 
-                        echo "###          when re-building in existing build directory"
                     fi
                 else
                     print_action "Updating $dir"
@@ -966,9 +813,9 @@ function build_proj {
         echo "Skipping build of $dir"
         echo
     else
-        mkdir -p $build_dir/$dir
-        echo -n $dir" " >> $build_dir/coin_subdirs.txt
-        cd $build_dir/$dir
+        mkdir -p $build_dir/$dir/$version
+        echo -n $dir/$version" " >> $build_dir/coin_subdirs.txt
+        cd $build_dir/$dir/$version
         if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
             if [ $reconfigure = "true" ]; then
                 print_action "Reconfiguring $dir"
@@ -1013,7 +860,7 @@ function build_proj {
 
 function install_proj {
     print_action "Installing $dir"
-    cd $build_dir/$dir
+    cd $build_dir/$dir/$version
     sudo=""
     if [ ! -w $prefix ]; then
         if [ ! $(id -u) = 0 ]; then
@@ -1110,13 +957,24 @@ parse_args "$@"
 
 #Set the build directory
 if [ x$build_dir = x ] ; then
-    build_dir=$PWD/build
+    build_dir=$root_dir/build
+    mkdir -p $build_dir
+fi
+if [ ! -d $build_dir ]; then
+    if [[ $build_dir == $root_dir/* ]]; then
+            mkdir -p $build_dir
+    else
+        echo "Build directory doesn't exist."
+        echo "Please create it and re-run the sript."
+        exit 4
+    fi
 fi
 
 user_prompts
 
 # This changes the default separator used in for loops to carriage return.
 # We need this later.
+TMP_IFS=$IFS
 IFS=$'\n'
 
 #Set the install directory
@@ -1131,11 +989,149 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
     fi
     if [ $build = "true" ]; then
         if [ x$prefix = x ]; then
-            prefix=$build_dir
+            prefix=$root_dir/dist
+            mkdir -p $root_dir/dist
         fi
         configure_options["--with-coin-instdir=$prefix"]=""
     fi
+    if [ ! -d $prefix ]; then
+        if [[ $prefix == $root_dir/* ]]; then
+            mkdir -p $prefix
+        else
+            echo "Installation directory doesn't exist."
+            echo "Please create it and re-run the sript."
+            exit 4
+        fi
+    fi
 fi
+
+#Cache configuration options
+if [ $build = "true" ]; then
+    if [ ! -e $build_dir/.config ] || [ $reconfigure = "true" ]; then
+        echo "Caching configuration options..."
+        printf "%s\n" "${!configure_options[@]}" > $build_dir/.config
+    else
+        get_cached_options
+    fi
+    echo "Options to be passed to configure: ${!configure_options[@]}"
+fi
+
+#Find out if we're supposed to skip any projects
+for c in ${!configure_options[@]} ; do
+    if [[ $c == --without-* ]]; then
+        found_project=true
+        proj_name=`echo "$c" | cut -d '-' -f 4`
+        proj_name=${proj_name,,}
+        case $proj_name in
+            asl)
+                proj_dir="ThirdParty/ASL"
+                ;;
+            blas)
+                proj_dir="ThirdParty/Blas"
+                ;;
+            filtersqp)
+                proj_dir="ThirdParty/FilterSQP"
+                ;;
+            glpk)
+                proj_dir="ThirdParty/Glpk"
+                ;;
+            hsl)
+                proj_dir="ThirdParty/HSL"
+                ;;
+            lapack)
+                proj_dir="ThirdParty/Lapack"
+                ;;
+            metic)
+                proj_dir="ThirdParty/Metis"
+                ;;
+            mumps)
+                proj_dir="ThirdParty/Mumps"
+                ;;
+            scip)
+                proj_dir="ThirdParty/SCIP"
+                ;;
+            alps)
+                proj_dir="Alps"
+                ;;
+            bcp)
+                proj_dir="Bcp"
+                ;;
+            bcps)
+                proj_dir="Bcps"
+                ;;
+            blis)
+                proj_dir="Blis"
+                ;;
+            bonmin)
+                proj_dir="Bonmin"
+                ;;
+            cbc)
+                proj_dir="Cbc"
+                ;;
+            cgl)
+                proj_dir="Cgl"
+                ;;
+            clp)
+                proj_dir="Clp"
+                ;;
+            coinmp)
+                proj_dir="CoinMP"
+                ;;
+            coinutils)
+                proj_dir="CoinUtils"
+                ;;
+            couenne)
+                proj_dir="Couenne"
+                ;;
+            dip)
+                proj_dir="Dip"
+                ;;
+            disco)
+                proj_dir="DisCO"
+                ;;
+            dylp)
+                proj_dir="DyLP"
+                ;;
+            flopcpp)
+                proj_dir="FlopCpp"
+                ;;
+            ipopt)
+                proj_dir="Ipopt"
+                ;;
+            mibs)
+                proj_dir="MibS"
+                ;;
+            os)
+                proj_dir="OS"
+                ;;
+            osi)
+                proj_dir="Osi"
+                ;;
+            symphony)
+                proj_dir="SYMPHONY"
+                ;;
+            smi)
+                proj_dir="Smi"
+                ;;
+            vol)
+                proj_dir="Vol"
+                ;;
+            cppad)
+                proj_dir="cppad"
+                ;;
+            *)
+                echo "Warning: Unknow project $proj_name"
+                found_project=false
+        esac
+        if [ $found_project = "true" ]; then
+            if [ x"$coin_skip_projects" != x ]; then
+                coin_skip_projects=$proj_dir
+            else
+                coin_skip_projects="${coin_skip_projects} $proj_dir"
+            fi
+        fi
+    fi
+done
 
 # Fetch main project first
 if [ x$main_proj != x ]; then
@@ -1185,7 +1181,7 @@ fi
 
 #If we are going to build against installed packages, we need to disable
 #the uninstalled .pc files. Otherwise, they are preferred.
-if [ $install = "true" ] || [ $prefix = $build_dir ]; then
+if [ $install = "true" ] || [[ $prefix == $root_dir/* ]]; then
     export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
     echo "Disabling uninstalled packages"
 fi
@@ -1293,5 +1289,5 @@ do
     fi
     
 done
-unset IFS
+IFS=$TMP_IFS
 
