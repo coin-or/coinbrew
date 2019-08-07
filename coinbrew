@@ -1297,7 +1297,7 @@ do
     
     # Build the project (if requested)
     if [ $build = "true" ] && [ $dir != "BuildTools" ]; then
-        if [ ! -d $dir ]; then
+        if [ ! -d $dir ] && get_project $dir; then
             print_action "Warning: project $dir is missing"
             fetch_proj
         fi
