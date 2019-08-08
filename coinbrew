@@ -244,6 +244,10 @@ function parse_args {
                     shift
                 fi
                 ;;
+            --enable-msvc)
+                configure_options["$arg"]=""
+                with_msvc=true
+                ;;
             -h|--help)
                 help
                 exit 0
@@ -804,6 +808,7 @@ function fetch_proj {
             echo $proj/ >> .git/info/sparse-checkout
             git fetch --tags
             git checkout $version
+            cd -
         else
             if [ x$sha = x ]; then
                 print_action "Fetching $dir $version"
@@ -973,6 +978,7 @@ skip_update=false
 ssh_checkout=false
 configure_help=false
 sudo=""
+with_msvc=false
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
@@ -1208,7 +1214,8 @@ fi
 
 #If we are going to build against installed packages, we need to disable
 #the uninstalled .pc files. Otherwise, they are preferred.
-if [ $install = "true" ] || [[ $prefix == $root_dir/* ]]; then
+if ([ $install = "true" ] || [[ $prefix == $root_dir/* ]]) &&
+   [ $with_msvc = "false" ]; then
     export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
     echo "Disabling uninstalled packages"
 fi
