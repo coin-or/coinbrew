@@ -844,9 +844,9 @@ function fetch_proj {
 }
         
 function build_proj {
-    mkdir -p $build_dir/$dir/$version
-    echo -n $dir/$version" " >> $build_dir/coin_subdirs.txt
-    cd $build_dir/$dir/$version
+    mkdir -p $build_dir/$dir/$version_num
+    echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
+    cd $build_dir/$dir/$version_num
     if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
         if [ $reconfigure = "true" ]; then
             print_action "Reconfiguring $dir"
@@ -890,7 +890,7 @@ function build_proj {
 
 function install_proj {
     print_action "Installing $dir"
-    cd $build_dir/$dir/$version
+    cd $build_dir/$dir/$version_num
     sudo=""
     if [ ! -w $prefix ]; then
         if [ ! $(id -u) = 0 ]; then
@@ -1171,6 +1171,9 @@ if [ x$main_proj != x ]; then
     dir=$main_proj_dir
     proj=$main_proj
     version=$main_proj_version
+    if [ $version != "master" ]; then
+        version_num=`echo $version | cut -d '/' -f 2`
+    fi
     sha=$main_proj_sha
     if [ $fetch = true ]; then
         fetch_proj
@@ -1233,6 +1236,9 @@ do
     if [ `echo $url | cut -d '/' -f 3` != "projects.coin-or.org" ]; then
         # This is a git project
         version=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3`
+        if [ $version != "master" ]; then
+            version_num=`echo $version | cut -d '/' -f 2`
+        fi
     else
         if [ $proj = "BuildTools" ] &&
                [ `echo $url | cut -d '/' -f 6` = 'ThirdParty' ]; then
@@ -1259,6 +1265,9 @@ do
             else
                 version=`echo $url | cut -d '/' -f 6-7`
             fi
+        fi
+        if [ $version != "master" ]; then
+            version_num=`echo $version | cut -d '/' -f 2`
         fi
         
         if [ ! -d $dir ] && [ $VCS = "git" ]; then
