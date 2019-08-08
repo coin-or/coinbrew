@@ -94,10 +94,12 @@ function get_project {
             return 1
         fi
     done
-    if [ `echo $dir | cut -d '/' -f 1` = ThirdParty ] &&
-           [ ! -e $dir/.build ]; then
-        IFS=$TMP_IFS
-        return 1
+    if [ `echo $dir | cut -d '/' -f 1` = ThirdParty ]; then
+        if ([ -e $dir ] && [ ! -e $dir/.build ]) ||
+           [ $get_third_party = false ]; then
+            IFS=$TMP_IFS
+            return 1
+        fi
     fi
     IFS=$TMP_IFS
     return 0
@@ -282,7 +284,6 @@ function parse_args {
                 ;;
             --skip-update)
                 skip_update=true
-                get_third_party=false
                 ;;
             fetch)
                 num_actions+=1
