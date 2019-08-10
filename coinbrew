@@ -246,7 +246,15 @@ function parse_args {
                 ;;
             --enable-msvc)
                 configure_options["$arg"]=""
-                with_msvc=true
+                disable_uninstalled=false
+                ;;
+            --disable-pkg-config)
+                configure_options["$arg"]=""
+                disable_uninstalled=false
+                ;;
+            --enable-debug)
+                configure_options["$arg"]=""
+                enable_debug=true
                 ;;
             -h|--help)
                 help
@@ -978,7 +986,8 @@ skip_update=false
 ssh_checkout=false
 configure_help=false
 sudo=""
-with_msvc=false
+disable_uninstalled=true
+enable_debug=false
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
@@ -989,7 +998,11 @@ parse_args "$@"
 
 #Set the build directory
 if [ x$build_dir = x ] ; then
-    build_dir=$root_dir/build
+    if [ $enable_debug = "false" ]; then
+       build_dir=$root_dir/build
+    else
+       build_dir=$root_dir/build-debug
+    fi
     mkdir -p $build_dir
 fi
 if [ ! -d $build_dir ]; then
@@ -1173,6 +1186,8 @@ if [ x$main_proj != x ]; then
     version=$main_proj_version
     if [ $version != "master" ]; then
         version_num=`echo $version | cut -d '/' -f 2`
+    else
+        version_num=master
     fi
     sha=$main_proj_sha
     if [ $fetch = true ]; then
@@ -1218,7 +1233,7 @@ fi
 #If we are going to build against installed packages, we need to disable
 #the uninstalled .pc files. Otherwise, they are preferred.
 if ([ $install = "true" ] || [[ $prefix == $root_dir/* ]]) &&
-   [ $with_msvc = "false" ]; then
+   [ $disable_uninstalled = "true" ]; then
     export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
     echo "Disabling uninstalled packages"
 fi
@@ -1238,36 +1253,40 @@ do
         version=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3`
         if [ $version != "master" ]; then
             version_num=`echo $version | cut -d '/' -f 2`
+        else
+            version_num=master
         fi
     else
         if [ $proj = "BuildTools" ] &&
                [ `echo $url | cut -d '/' -f 6` = 'ThirdParty' ]; then
             if [ `echo $url | cut -d '/' -f 8` = trunk ]; then
-                version=trunk
+                version=master
             else
                 version=`echo $url | cut -d '/' -f 8-9`
             fi
         elif [ $proj = "CHiPPS" ]; then
             if [ `echo $url | cut -d '/' -f 7` = trunk ]; then
-                version=trunk
+                version=master
             else
                 version=`echo $url | cut -d '/' -f 7-8`
             fi
         elif [ $proj = "Data" ]; then
             if [ `echo $url | cut -d '/' -f 7` = trunk ]; then
-                version=trunk
+                version=master
             else
                 version=`echo $url | cut -d '/' -f 7-8`
             fi
         else
             if [ `echo $url | cut -d '/' -f 6` = trunk ]; then
-                version=trunk
+                version=master
             else
                 version=`echo $url | cut -d '/' -f 6-7`
             fi
         fi
         if [ $version != "master" ]; then
             version_num=`echo $version | cut -d '/' -f 2`
+        else
+            version_num=master
         fi
         
         if [ ! -d $dir ] && [ $VCS = "git" ]; then
