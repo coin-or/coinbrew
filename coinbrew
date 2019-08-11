@@ -770,7 +770,7 @@ function fetch_proj {
             current_rev=`git rev-parse HEAD`
             if [ $skip_update = "false" ]; then
                 if [ $current_version != $version ] ||
-                   [ x$sha != x ] && [[ $current_rev != $sha* ]]; then
+                   ([ x$sha != x ] && [[ $current_rev != $sha* ]]); then
                     git fetch --tags
                     if [ x$sha = x ]; then
                         print_action "Switching $dir to $version"
