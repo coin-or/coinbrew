@@ -425,7 +425,13 @@ function user_prompts {
             2)  main_proj=Clp;;
             3)  main_proj=Cbc;;
             4)  main_proj=DyLP;;
-            5)  main_proj=FlopC++;;
+            5)
+                if [$VCS = git ]; then
+                    main_proj=FlopCpp
+                else
+                    main_proj=FlopC++
+                fi
+                ;;
             6)  main_proj=Vol;;
             7)  main_proj=SYMPHONY;;
             8)  main_proj=Smi;;
@@ -1314,6 +1320,8 @@ do
                 url+=`echo $dir | sed s"|/|-|"`
             elif [ $proj = "CHiPPS" ]; then
                 url+="CHiPPS-"$dir
+            elif [ $proj = "FlopC++" ]; then
+                url+="FlopCpp"
             else
                 url+=$proj
             fi
