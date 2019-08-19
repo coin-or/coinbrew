@@ -26,6 +26,7 @@ function help {
     echo "             --skip='proj1 proj2' skip listed projects"
     echo "             --no-third-party don't download third party source (getter-scripts)"
     echo "             --skip-update Skip updating projects that are already checked out (useful if you have local changes)"
+    echo "             --skip-dependencies don't fetch dependencies"
     echo
     echo "  build: Configure, build, test (optional), and pre-install all projects"
     echo "    options: --xxx=yyy (will be passed through to configure)"
@@ -36,6 +37,7 @@ function help {
     echo "             --verbosity=i set verbosity level (1-4)"
     echo "             --reconfigure re-run configure"
     echo "             --prefix=/dir/to/install (where to install, default: $PWD/dist)"
+    echo "             --skip-dependencies don't build dependencies"
     echo
     echo "  install: Install all projects in location specified by prefix (after build and test)"
     echo
@@ -263,6 +265,9 @@ function parse_args {
             -c|--configure-help)
                 configure_help=true
                 no_prompt=true
+                ;;
+            --skip-dependencies)
+                skip_dependencies=true
                 ;;
             --sparse)
                 sparse=true
@@ -527,7 +532,7 @@ function user_prompts {
                 if [ $main_proj_version = "trunk" ]; then
                     main_proj_version=master
                 fi
-                main_proj_url="https://github.com/coin-or/$main_proj"
+                main_proj_url=`git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
             else
                 if [ $main_proj_version = "master" ]; then
                     main_proj_version=trunk
@@ -540,6 +545,7 @@ function user_prompts {
                     if [ $current_version = "(HEAD" ]; then
                         current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
                     fi
+                    main_proj_version=$current_version
                 else
                     if [ `svn info | fgrep "URL" | cut -d '/' -f 6` = trunk ]; then
                         current_version=trunk
@@ -994,6 +1000,7 @@ configure_help=false
 sudo=""
 disable_uninstalled=true
 enable_debug=false
+skip_dependencies=false
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
@@ -1214,21 +1221,27 @@ if [ x$main_proj != x ]; then
 fi
 
 # Build list of dependencies
-if [ -e Dependencies ] && [ x$main_proj = x ]; then
-    deps=`cat Dependencies | tr '\t' ' ' | tr -s ' '`
-elif [ x$main_proj != x ] && [ -e $main_proj_dir/Dependencies ]; then
-    deps=`cat $main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
-elif [ x$main_proj != x ] && [ -e $main_proj_dir/$main_proj_dir/Dependencies ]; then
-    deps=`cat $main_proj_dir/$main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
+if [ $skip_dependencies = "false" ]; then
+    if [ -e Dependencies ] && [ x$main_proj = x ]; then
+        deps=`cat Dependencies | tr '\t' ' ' | tr -s ' '`
+    elif [ x$main_proj != x ] && [ -e $main_proj_dir/Dependencies ]; then
+        deps=`cat $main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
+    elif [ x$main_proj != x ] && [ -e $main_proj_dir/$main_proj_dir/Dependencies ]; then
+        deps=`cat $main_proj_dir/$main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
+    else
+        echo "Can't find dependencies file...exiting"
+        echo
+        exit 3
+    fi
 else
-    echo "Can't find dependencies file...exiting"
-    echo
-    exit 3
+    deps=
 fi
 
 # Add main project to list (if one is specified)
 if [ x$main_proj != x ]; then
-    deps+=$'\n'
+    if [ x"$deps" != x ]; then
+        deps+=$'\n'
+    fi
     if [ $VCS = "git" ]; then
         deps+="$main_proj_dir $main_proj_url $main_proj_version"
     else
@@ -1239,7 +1252,7 @@ fi
 #If we are going to build against installed packages, we need to disable
 #the uninstalled .pc files. Otherwise, they are preferred.
 if ([ $install = "true" ] || [[ $prefix == $root_dir/* ]]) &&
-   [ $disable_uninstalled = "true" ]; then
+       [ $disable_uninstalled = "true" ]; then
     export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
     echo "Disabling uninstalled packages"
 fi
