@@ -431,7 +431,7 @@ function user_prompts {
             3)  main_proj=Cbc;;
             4)  main_proj=DyLP;;
             5)
-                if [$VCS = git ]; then
+                if [ $VCS = git ]; then
                     main_proj=FlopCpp
                 else
                     main_proj=FlopC++
@@ -444,21 +444,21 @@ function user_prompts {
             10)  main_proj=Bcp;;
             11)  main_proj=Ipopt;;
             12)
-                if [$VCS = git ]; then
+                if [ $VCS = git ]; then
                     main_proj=CHiPPS-ALPS
                 else
                     main_proj=CHiPPS/Alps
                 fi
                 ;;
             13) 
-                if [$VCS = git ]; then
+                if [ $VCS = git ]; then
                     main_proj=CHiPPS-BiCePS
                 else
                     main_proj=CHiPPS/Bcps
                 fi
                 ;;
             14) 
-                if [$VCS = git ]; then
+                if [ $VCS = git ]; then
                     main_proj=CHiPPS-BLIS
                 else
                     main_proj=CHiPPS/Blis
