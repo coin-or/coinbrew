@@ -1267,8 +1267,9 @@ do
     proj=`echo $url | cut -d '/' -f 5`
     sha=
     # Set the URL of the project, the version, and the build dir
-    if [ `echo $url | cut -d '/' -f 3` != "projects.coin-or.org" ]; then
-        # This is a git project
+    if [ `echo $url | cut -d ':' -f 1` = "git@github.com" ] ||
+       [ `echo $url | cut -d '/' -f 3` = "github.com" ]; then
+        #The URL is for a git project
         version=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3`
         if [ $version != "master" ]; then
             version_num=`echo $version | cut -d '/' -f 2`
@@ -1276,6 +1277,7 @@ do
             version_num=master
         fi
     else
+        #The URL is for an SVN project
         if [ $proj = "BuildTools" ] &&
                [ `echo $url | cut -d '/' -f 6` = 'ThirdParty' ]; then
             if [ `echo $url | cut -d '/' -f 8` = trunk ]; then
