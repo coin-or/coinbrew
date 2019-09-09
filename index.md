@@ -77,10 +77,18 @@ For example,
 ```
 coinbrew build Cbc --verbosity=2 --test --enable-debug --prefix=/usr/local
 ```
-During the build process, each project will be "pre-installed" within the
-build directory. Permanent installation to another location is done using the
-`install` command (see below), but it is important to note that the prefix
-must be specified at build time.
+The build artifacts for each project will be generated in the `build` directory by 
+default (a different directory can be specified with `--build-dir` or `-b`). When a 
+prefix is specified, final installation is done automatically at build time if the install 
+directory is writable. Otherwise, the `install` command must be explicitly invoked 
+be invoked, as the installatin must be done using sudo (see below). The explicit invokation 
+can be done either as a separate step or at the same time.
+```
+coinbrew build install Cbc --verbosity=2 --test --enable-debug --prefix=/usr/local
+```
+In the latter case, the sudo password will need to be enetered upon reaching the first install 
+step, so the build cannot be don unattended. For this reason, a separate install step is
+recommended. If no prefix is specified, then the installation is to the `dist/` subdirectory. 
 
 Any option valid for a project's `configure` script can be specified as
 arguments to `coinbrew` and will be passed through. To see what arguments are
@@ -91,10 +99,10 @@ coinbrew Cbc --configure-help
 
 ### Install executables, libraries, and header files
 
-After building with an installation prefix specified, the project may be
+After building with an (non-writeable) installation prefix specified, the project may be
 installed using the command
 ```
-coinbrew install <ProjectName>
+sudo coinbrew install <ProjectName>
 ```
 ## Help
 
