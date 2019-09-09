@@ -30,3 +30,4 @@ DisCO/*
 COIN-OR-OptimizationSuite/*
 build*
 tmp/*
+dist/*
