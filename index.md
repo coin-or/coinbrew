@@ -21,15 +21,17 @@ include the following commands.
   * `tar`
   * `patch`
   * `dos2unix`
-  * A compiler toolchain (`gcc`, `cl`, etc.)
-
+  * `pkg-config`
+  * A C++ compiler (`g++`, `cl`, etc.)
+  * Optional: A Fortran compiler is needed for some projects.
+  
 ## Download
 
 `coinbrew` consists of a single bash script. To use it, download the file
 
    [https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew](https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew)
 
-to your system and make sure that it is executable.
+to your system and make sure that it is executable (`chmod u+x coinbrew`).
 
 ## Usage: Interactive mode
 
