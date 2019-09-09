@@ -23,7 +23,7 @@ include the following commands.
   * `dos2unix`
   * `pkg-config`
   * A C++ compiler (`g++`, `cl`, etc.)
-  * Optional: A Fortran compiler is needed for some projects.
+  * Optional: A Fortran compiler (`gfortran`, `ifort`, etc.) is needed for some projects.
   
 ## Download
 
