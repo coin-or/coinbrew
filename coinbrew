@@ -864,9 +864,12 @@ function fetch_proj {
 }
         
 function build_proj {
-    mkdir -p $build_dir/$dir/$version_num
-    echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
-    cd $build_dir/$dir/$version_num
+#    mkdir -p $build_dir/$dir/$version_num
+#    echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
+#    cd $build_dir/$dir/$version_num
+    mkdir -p $build_dir/$dir
+    echo -n $dir" " >> $build_dir/coin_subdirs.txt
+    cd $build_dir/$dir
     if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
         if [ $reconfigure = "true" ]; then
             print_action "Reconfiguring $dir"
@@ -1369,7 +1372,7 @@ do
 
     # Install the project (if requested)
     if ([ $install = "true" ] ||
-            ([ $build = "true" ] && [[ $prefix == $root_dir/* ]])) &&
+            ([ $build = "true" ] && [ -w $prefix ])) &&
            [ $dir != "BuildTools" ] && get_project $dir; then
         install_proj
     fi
