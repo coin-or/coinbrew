@@ -913,7 +913,8 @@ function build_proj {
 
 function install_proj {
     print_action "Installing $dir"
-    cd $build_dir/$dir/$version_num
+#    cd $build_dir/$dir/$version_num
+    cd $build_dir/$dir
     sudo=""
     if [ ! -w $prefix ]; then
         if [ ! $(id -u) = 0 ]; then
