@@ -931,7 +931,20 @@ function install_proj {
     cd $root_dir
 }
 
-function uninstall {
+function uninstall_proj {
+    print_action "Uninstalling $dir"
+#    cd $build_dir/$dir/$version_num
+    cd $build_dir/$dir
+    if [ $verbosity -ge 3 ]; then
+        invoke_make $(($verbosity-1)) uninstall
+    else
+        invoke_make 1 uninstall
+    fi
+    cd $root_dir
+}
+
+# This is some old code that I don't think is necessary
+function uninstall_all {
     # We have to uninstall in reverse order
     # subdirs must be defined for this to work
     for ((dir=${#subdirs[@]}-1; i>=0; i--))
@@ -1056,13 +1069,13 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
         fi
         configure_options["--with-coin-instdir=$prefix"]=""
     fi
-    if [ ! -d $prefix ]; then
-        if [[ $prefix == $root_dir/* ]]; then
+    if [ $install = "true" ]; then
+        if [ -w $prefix ]; then
             mkdir -p $prefix
         else
-            echo "Installation directory doesn't exist."
-            echo "Please create it and re-run the sript."
-            exit 4
+            echo "Installation directory is not writable."
+            echo "Sudo authentication required for installation."
+            sudo mkdir -p $prefix
         fi
     fi
 fi
@@ -1377,7 +1390,14 @@ do
            [ $dir != "BuildTools" ] && get_project $dir; then
         install_proj
     fi
-    
+
+    # Uninstall the project (if requested)
+    if [ $uninstall = "true" ] && [ -e $build_dir/$dir ]; then
+        uninstall_proj
+        if [ x$prefix != x ]; then
+            rm -rf $prefix/include/coin $prefix/share/coin
+        fi
+    fi
 done
 IFS=$TMP_IFS
 
