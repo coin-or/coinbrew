@@ -302,6 +302,9 @@ function parse_args {
             --skip-update)
                 skip_update=true
                 ;;
+            --latest-release)
+                get_latest_release=true
+                ;;
             fetch)
                 num_actions+=1
                 fetch=true
@@ -481,6 +484,19 @@ function user_prompts {
         esac
     fi
 
+    latest_release=`git ls-remote --tags https://github.com/coin-or/$main_proj | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
+
+    if [ $get_latest_release = "true" ]; then
+            echo 
+        if [ x$main_proj_version != x ]; then
+            echo "Fetching latest release $latest_release rather than specified version"
+        else
+            echo "Fetching latest release $latest_release"
+        fi
+        echo
+        main_proj_version="releases/$latest_release"
+    fi
+            
     if [ x$main_proj != x ]; then
         # First guess at correct values, change later if project already exists)
         if [ `echo $main_proj | cut -d ':' -f 1` = https ] ||
@@ -612,8 +628,7 @@ function user_prompts {
         fi
     fi
 
-    if [ $main_proj_version = "master" ]; then
-        latest_release=`git ls-remote --tags https://github.com/coin-or/$main_proj | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
+    if [ $main_proj_version = "master" ] && ([ $fetch = "true" ] || [ $install = "true" ]); then
         echo "NOTE: You are working with the development version."
         echo "      You might consider the latest release version,"
         echo "      which appears to be releases/$latest_release"
@@ -1029,6 +1044,7 @@ sudo=""
 disable_uninstalled=true
 enable_debug=false
 skip_dependencies=false
+get_latest_release=false
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
@@ -1413,17 +1429,27 @@ do
     # Uninstall the project (if requested)
     if [ $uninstall = "true" ] && [ -e $build_dir/$dir ]; then
         uninstall_proj
-        if [ x$prefix != x ]; then
-            rm -rf $prefix/include/coin $prefix/share/coin
-        fi
     fi
 done
 
-if [[ `uname` == Linux ]] && [ ! -w $prefix ] && [ $install = "true" ]; then
+if [ x$prefix != x ]; then
     echo
-    echo "Running ldconfig to update library cache"
+    echo "Removing $prefix/include/coin and $prefix/share/coin"
     echo
-    sudo /sbin/ldconfig
+    rm -rf $prefix/include/coin $prefix/share/coin
+fi
+
+if [[ `uname` == Linux ]] && [ $install = "true" ]; then
+    if hash ld 2>/dev/null; then
+        if [[ `ld --verbose | grep SEARCH_DIR` =~ $prefix/lib ]] ; then
+            if hash /sbin/ldconfig 2>/dev/null; then
+                echo
+                echo "Running ldconfig to update library cache"
+                echo
+                sudo /sbin/ldconfig
+            fi
+        fi
+    fi
 fi
 
 if [ $install = "true" ]; then
