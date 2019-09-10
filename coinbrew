@@ -1003,7 +1003,7 @@ jobs=1
 build_dir=
 reconfigure=false
 get_third_party=true
-verbosity=4
+verbosity=1
 main_proj=
 main_proj_version=
 main_proj_sha=
@@ -1071,6 +1071,7 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
             echo "Installation directory is writable."
             echo "Install will be done automatically."
             echo
+            install=true
         fi
         configure_options["--with-coin-instdir=$prefix"]=""
     fi
@@ -1408,14 +1409,19 @@ do
 done
 
 if [[ `uname` == Linux ]] && [ ! -w $prefix ]; then
+    echo
+    echo "Running ldconfig to update library cache"
+    echo
     sudo /sbin/ldconfig
 fi
 
 if [ $install = "true" ]; then
     echo
-    echo "Install completed. If execution results in an error,"
-    echo "reporting that libraries cannot be found, please"
-    echo "add $prefix/lib to your LD_LIBRARY_PATH or run ldconfig."
+    echo "Install completed. If executing any of the installed"
+    echo "binaries results in an error that shared libraries cannot"
+    echo "be found, you may need to"
+    echo "  - add 'export LD_LIBRARY_PATH=$prefix/lib' to your ~/.bashrc (Linux)"
+    echo "  - add 'export DYLD_LIBRARY_PATH=$prefix/lib' to ~/.bashrc (OS X)"
     echo
 fi
 
