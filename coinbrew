@@ -1066,6 +1066,11 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
         if [ x$prefix = x ]; then
             prefix=$root_dir/dist
             mkdir -p $root_dir/dist
+        elif [ -w $prefix ] && [ $install = "false" ]; then
+            echo
+            echo "Installation directory is writable."
+            echo "Install will be done automatically."
+            echo
         fi
         configure_options["--with-coin-instdir=$prefix"]=""
     fi
@@ -1075,6 +1080,8 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
         else
             echo "Installation directory is not writable."
             echo "Sudo authentication required for installation."
+            echo "NOTE: Only installation will be done using sudo."
+            echo "      Builds are done as normal user."
             sudo mkdir -p $prefix
         fi
     fi
@@ -1399,5 +1406,19 @@ do
         fi
     fi
 done
+
+if [[ `uname` == Linux ]] && [ ! -w $prefix ]; then
+    sudo /sbin/ldconfig
+fi
+
+if [ $install = "true" ]; then
+    echo
+    echo "Install completed. If execution results in an error,"
+    echo "reporting that libraries cannot be found, please"
+    echo "add $prefix/lib to your LD_LIBRARY_PATH or run ldconfig."
+    echo
+fi
+
+
 IFS=$TMP_IFS
 
