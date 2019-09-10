@@ -611,6 +611,17 @@ function user_prompts {
             fi
         fi
     fi
+
+    if [ $main_proj_version = "master" ]; then
+        latest_release=`git ls-remote --tags https://github.com/coin-or/$main_proj | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
+        echo "NOTE: You are working with the development version."
+        echo "      You might consider the latest release version,"
+        echo "      which appears to be releases/$latest_release"
+        echo "      To fetch this release, execute coinbrew as"
+        echo 
+        echo "      coinbrew fetch Cbc:releases/$latest_release"
+        echo
+    fi
     
     if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
            [ $no_prompt = false ]; then
@@ -1408,7 +1419,7 @@ do
     fi
 done
 
-if [[ `uname` == Linux ]] && [ ! -w $prefix ]; then
+if [[ `uname` == Linux ]] && [ ! -w $prefix ] && [ $install = "true" ]; then
     echo
     echo "Running ldconfig to update library cache"
     echo
