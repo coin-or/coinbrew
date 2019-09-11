@@ -1439,9 +1439,9 @@ if [ x$prefix != x ]; then
     rm -rf $prefix/include/coin $prefix/share/coin
 fi
 
-if [[ `uname` == Linux ]] && [ $install = "true" ]; then
+if [ $install = "true" ]; then
     if hash ld 2>/dev/null; then
-        if [[ `ld --verbose | grep SEARCH_DIR` =~ $prefix/lib ]] ; then
+        if [[ `ld --verbose | grep SEARCH_DIR` =~ $prefix/lib ]]; then
             if hash /sbin/ldconfig 2>/dev/null; then
                 echo
                 echo "Running ldconfig to update library cache"
