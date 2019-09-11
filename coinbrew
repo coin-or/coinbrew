@@ -634,7 +634,7 @@ function user_prompts {
         echo "      which appears to be releases/$latest_release"
         echo "      To fetch this release, execute coinbrew as"
         echo 
-        echo "      coinbrew fetch Cbc:releases/$latest_release"
+        echo "      coinbrew fetch $main_proj:releases/$latest_release"
         echo
     fi
     
