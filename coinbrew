@@ -778,14 +778,14 @@ function fetch_proj {
             if [ $skip_update = "false" ]; then
                 if [ $current_version != $version ]; then
                     print_action "Switching $dir to $version"
-                    svn --non-interactive --trust-server-cert switch $url
+                    svn --non-interactive --trust-server-cert --ignore-externals switch $url
                     if [ $dir = $main_proj_dir ]; then
                         rm -f Dependencies
                         svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
                     fi
                 else
                     print_action "Updating $dir"
-                    svn --non-interactive --trust-server-cert update
+                    svn --non-interactive --trust-server-cert --ignore-externals update
                     if [ $dir = $main_proj_dir ]; then
                         rm -f Dependencies
                         svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
@@ -833,7 +833,7 @@ function fetch_proj {
         fi
     elif [ x`echo $url | cut -d '/' -f 3` = x"projects.coin-or.org" ]; then
         print_action "Fetching $dir $version"
-        svn co --non-interactive --trust-server-cert $url $dir
+        svn co --non-interactive --trust-server-cert --ignore-externals $url $dir
         cd $dir
         if [ $dir = $main_proj_dir ]; then
             rm -f Dependencies
