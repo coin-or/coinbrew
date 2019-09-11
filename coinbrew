@@ -1294,7 +1294,8 @@ if [ x$main_proj != x ]; then
     if [ x"$deps" != x ]; then
         deps+=$'\n'
     fi
-    if [ $VCS = "git" ]; then
+    if [ `echo $main_proj_url | cut -d ':' -f 1` = "git@github.com" ] ||
+           [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then    
         deps+="$main_proj_dir $main_proj_url $main_proj_version"
     else
         deps+="$main_proj_dir $main_proj_url"
