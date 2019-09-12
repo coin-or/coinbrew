@@ -890,12 +890,9 @@ function fetch_proj {
 }
         
 function build_proj {
-#    mkdir -p $build_dir/$dir/$version_num
-#    echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
-#    cd $build_dir/$dir/$version_num
-    mkdir -p $build_dir/$dir
-    echo -n $dir" " >> $build_dir/coin_subdirs.txt
-    cd $build_dir/$dir
+    mkdir -p $build_dir/$dir/$version_num
+    echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
+    cd $build_dir/$dir/$version_num
     if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
         if [ $reconfigure = "true" ]; then
             print_action "Reconfiguring $dir"
@@ -939,8 +936,7 @@ function build_proj {
 
 function install_proj {
     print_action "Installing $dir"
-#    cd $build_dir/$dir/$version_num
-    cd $build_dir/$dir
+    cd $build_dir/$dir/$version_num
     sudo=""
     if [ ! -w $prefix ]; then
         if [ ! $(id -u) = 0 ]; then
@@ -959,8 +955,7 @@ function install_proj {
 
 function uninstall_proj {
     print_action "Uninstalling $dir"
-#    cd $build_dir/$dir/$version_num
-    cd $build_dir/$dir
+    cd $build_dir/$dir/$version_num
     if [ $verbosity -ge 3 ]; then
         invoke_make $(($verbosity-1)) uninstall
     else
