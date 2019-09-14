@@ -545,8 +545,9 @@ function user_prompts {
             if [ $fetch = "false" ] && [ $build = "true" ]; then
                 if [ -d .git ]; then
                     current_version=`git branch | grep \* | cut -d ' ' -f 2`
-                    if [ $current_version = "(HEAD" ]; then
-                        current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
+                    if [ $current_version = "(HEAD" ] ||
+                       [ $current_version = "(no" ]; then
+                        current_version=`git describe --tags | cut -d '/' -f 2`
                     fi
                     main_proj_version=$current_version
                 else
@@ -1428,7 +1429,7 @@ do
     fi
 done
 
-if [ x$prefix != x ]; then
+if [ x$prefix != x ] && [ $uninstall = "true" ]; then
     echo
     echo "Removing $prefix/include/coin and $prefix/share/coin"
     echo
