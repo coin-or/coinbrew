@@ -550,7 +550,12 @@ function user_prompts {
                 if [ -d .git ]; then
                     current_rev=`git rev-parse HEAD` 
                     current_version=`git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-`
-                    main_proj_version=$current_version
+                    if [ x$current_version = x ]; then
+                        current_version=$current_rev
+                    elif [[ $current_version == release* ]] ||
+                             [[ $current_version == stable* ]]; then
+                        current_version=`echo $current_version | cut -d '/' -f 2`
+                    fi
                 else
                     if [ `svn info | fgrep "URL" | cut -d '/' -f 6` = trunk ]; then
                         current_version=trunk
