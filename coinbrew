@@ -61,7 +61,7 @@ function print_action {
 function get_cached_options {
     echo "Reading cached options:"
     # read options from file, one option per line, and store into array copts
-    readarray -t copts < "$build_dir/.config"
+    readarray -t copts < "$build_dir/.config/$main_proj-$main_proj_version"
     # move options from copts[0], copts[1], ... into
     # configure_options, where they are stored as the keys
     # skip options that are empty (happens when reading empty .config file)
@@ -284,7 +284,10 @@ function parse_args {
             -d|--debug)
                 set -x
                 ;;
-            -r|--reconfigure)
+            --rebuild)
+                rebuild=true
+                ;;
+            --reconfigure)
                 reconfigure=true
                 ;;
             -t|--test)
@@ -505,10 +508,11 @@ function user_prompts {
             main_proj_url="https://projects.coin-or.org/svn/$main_proj/$main_proj_version/$main_proj"
         fi
         if [ x$main_proj_version = x ]; then
-            if [ `echo $main_proj_url | cut -d '/' -f 3` = "projects.coin-or.org" ]; then
-                main_proj_version=trunk
-            else
+            if [ `echo $main_proj_url | cut -d ':' -f 1` = "git@github.com" ] ||
+           [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then
                 main_proj_version=master
+            else
+                main_proj_version=trunk
             fi
         fi
         if [ x`echo $main_proj | cut -d '-' -f 1` = x"CHiPPS" ]; then
@@ -671,8 +675,8 @@ function user_prompts {
         echo
     fi
     
-    if [ -e $build_dir/.config ] && [ $build = "true" ] && 
-           [ $reconfigure = false ]; then
+    if [ -e $build_dir/.config/$main_proj-$main_proj_version ] &&
+           [ $build = "true" ] && [ $reconfigure = false ]; then
         echo "###"
         echo "### Cached configuration options from previous build found."
         echo "###"
@@ -722,7 +726,7 @@ function user_prompts {
                         fi
                         ;;
                     3)
-                        rm $build_dir/.config
+                        rm $build_dir/.config/$main_proj-$main_proj_version
                         reconfigure=true
                         ;;
                     4)
@@ -894,6 +898,7 @@ function build_proj {
     mkdir -p $build_dir/$dir/$version_num
     echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
     cd $build_dir/$dir/$version_num
+    
     if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
         if [ $reconfigure = "true" ]; then
             print_action "Reconfiguring $dir"
@@ -912,6 +917,10 @@ function build_proj {
         else
             "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" > /dev/null
         fi
+    fi
+    if [ $rebuild = "true" ]; then
+        print_action "Cleaning $dir"
+        make clean
     fi
     print_action "Building $dir"
     if [ $verbosity -ge 2 ]; then
@@ -1023,6 +1032,7 @@ declare -A configure_options
 configure_options=()
 jobs=1
 build_dir=
+rebuild=false
 reconfigure=false
 get_third_party=true
 verbosity=1
@@ -1077,8 +1087,8 @@ IFS=$'\n'
 
 #Set the install directory
 if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
-    if [ -e $build_dir/.config ]; then
-        for i in `cat $build_dir/.config`
+    if [ -e $build_dir/.config/$main_proj-$main_proj_version ]; then
+        for i in `cat $build_dir/.config/$main_proj-$main_proj_version`
         do
             if [[ "$i" == --with-coin-instdir* ]]; then
                 prefix=`echo $i | cut -d '=' -f 2`
@@ -1113,9 +1123,11 @@ fi
 
 #Cache configuration options
 if [ $build = "true" ]; then
-    if [ ! -e $build_dir/.config ] || [ $reconfigure = "true" ]; then
+    if [ ! -e $build_dir/.config/$main_proj-$main_proj_version ] ||
+           [ $reconfigure = "true" ]; then
         echo "Caching configuration options..."
-        printf "%s\n" "${!configure_options[@]}" > $build_dir/.config
+        mkdir -p $build_dir/.config
+        printf "%s\n" "${!configure_options[@]}" > $build_dir/.config/$main_proj-$main_proj_version
     else
         get_cached_options
     fi
