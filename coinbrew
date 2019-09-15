@@ -920,7 +920,11 @@ function build_proj {
     fi
     if [ $rebuild = "true" ]; then
         print_action "Cleaning $dir"
-        make clean
+        if [ $verbosity = 4 ]; then
+            $MAKE clean
+        else
+            $MAKE clean >& /dev/null
+        fi
     fi
     print_action "Building $dir"
     if [ $verbosity -ge 2 ]; then
