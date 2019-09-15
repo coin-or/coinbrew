@@ -548,11 +548,8 @@ function user_prompts {
             fi    
             if [ $fetch = "false" ] && [ $build = "true" ]; then
                 if [ -d .git ]; then
-                    current_version=`git branch | grep \* | cut -d ' ' -f 2`
-                    if [ $current_version = "(HEAD" ] ||
-                       [ $current_version = "(no" ]; then
-                        current_version=`git describe --tags | cut -d '/' -f 2`
-                    fi
+                    current_rev=`git rev-parse HEAD` 
+                    current_version=`git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-`
                     main_proj_version=$current_version
                 else
                     if [ `svn info | fgrep "URL" | cut -d '/' -f 6` = trunk ]; then
@@ -1111,9 +1108,15 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
         if [ x$prefix = x ]; then
             prefix=$root_dir/dist
             mkdir -p $root_dir/dist
+            echo
+            echo "Package will be installed to dist/ "
+            echo
+            install=true
         elif [ ! -d $prefix ]; then
-            mkdir -p $prefix
-            if [ $? = 0 ] && [ $install = "false" ]; then
+            set +e
+            mkdir -p $prefix 2> /dev/null
+            set -e
+            if [ -d $prefix ] && [ $install = "false" ]; then
                 echo
                 echo "Installation directory is writable."
                 echo "Install will be done automatically."
