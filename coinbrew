@@ -970,6 +970,14 @@ function install_proj {
 function uninstall_proj {
     print_action "Uninstalling $dir"
     cd $build_dir/$dir/$version_num
+    sudo=""
+    if [ ! -w $prefix ]; then
+        if [ ! $(id -u) = 0 ]; then
+            echo "Prefix is not writable."
+            echo "Uninstall step needs to be run with sudo"
+            sudo=sudo
+        fi
+    fi
     if [ $verbosity -ge 3 ]; then
         invoke_make $(($verbosity-1)) uninstall
     else
@@ -1103,19 +1111,20 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
         if [ x$prefix = x ]; then
             prefix=$root_dir/dist
             mkdir -p $root_dir/dist
-        elif [ -w $prefix ] && [ $install = "false" ]; then
-            echo
-            echo "Installation directory is writable."
-            echo "Install will be done automatically."
-            echo
-            install=true
+        elif [ ! -d $prefix ]; then
+            mkdir -p $prefix
+            if [ $? = 0 ] && [ $install = "false" ]; then
+                echo
+                echo "Installation directory is writable."
+                echo "Install will be done automatically."
+                echo
+                install=true
+            fi
         fi
-        configure_options["--with-coin-instdir=$prefix"]=""
     fi
     if [ $install = "true" ]; then
-        if [ -w $prefix ]; then
-            mkdir -p $prefix
-        else
+        configure_options["--with-coin-instdir=$prefix"]=""
+        if [ ! -w $prefix ]; then
             echo "Installation directory is not writable."
             echo "Sudo authentication required for installation."
             echo "NOTE: Only installation will be done using sudo."
@@ -1446,10 +1455,16 @@ do
 done
 
 if [ x$prefix != x ] && [ $uninstall = "true" ]; then
+    sudo=""
+    if [ ! -w $prefix ]; then
+        if [ ! $(id -u) = 0 ]; then
+            sudo=sudo
+        fi
+    fi
     echo
     echo "Removing $prefix/include/coin and $prefix/share/coin"
     echo
-    rm -rf $prefix/include/coin $prefix/share/coin
+    $sudo rm -rf $prefix/include/coin $prefix/share/coin
 fi
 
 if [ $install = "true" ]; then
