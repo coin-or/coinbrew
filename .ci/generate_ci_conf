@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+for i in *
+do
+    if [ -d $i ] && [ -e $i/.travis.yml ]; then
+        cd $i
+        echo ============= $i ==============
+        rm .travis.yml
+        if [ -e .ci/.travis.pre ]; then
+            cat .ci/.travis.pre > .travis.yml
+        fi
+        cat ../.travis.stub >> .travis.yml
+        if [ -e .ci/.travis.post ]; then
+            cat .ci/.travis.post >> .travis.yml
+        fi
+        rm appveyor.yml
+        if [ -e .ci/appveyor.pre ]; then
+            cat .ci/appveyor.pre > appveyor.yml
+        fi
+        cat ../appveyor.stub >> appveyor.yml
+        if [ -e .ci/appveyor.post ]; then
+            cat .ci/appveyor.post >> appveyor.yml
+        fi
+        cd -
+    fi
+done
