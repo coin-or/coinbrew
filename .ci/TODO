@@ -1,0 +1,9 @@
+Projects that don't build with Visual Studio:
+- DisCO
+- OS
+- Bonmin
+- Couenne
+
+Projects with no root directory:
+- MibS
+
