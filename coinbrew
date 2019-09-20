@@ -246,6 +246,17 @@ function parse_args {
                     shift
                 fi
                 ;;
+            --time)
+                if [ x"$option_arg" != x ]; then
+                    checkout_time=$option_arg
+                else
+                    echo "No projects specified to skip"
+                    exit 3
+                fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
+                ;;
             --enable-msvc)
                 configure_options["$arg"]=""
                 disable_uninstalled=false
@@ -548,14 +559,16 @@ function user_prompts {
             fi    
             if [ $fetch = "false" ] && [ $build = "true" ]; then
                 if [ -d .git ]; then
-                    current_rev=`git rev-parse HEAD` 
-                    current_version=`git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-`
-                    if [ x$current_version = x ]; then
+                    current_rev=`git rev-parse HEAD`
+                    if [ `git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-` ]; then
+			current_version=`git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-`
+			if [[ $current_version == release* ]] ||
+                            [[ $current_version == stable* ]]; then
+                            current_version=`echo $current_version | cut -d '/' -f 2`
+			fi
+		    else
                         current_version=$current_rev
-                    elif [[ $current_version == release* ]] ||
-                             [[ $current_version == stable* ]]; then
-                        current_version=`echo $current_version | cut -d '/' -f 2`
-                    fi
+		    fi
                 else
                     if [ `svn info | fgrep "URL" | cut -d '/' -f 6` = trunk ]; then
                         current_version=trunk
@@ -820,14 +833,18 @@ function fetch_proj {
             current_rev=`git rev-parse HEAD`
             if [ $skip_update = "false" ]; then
                 if [ $current_version != $version ] ||
-                   ([ x$sha != x ] && [[ $current_rev != $sha* ]]); then
+                       ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
+                       [ x$checkout_time != x ]; then
                     git fetch --tags
-                    if [ x$sha = x ]; then
-                        print_action "Switching $dir to $version"
-                        git checkout $version
-                    else
+                    if [ x$sha != x ]; then
                         print_action "Switching $dir to SHA $sha"
                         git checkout $sha
+                    elif [ x"$checkout_time" != x ]; then
+                        print_action "Checking out $dir version $version as of $checkout_time"
+                        git checkout `git rev-list -n 1 --first-parent --before="$checkout_time" $version`
+                    else
+                        print_action "Switching $dir to $version"
+                        git checkout $version
                     fi
                     if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
                         git pull
@@ -1066,6 +1083,7 @@ skip_update=false
 ssh_checkout=false
 configure_help=false
 sudo=""
+checkout_time=
 disable_uninstalled=true
 enable_debug=false
 skip_dependencies=false
