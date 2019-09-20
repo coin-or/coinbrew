@@ -1310,8 +1310,12 @@ fi
 if [ $skip_dependencies = "false" ]; then
     if [ -e Dependencies ] && [ x$main_proj = x ]; then
         deps=`cat Dependencies | tr '\t' ' ' | tr -s ' '`
+    elif [ -e .coin-or/Dependencies ] && [ x$main_proj = x ]; then
+        deps=`cat .coin-or/Dependencies | tr '\t' ' ' | tr -s ' '`
     elif [ x$main_proj != x ] && [ -e $main_proj_dir/Dependencies ]; then
         deps=`cat $main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
+    elif [ x$main_proj != x ] && [ -e $main_proj_dir/.coin-or/Dependencies ]; then
+        deps=`cat $main_proj_dir/.coin-or/Dependencies | tr '\t' ' ' | tr -s ' '`
     elif [ x$main_proj != x ] && [ -e $main_proj_dir/$main_proj_dir/Dependencies ]; then
         deps=`cat $main_proj_dir/$main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
     else
