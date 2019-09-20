@@ -622,59 +622,64 @@ function user_prompts {
         fi
     fi
 
-    latest_release=`git ls-remote --tags https://github.com/coin-or/$main_proj | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
+    # Figure out if the user really wants a release (for git main projects only)
+    if [ `echo $main_proj_url | cut -d ':' -f 1` = "git@github.com" ] ||
+           [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then
+        
+        latest_release=`git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
 
-    if [ $get_latest_release = "true" ]; then
+        if [ $get_latest_release = "true" ]; then
             echo 
-        if [ x$main_proj_version != x ]; then
-            echo "Fetching latest release $latest_release rather than specified version"
-        else
-            echo "Fetching latest release $latest_release"
+            if [ x$main_proj_version != x ]; then
+                echo "Fetching latest release $latest_release rather than specified version"
+            else
+                echo "Fetching latest release $latest_release"
+            fi
+            echo
+            main_proj_version="releases/$latest_release"
         fi
-        echo
-        main_proj_version="releases/$latest_release"
-    fi
-            
-    if [ $main_proj_version = "master" ] && ([ $fetch = "true" ] || [ $install = "true" ]); then
-        echo "NOTE: You are working with the development version."
-        echo "      You might consider the latest release version,"
-        echo "      which appears to be releases/$latest_release"
-        echo "      To fetch this release, execute coinbrew as"
-        echo 
-        echo "      coinbrew fetch $main_proj:releases/$latest_release"
-        echo
-    fi
+        
+        if [ $main_proj_version = "master" ] && ([ $fetch = "true" ] || [ $install = "true" ]); then
+            echo "NOTE: You are working with the development version."
+            echo "      You might consider the latest release version,"
+            echo "      which appears to be releases/$latest_release"
+            echo "      To fetch this release, execute coinbrew as"
+            echo 
+            echo "      coinbrew fetch $main_proj:releases/$latest_release"
+            echo
+        fi
     
-    if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
-           [ $no_prompt = false ]; then
-        echo
-        echo "It appears that the last 10 releases of $main_proj are"
-        git ls-remote --tags https://github.com/coin-or/$main_proj | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -10
-        echo "Do you want to work with the latest release? (y/n)"
-        got_choice=false
-        while [ $got_choice = "false" ]; do
-            echo -n "=> "
-            read choice
+        if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
+               [ $no_prompt = false ]; then
+            echo
+            echo "It appears that the last 10 releases of $main_proj are"
+            git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -10
+            echo "Do you want to work with the latest release? (y/n)"
+            got_choice=false
+            while [ $got_choice = "false" ]; do
+                echo -n "=> "
+                read choice
+                case $choice in
+                    y|n) got_choice=true;;
+                    *) ;;
+                esac
+            done
             case $choice in
-                y|n) got_choice=true;;
-                *) ;;
+                y) main_proj_version=releases/`git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
+                   ;;
+                n) echo "Please enter another version name in the form of"
+                   if [ $VCS = "svn" ]; then
+                       echo 'trunk', 'releases/x.y.z', or 'stable/x.y'
+                   else
+                       echo 'master', 'releases/x.y.z', or 'stable/x.y'
+                   fi
+                   echo -n "=> "
+                   read choice
+                   main_proj_version=$choice
+                   ;;
             esac
-        done
-        case $choice in
-            y) main_proj_version=releases/`git ls-remote --tags https://github.com/coin-or/$main_proj | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
-               ;;
-            n) echo "Please enter another version name in the form of"
-               if [ $VCS = "svn" ]; then
-                   echo 'trunk', 'releases/x.y.z', or 'stable/x.y'
-               else
-                   echo 'master', 'releases/x.y.z', or 'stable/x.y'
-               fi
-               echo -n "=> "
-               read choice
-               main_proj_version=$choice
-               ;;
-        esac
-        echo
+            echo
+        fi
     fi
     
     if [ -e $build_dir/.config/$main_proj-$main_proj_version ] &&
