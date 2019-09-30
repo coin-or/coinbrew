@@ -520,7 +520,7 @@ function user_prompts {
         fi
         if [ x$main_proj_version = x ]; then
             if [ `echo $main_proj_url | cut -d ':' -f 1` = "git@github.com" ] ||
-           [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then
+                   [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then
                 main_proj_version=master
             else
                 main_proj_version=trunk
@@ -551,31 +551,34 @@ function user_prompts {
                     main_proj_version=master
                 fi
                 main_proj_url=`git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
-            else
-                if [ $main_proj_version = "master" ]; then
-                    main_proj_version=trunk
-                fi
-                main_proj_url="https://projects.coin-or.org/svn/$main_proj/$main_proj_version/$main_proj"
-            fi    
-            if [ $fetch = "false" ] && [ $build = "true" ]; then
-                if [ -d .git ]; then
-                    current_rev=`git rev-parse HEAD`
+                if [ $fetch = "false" ]; then
+                    current_rev=`git rev-parse HEAD` 
                     if [ `git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-` ]; then
 			current_version=`git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-`
 			if [[ $current_version == release* ]] ||
-                            [[ $current_version == stable* ]]; then
+                               [[ $current_version == stable* ]]; then
                             current_version=`echo $current_version | cut -d '/' -f 2`
 			fi
 		    else
                         current_version=$current_rev
 		    fi
-                else
+                    main_proj_version=$current_version
+                fi
+            else
+                if [ $main_proj_version = "master" ]; then
+                    main_proj_version=trunk
+                fi
+                main_proj_url="https://projects.coin-or.org/svn/$main_proj/$main_proj_version/$main_proj"
+                if [ $fetch = "false" ]; then
                     if [ `svn info | fgrep "URL" | cut -d '/' -f 6` = trunk ]; then
                         current_version=trunk
                     else
                         current_version=`echo $url | cut -d '/' -f 6-7`
                     fi
+                    main_proj_version=$current_version
                 fi
+            fi    
+            if [ $fetch = "false" ] && [ $build = "true" ]; then
                 echo "################################################"
                 echo "### Building version $current_version"
                 echo "### with existing versions of dependencies."
@@ -925,9 +928,9 @@ function build_proj {
     
     if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
         if [ $reconfigure = "true" ]; then
-            print_action "Reconfiguring $dir"
+            print_action "Reconfiguring $dir $version_num"
         else
-            print_action "Configuring $dir"
+            print_action "Configuring $dir $version_num"
         fi
         if [ -e $root_dir/$dir/$dir/configure ]; then
             config_script="$root_dir/$dir/$dir/configure"
@@ -950,7 +953,7 @@ function build_proj {
             $MAKE clean >& /dev/null
         fi
     fi
-    print_action "Building $dir"
+    print_action "Building $dir $version_num"
     if [ $verbosity -ge 2 ]; then
         if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
             invoke_make $verbosity ""
@@ -973,7 +976,7 @@ function build_proj {
 }
 
 function install_proj {
-    print_action "Installing $dir"
+    print_action "Installing $dir $version_num"
     cd $build_dir/$dir/$version_num
     sudo=""
     if [ ! -w $prefix ]; then
@@ -1096,23 +1099,31 @@ echo
 
 parse_args "$@"
 
-#Set the build directory
+#Set the default build directory
 if [ x$build_dir = x ] ; then
     if [ $enable_debug = "false" ]; then
        build_dir=$root_dir/build
     else
        build_dir=$root_dir/build-debug
     fi
-    mkdir -p $build_dir
 fi
+
+#Try to create the build directory if it doesn't exist
 if [ ! -d $build_dir ]; then
-    if [[ $build_dir == $root_dir/* ]]; then
-            mkdir -p $build_dir
-    else
-        echo "Build directory doesn't exist."
-        echo "Please create it and re-run the sript."
-        exit 4
-    fi
+    set +e
+    mkdir -p $build_dir 2> /dev/null
+    set -e
+fi
+
+#Check whether build directory creation was successful
+if [ -d $build_dir ]; then
+    echo "Package will be built in $build_dir"
+    echo
+else
+    echo "Build directory cannot be created."
+    echo "Please create it and make it writable."
+    echo "Then re-run script"
+    exit 4
 fi
 
 user_prompts
@@ -1136,25 +1147,24 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
         if [ x$prefix = x ]; then
             prefix=$root_dir/dist
             mkdir -p $root_dir/dist
-            echo
-            echo "Package will be installed to dist/ "
-            echo
             install=true
         elif [ ! -d $prefix ]; then
             set +e
             mkdir -p $prefix 2> /dev/null
             set -e
-            if [ -d $prefix ] && [ $install = "false" ]; then
-                echo
-                echo "Installation directory is writable."
-                echo "Install will be done automatically."
-                echo
-                install=true
-            fi
+        fi
+        if [ -d $prefix ] && [ $install = "false" ]; then
+            echo
+            echo "Installation directory is writable."
+            echo "Install will be done automatically."
+            echo
+            install=true
         fi
     fi
     if [ $install = "true" ]; then
         configure_options["--with-coin-instdir=$prefix"]=""
+        echo "Package will be installed to $root_dir/dist/ "
+        echo
         if [ ! -w $prefix ]; then
             echo "Installation directory is not writable."
             echo "Sudo authentication required for installation."
@@ -1172,10 +1182,10 @@ if [ $build = "true" ]; then
         echo "Caching configuration options..."
         mkdir -p $build_dir/.config
         printf "%s\n" "${!configure_options[@]}" > $build_dir/.config/$main_proj-$main_proj_version
+        printf "%s\n" "${!configure_options[@]}"
     else
         get_cached_options
     fi
-    echo "Options to be passed to configure: ${!configure_options[@]}"
 fi
 
 #Find out if we're supposed to skip any projects
