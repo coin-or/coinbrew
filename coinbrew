@@ -29,7 +29,8 @@ function help {
     echo "             --skip-dependencies don't fetch dependencies"
     echo
     echo "  build: Configure, build, test (optional), and pre-install all projects"
-    echo "    options: --xxx=yyy (will be passed through to configure)"
+    echo "    options: --configure-help (print help on build configuration"
+    echo "             --xxx=yyy (will be passed through to configure)"
     echo "             --parallel-jobs=n build in parallel with maximum 'n' jobs"
     echo "             --build-dir=/dir/to/build/in where to build (default: $PWD/build)"
     echo "             --test run unit test of main project before install"
@@ -1519,7 +1520,11 @@ if [ $install = "true" ]; then
                 echo
                 echo "Running ldconfig to update library cache"
                 echo
-                sudo /sbin/ldconfig
+                if hash /usr/bin/sudo 2>/dev/null; then
+                    sudo /sbin/ldconfig
+                else
+                    /sbin/ldconfig
+                fi
             fi
         fi
     fi
