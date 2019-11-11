@@ -1514,13 +1514,13 @@ if [ x$prefix != x ] && [ $uninstall = "true" ]; then
 fi
 
 if [ $install = "true" ]; then
-    if hash ld 2>/dev/null; then
+    if command -v ld >/dev/null 2>&1; then
         if [[ `ld --verbose | grep SEARCH_DIR` =~ $prefix/lib ]]; then
-            if hash /sbin/ldconfig 2>/dev/null; then
+            if command -v /sbin/ldconfig >/dev/null 2>&1; then
                 echo
                 echo "Running ldconfig to update library cache"
                 echo
-                if hash /usr/bin/sudo 2>/dev/null; then
+                if command -v sudo >/dev/null 2>&1; then
                     sudo /sbin/ldconfig
                 else
                     /sbin/ldconfig
