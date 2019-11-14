@@ -79,7 +79,16 @@ function invoke_make {
     v=$1
     shift
     if [ $v = 1 ]; then
-        $sudo $MAKE -j $jobs $@ >& /dev/null
+        set +e
+        $sudo $MAKE -j $jobs $@ > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            $sudo $MAKE -j $jobs $@ > /dev/null
+            echo
+            echo "Build failed, see error output above"
+            echo
+            exit 1
+        fi
+        set -e
     elif [ $v = 2 ]; then
         $sudo $MAKE -j $jobs $@ > /dev/null
     else
@@ -943,7 +952,16 @@ function build_proj {
                                          [ $main_proj_dir = $dir ]); then
             "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
         else
+            set +e
             "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" > /dev/null
+            if [ $? -ne 0 ]; then
+                echo
+                echo "Configuration failed, re-running with outout enabled"
+                echo
+                "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" 
+                exit 1
+            fi
+            set -e
         fi
     fi
     if [ $rebuild = "true" ]; then
@@ -951,7 +969,16 @@ function build_proj {
         if [ $verbosity = 4 ]; then
             $MAKE clean
         else
-            $MAKE clean >& /dev/null
+            set +e
+            $MAKE clean > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                $sudo $MAKE clean > /dev/null
+                echo
+                echo "Build failed, see error output above"
+                echo
+                exit 1
+            fi
+            set -e
         fi
     fi
     print_action "Building $dir $version_num"
@@ -1381,7 +1408,7 @@ fi
 # Skip comments (lines starting with '#').
 for entry in $deps
 do
-    if expr "$entry" : '^#' &>/dev/null ; then continue ; fi
+    if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
     dir=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1`
     url=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
     proj=`echo $url | cut -d '/' -f 5`
