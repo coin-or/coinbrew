@@ -1354,7 +1354,7 @@ if [ x$main_proj != x ]; then
         if [ -e $dir/$dir/configure ]; then
             $dir/$dir/configure --help
         elif [ -e $dir/configure ]; then
-            $dir/confgure --help
+            $dir/configure --help
         else
             echo "Can't find configure file for main project!"
         fi
