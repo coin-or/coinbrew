@@ -60,9 +60,10 @@ function print_action {
 }
 
 function get_cached_options {
-    echo "Reading cached options:"
+    local lclFile="$1"
+    echo "Reading cached options from $lclFile"
     # read options from file, one option per line, and store into array copts
-    readarray -t copts < "$build_dir/.config/$main_proj-$main_proj_version"
+    readarray -t copts < "$lclFile"
     # move options from copts[0], copts[1], ... into
     # configure_options, where they are stored as the keys
     # skip options that are empty (happens when reading empty .config file)
@@ -216,7 +217,7 @@ function parse_args {
                 if [ x"$option_arg" != x ]; then
                     main_proj=$option_arg
                 else
-                    echo "No main project specified"
+                    echo "No main project specified for --main-proj."
                     exit 3
                 fi
                 if [ $legacy_format = false ]; then
@@ -227,7 +228,7 @@ function parse_args {
                 if [ x"$option_arg" != x ]; then
                     main_proj_version=$option_arg
                 else
-                    echo "No main project specified"
+                    echo "No main project version specified for --main-proj-version."
                     exit 3
                 fi
                 if [ $legacy_format = false ]; then
@@ -238,7 +239,7 @@ function parse_args {
                 if [ x"$option_arg" != x ]; then
                     main_proj_sha=$option_arg
                 else
-                    echo "No main project specified"
+                    echo "No main project specified for --main-proj-sha."
                     exit 3
                 fi
                 if [ $legacy_format = false ]; then
@@ -249,7 +250,7 @@ function parse_args {
                 if [ x"$option_arg" != x ]; then
                     coin_skip_projects=$option_arg
                 else
-                    echo "No projects specified to skip"
+                    echo "No projects specified with --skip."
                     exit 3
                 fi
                 if [ $legacy_format = false ]; then
@@ -260,7 +261,7 @@ function parse_args {
                 if [ x"$option_arg" != x ]; then
                     checkout_time=$option_arg
                 else
-                    echo "No projects specified to skip"
+                    echo "No checkout time specified with --time."
                     exit 3
                 fi
                 if [ $legacy_format = false ]; then
@@ -649,21 +650,30 @@ function user_prompts {
     # Figure out if the user really wants a release (for git main projects only)
     if [ `echo $main_proj_url | cut -d ':' -f 1` = "git@github.com" ] ||
            [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then
-        
-        latest_release=`git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
-
-        if [ $get_latest_release = "true" ]; then
+        latest_release=`git ls-remote --tags $main_proj_url`
+	if echo "$latest_release" | fgrep releases &> /dev/null ; then
+	  latest_release=`echo "$latest_release" | fgrep releases | \
+	  	cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
+	fi
+        if [ $get_latest_release = "true" ] ; then
+	  if [ -n "$latest_release" ] ; then
             echo 
             if [ x$main_proj_version != x ]; then
-                echo "Fetching latest release $latest_release rather than specified version"
+                echo "Fetching latest release $latest_release rather than specified version $main_proj_version."
             else
                 echo "Fetching latest release $latest_release"
             fi
             echo
             main_proj_version="releases/$latest_release"
+	  else
+	    echo
+	    echo "It appears that $main_proj has no releases. You'll need to specify a branch as ${main_proj}:branch."
+	    exit 31
+	  fi
         fi
-        
-        if [ $main_proj_version = "master" ] && ([ $fetch = "true" ] || [ $install = "true" ]); then
+        if [ $main_proj_version = "master" ] && \
+	   ([ $fetch = "true" ] || [ $install = "true" ]) && \
+	   [ -n "$latest_release" ] ; then
             echo "NOTE: You are working with the development version."
             echo "      You might consider the latest release version,"
             echo "      which appears to be releases/$latest_release"
@@ -1161,10 +1171,14 @@ user_prompts
 TMP_IFS=$IFS
 IFS=$'\n'
 
-#Set the install directory
+# Set the install directory. Clean up the version in case we're doing an
+# implied fetch on a build request. Only important if the user has deleted
+# the code but left the build directory (with configuration options) intact.
+
 if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
-    if [ -e $build_dir/.config/$main_proj-$main_proj_version ]; then
-        for i in `cat $build_dir/.config/$main_proj-$main_proj_version`
+    version_num=`echo $main_proj_version | cut -d '/' -f 2`
+    if [ -e $build_dir/.config/$main_proj-$version_num ]; then
+        for i in `cat $build_dir/.config/$main_proj-$version_num`
         do
             if [[ "$i" == --with-coin-instdir* ]]; then
                 prefix=`echo $i | cut -d '=' -f 2`
@@ -1203,16 +1217,20 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
     fi
 fi
 
-#Cache configuration options
+# Cache configuration options. Clean up the version number as per above, in
+# case we're doing an implied fetch.
+
 if [ $build = "true" ]; then
-    if [ ! -e $build_dir/.config/$main_proj-$main_proj_version ] ||
+    version_num=`echo $main_proj_version | cut -d '/' -f 2`
+    if [ ! -e $build_dir/.config/$main_proj-$version_num ] ||
            [ $reconfigure = "true" ]; then
         echo "Caching configuration options..."
         mkdir -p $build_dir/.config
-        printf "%s\n" "${!configure_options[@]}" > $build_dir/.config/$main_proj-$main_proj_version
+        printf "%s\n" "${!configure_options[@]}" > \
+	  $build_dir/.config/$main_proj-$version_num
         printf "%s\n" "${!configure_options[@]}"
     else
-        get_cached_options
+        get_cached_options $build_dir/.config/$main_proj-$version_num
     fi
 fi
 
@@ -1339,11 +1357,13 @@ if [ x$main_proj != x ]; then
     dir=$main_proj_dir
     proj=$main_proj
     version=$main_proj_version
-    if [ $version != "master" ]; then
-        version_num=`echo $version | cut -d '/' -f 2`
-    else
-        version_num=master
-    fi
+
+# Clean up the version number. Trickery! For something like releases/1.5.4,
+# this will return just 1.5.4.  But if there's no '/', you get the whole
+# thing back, hence arbitrary branch names like trunk or autotools-update
+# come through just fine.
+
+    version_num=`echo $version | cut -d '/' -f 2`
     sha=$main_proj_sha
     if [ $fetch = true ]; then
         fetch_proj
