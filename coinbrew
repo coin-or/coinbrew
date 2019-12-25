@@ -581,12 +581,12 @@ function user_prompts {
             main_proj_url=`git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
             if [ $fetch = "false" ]; then
                 current_rev=`git rev-parse HEAD` 
-                if [ `git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-` ]; then
-		    current_version=`git show-ref --head --heads --tags | fgrep $current_rev | fgrep refs | cut -d '/' -f 3-`
-		    if [[ $current_version == release* ]] ||
-                           [[ $current_version == stable* ]]; then
-                        current_version=`echo $current_version | cut -d '/' -f 2`
-		    fi
+                if [ `git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-` ]; then
+		    current_version=`git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4`
+                elif [ `git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-` ]; then
+		    current_version=`git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4`
+                elif [ `git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-` ]; then
+		    current_version=`git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3`
 		else
                     current_version=$current_rev
 		fi
