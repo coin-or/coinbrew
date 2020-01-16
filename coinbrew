@@ -966,7 +966,7 @@ function build_proj {
             "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" > /dev/null
             if [ $? -ne 0 ]; then
                 echo
-                echo "Configuration failed, re-running with outout enabled"
+                echo "Configuration failed, re-running with output enabled"
                 echo
                 "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" 
                 exit 1
