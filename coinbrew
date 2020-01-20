@@ -27,6 +27,7 @@ function help {
     echo "             --no-third-party don't download third party source (getter-scripts)"
     echo "             --skip-update Skip updating projects that are already checked out (useful if you have local changes)"
     echo "             --skip-dependencies don't fetch dependencies"
+    echo "             --auto-stash stash changes before switching version (experimental)"
     echo
     echo "  build: Configure, build, test (optional), and pre-install all projects"
     echo "    options: --configure-help (print help on build configuration"
@@ -330,6 +331,9 @@ function parse_args {
             --latest-release)
                 get_latest_release=true
                 ;;
+            --auto-stash)
+                auto_stash=true
+                ;;
             fetch)
                 num_actions+=1
                 fetch=true
@@ -524,11 +528,14 @@ function user_prompts {
 
     ### Main Project should now be set ###
     
-    # Figure out project URL. First guess at correct values,
-    # change later if project is already checked out 
+    # Figure out project version and URL. First guess at correct values,
+    # change later if project is already checked out
     if [ `echo $main_proj | cut -d ':' -f 1` = https ] ||
            [ `echo $main_proj | cut -d '@' -f 1` = git ]; then
         #We assume this is a fork of a git project
+        if [ x$main_proj_version = x ]; then
+            main_proj_version=master
+        fi
         main_proj_url=$main_proj
         if [ `echo $main_proj | cut -d ':' -f 1` = https ]; then
             main_proj=`echo $main_proj_url | cut -d '/' -f 5 | cut -d '.' -f 1`
@@ -536,24 +543,22 @@ function user_prompts {
             main_proj=`echo $main_proj | cut -d '/' -f 2 | cut -d '.' -f 1`
         fi
     elif [ $VCS = "git" ]; then
+        if [ x$main_proj_version = x ]; then
+            main_proj_version=master
+        fi
         if [ $ssh_checkout = "false" ]; then
             main_proj_url="https://github.com/coin-or/$main_proj"
         else
             main_proj_url="git@github.com:coin-or/$main_proj"
         fi
     else
+        if [ x$main_proj_version = x ]; then
+            main_proj_version=trunk
+        fi
         main_proj_url="https://projects.coin-or.org/svn/$main_proj/$main_proj_version/$main_proj"
     fi
 
-    # Figure out main project version and directory
-    if [ x$main_proj_version = x ]; then
-        if [ `echo $main_proj_url | cut -d ':' -f 1` = "git@github.com" ] ||
-               [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then
-            main_proj_version=master
-        else
-            main_proj_version=trunk
-        fi
-    fi
+    # Figure out main project directory
     if [ x`echo $main_proj | cut -d '-' -f 1` = x"CHiPPS" ]; then
         case `echo $main_proj | cut -d '-' -f 2` in
             ALPS)
@@ -828,15 +833,27 @@ function fetch_proj {
                     print_action "Switching $dir to $version"
                     svn --non-interactive --trust-server-cert --ignore-externals switch $url
                     if [ $dir = $main_proj_dir ]; then
-                        rm -f Dependencies
-                        svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
+                        set +e
+                        svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > xxx 2>&1
+                        if [ $? == 0 ]; then
+                            mv xxx Dependencies
+                        else
+                            rm xxx
+                        fi
+                        set -e
                     fi
                 else
                     print_action "Updating $dir"
                     svn --non-interactive --trust-server-cert --ignore-externals update
                     if [ $dir = $main_proj_dir ]; then
-                        rm -f Dependencies
-                        svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
+                        set +e
+                        svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > xxx 2>&1
+                        if [ $? == 0 ]; then
+                            mv xxx Dependencies
+                        else
+                            rm xxx
+                        fi
+                        set -e
                     fi
                 fi
             else
@@ -861,7 +878,17 @@ function fetch_proj {
                     git fetch --tags
                     if [ x$sha != x ]; then
                         print_action "Switching $dir to SHA $sha"
+                        stashed=false
+                        if [ $auto_stash = true ]; then
+                            if [[ `git stash save` == "No" ]]; then
+                                stashed=false
+                            fi
+                        fi
                         git checkout $sha
+                        if [ $auto_stash = true ] && [ $stashed = true ]; then
+                            # We should check whether this succeeds somehow...
+                            git stash pop
+                        fi
                     elif [ x"$checkout_time" != x ]; then
                         print_action "Checking out $dir version $version as of $checkout_time"
                         git checkout `git rev-list -n 1 --first-parent --before="$checkout_time" $version`
@@ -870,11 +897,13 @@ function fetch_proj {
                         git checkout $version
                     fi
                     if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
+                        # We should somehow check whether this causes conflicts
                         git pull
                     fi
                 else
                     print_action "Updating $dir"
                     if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
+                        # We should somehow check whether this causes conflicts
                         git pull
                     fi
                 fi
@@ -888,8 +917,14 @@ function fetch_proj {
         svn co --non-interactive --trust-server-cert --ignore-externals $url $dir
         cd $dir
         if [ $dir = $main_proj_dir ]; then
-            rm -f Dependencies
-            svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > Dependencies
+            set +e
+            svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > xxx 2>&1
+            if [ $? == 0 ]; then
+                mv xxx Dependencies
+            else
+                rm xxx
+            fi
+            set -e
         fi
         new_rev=`svn info | fgrep "Revision:" | cut -d ' ' -f 2`
     else
@@ -1129,6 +1164,7 @@ disable_uninstalled=true
 enable_debug=false
 skip_dependencies=false
 get_latest_release=false
+auto_stash=false
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
