@@ -94,7 +94,7 @@ function invoke_make {
     elif [ $v = 2 ]; then
         $sudo $MAKE -j $jobs $@ > /dev/null
     else
-        $sudo $MAKE -j $jobs $@
+        $sudo $MAKE V=1 -j $jobs $@
     fi
 }
 
@@ -1231,7 +1231,7 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
             mkdir -p $prefix 2> /dev/null
             set -e
         fi
-        if [ -d $prefix ] && [ $install = "false" ]; then
+        if [ -w $prefix ] && [ $install = "false" ]; then
             echo
             echo "Installation directory is writable."
             echo "Install will be done automatically."
