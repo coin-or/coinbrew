@@ -1173,31 +1173,33 @@ echo
 
 parse_args "$@"
 
-#Set the default build directory
-if [ x$build_dir = x ] ; then
-    if [ $enable_debug = "false" ]; then
-       build_dir=$root_dir/build
-    else
-       build_dir=$root_dir/build-debug
-    fi
-fi
-
-#Try to create the build directory if it doesn't exist
-if [ ! -d $build_dir ]; then
-    set +e
-    mkdir -p $build_dir 2> /dev/null
-    set -e
-fi
-
-#Check whether build directory creation was successful
-if [ -d $build_dir ]; then
-    echo "Package will be built in $build_dir"
-    echo
-else
-    echo "Build directory cannot be created."
-    echo "Please create it and make it writable."
-    echo "Then re-run script"
-    exit 4
+if [ build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
+   #Set the default build directory
+   if [ x$build_dir = x ] ; then
+       if [ $enable_debug = "false" ]; then
+           build_dir=$root_dir/build
+       else
+           build_dir=$root_dir/build-debug
+       fi
+   fi
+   
+   #Try to create the build directory if it doesn't exist
+   if [ ! -d $build_dir ]; then
+       set +e
+       mkdir -p $build_dir 2> /dev/null
+       set -e
+   fi
+   
+   #Check whether build directory creation was successful
+   if [ -d $build_dir ]; then
+       echo "Package will be built in $build_dir"
+       echo
+   else
+       echo "Build directory cannot be created."
+       echo "Please create it and make it writable."
+       echo "Then re-run script"
+       exit 4
+   fi
 fi
 
 user_prompts
