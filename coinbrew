@@ -424,7 +424,7 @@ function user_prompts {
         fi
     fi
 
-    if [ x"$prefix" != x ] && [ build = "false" ]; then
+    if [ x"$prefix" != x ] && [ $build = "false" ]; then
         echo "Prefix should only be specified with the build command"
         exit 3
     fi
@@ -1177,7 +1177,7 @@ echo
 
 parse_args "$@"
 
-if [ build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
+if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
    #Set the default build directory
    if [ x$build_dir = x ] ; then
        if [ $enable_debug = "false" ]; then
