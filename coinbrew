@@ -1126,6 +1126,10 @@ set -u
 #that returned a non-zero return value.
 set -o pipefail
 
+#Take care of issues caused by other languages
+export LC_NUMERIC="en_US.UTF-8"
+export LANG="en_US.UTF-8"
+
 # Set defaults
 root_dir=$PWD
 declare -i num_actions
