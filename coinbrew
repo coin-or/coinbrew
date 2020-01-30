@@ -995,10 +995,10 @@ function build_proj {
         if [ $verbosity -ge 3 ] || ( [ $verbosity -ge 2 ] &&
                                          [ x$main_proj != x ] &&
                                          [ $main_proj_dir = $dir ]); then
-            "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
+            "$config_script" --disable-dependency-tracking --disable-option-checking --prefix=$prefix "${!configure_options[@]}"
         else
             set +e
-            "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" > /dev/null
+            "$config_script" --disable-dependency-tracking --disable-option-checking --prefix=$prefix "${!configure_options[@]}" > /dev/null
             if [ $? -ne 0 ]; then
                 echo
                 echo "Configuration failed, re-running with output enabled"
