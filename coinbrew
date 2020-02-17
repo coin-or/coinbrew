@@ -109,7 +109,12 @@ function get_project {
         fi
     done
     if [ `echo $dir | cut -d '/' -f 1` = ThirdParty ]; then
-        if ([ -e $dir ] && [ ! -e $dir/.build ]) ||
+        if [ `echo $dir | cut -d '/' -f 2` = HSL ]; then
+            if [ ! -f $dir/coinhsl/common/deps.f ]; then
+                IFS=$TMP_IFS
+                return 1
+            fi
+        elif ([ -e $dir ] && [ ! -e $dir/.build ]) ||
            [ $get_third_party = false ]; then
             IFS=$TMP_IFS
             return 1
@@ -995,7 +1000,7 @@ function build_proj {
         if [ $verbosity -ge 3 ] || ( [ $verbosity -ge 2 ] &&
                                          [ x$main_proj != x ] &&
                                          [ $main_proj_dir = $dir ]); then
-            "$config_script" --disable-dependency-tracking --disable-option-checking --prefix=$prefix "${!configure_options[@]}"
+            "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
         else
             set +e
             "$config_script" --disable-dependency-tracking --disable-option-checking --prefix=$prefix "${!configure_options[@]}" > /dev/null
