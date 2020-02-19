@@ -34,8 +34,7 @@ function help {
     echo "             --xxx=yyy (will be passed through to configure)"
     echo "             --parallel-jobs=n build in parallel with maximum 'n' jobs"
     echo "             --build-dir=/dir/to/build/in where to build (default: $PWD/build)"
-    echo "             --test run unit test of main project before install"
-    echo "             --test-all run unit tests of all projects before install"
+    echo "             --tests which tests to before install all/main/none"
     echo "             --verbosity=i set verbosity level (1-4)"
     echo "             --reconfigure re-run configure"
     echo "             --prefix=/dir/to/install (where to install, default: $PWD/dist)"
@@ -92,7 +91,16 @@ function invoke_make {
         fi
         set -e
     elif [ $v = 2 ]; then
-        $sudo $MAKE -j $jobs $@ > /dev/null
+        set +e
+        $sudo $MAKE -j $jobs $@ 2> /dev/null
+        if [ $? -ne 0 ]; then
+            $sudo $MAKE -j $jobs $@ > /dev/null
+            echo
+            echo "Build failed, see error output above"
+            echo
+            exit 1
+        fi
+        set -e
     else
         $sudo $MAKE V=1 -j $jobs $@
     fi
@@ -274,6 +282,17 @@ function parse_args {
                     shift
                 fi
                 ;;
+            -t|--tests)
+                if [ x"$option_arg" != x ]; then
+                    run_tests=$option_arg
+                else
+                    echo "No argument specified with --test."
+                    exit 3
+                fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
+                ;;
             --enable-msvc)
                 configure_options["$arg"]=""
                 disable_uninstalled=false
@@ -317,12 +336,6 @@ function parse_args {
                 ;;
             --reconfigure)
                 reconfigure=true
-                ;;
-            -t|--test)
-                run_test=true
-                ;;
-            --test-all)
-                run_all_tests=true
                 ;;
             --no-third-party)
                 get_third_party=false
@@ -997,7 +1010,7 @@ function build_proj {
         else
             config_script="$root_dir/$dir/configure"
         fi
-        if [ $verbosity -ge 3 ] || ( [ $verbosity -ge 2 ] &&
+        if [ $verbosity -ge 4 ] || ( [ $verbosity -ge 2 ] &&
                                          [ x$main_proj != x ] &&
                                          [ $main_proj_dir = $dir ]); then
             "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
@@ -1041,13 +1054,17 @@ function build_proj {
     else
         invoke_make 1 ""
     fi
-    if [ $run_all_tests = "true" ]; then
+    if [ $run_tests = "all" ] ||
+           ([ $run_tests = "main" ] && [ x$main_proj != x ] && [ $main_proj_dir = $dir ]); then
         print_action "Running $dir unit test"
-        invoke_make "false" test
-    elif [ $run_test = "true" ] && [ x$main_proj != x ]; then
-        if [ $main_proj_dir = $dir ]; then
-            print_action "Running $proj unit test"
-            invoke_make "false" test
+        if [ $verbosity -ge 3 ]; then
+            if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
+                invoke_make $verbosity test
+            else
+                invoke_make $(($verbosity-2)) test
+            fi
+        else
+            invoke_make 1 test
         fi
     fi
     cd $root_dir
@@ -1064,8 +1081,8 @@ function install_proj {
             sudo=sudo
         fi
     fi
-    if [ $verbosity -ge 3 ]; then
-        invoke_make $(($verbosity-1)) install
+    if [ $verbosity -ge 4 ]; then
+        invoke_make 4 install
     else
         invoke_make 1 install
     fi
@@ -1083,8 +1100,8 @@ function uninstall_proj {
             sudo=sudo
         fi
     fi
-    if [ $verbosity -ge 3 ]; then
-        invoke_make $(($verbosity-1)) uninstall
+    if [ $verbosity -ge 4 ]; then
+        invoke_make 4 uninstall
     else
         invoke_make 1 uninstall
     fi
@@ -1147,8 +1164,7 @@ fetch=false
 build=false
 install=false
 uninstall=false
-run_test=false
-run_all_tests=false
+run_tests=all
 declare -A configure_options
 configure_options=()
 jobs=1
@@ -1233,22 +1249,27 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
         done
     fi
     if [ $build = "true" ]; then
+        echo
+        echo "Installation is now done automatically following build and test of each project."
+        echo
         if [ x$prefix = x ]; then
             prefix=$root_dir/dist
             mkdir -p $root_dir/dist
-            install=true
         elif [ ! -d $prefix ]; then
             set +e
             mkdir -p $prefix 2> /dev/null
             set -e
         fi
-        if [ -w $prefix ] && [ $install = "false" ]; then
-            echo
+        if [ -w $prefix ]; then
             echo "Installation directory is writable."
-            echo "Install will be done automatically."
             echo
-            install=true
+        else
+            echo "Installation directory is not writable."
+            echo "Sudo access will be requested."
+            echo "Only installation is run as sudo."
+            echo
         fi
+        install=true
     fi
     if [ $install = "true" ]; then
         configure_options["--with-coin-instdir=$prefix"]=""
