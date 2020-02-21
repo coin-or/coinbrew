@@ -309,6 +309,12 @@ function parse_args {
                 help
                 exit 0
                 ;;
+            --test)
+                run_tests=main
+                ;;
+            --test-all)
+                run_tests=all
+                ;;
             -c|--configure-help)
                 configure_help=true
                 no_prompt=true
