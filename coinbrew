@@ -1279,13 +1279,13 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
     fi
     if [ $install = "true" ]; then
         configure_options["--with-coin-instdir=$prefix"]=""
-        echo "Package will be installed to $root_dir/dist/ "
+        echo "Package will be installed to $prefix "
         echo
         if [ ! -w $prefix ]; then
             echo "Installation directory is not writable."
-            echo "Sudo authentication required for installation."
-            echo "NOTE: Only installation will be done using sudo."
-            echo "      Builds are done as normal user."
+            echo "Sudo authentication will be required for installation."
+            echo "NOTE: For safety, only commands related to installation"
+            echo "      will be run with sudo. Builds are done as normal user."
             sudo mkdir -p $prefix
         fi
     fi
