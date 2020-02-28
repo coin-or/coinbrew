@@ -132,6 +132,19 @@ function get_project {
     return 0
 }
 
+function set_current_version_git {
+    current_rev=`git rev-parse HEAD`
+    if [ `git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-` ]; then
+	current_version=`git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4`
+    elif [ `git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-` ]; then
+	current_version=`git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4`
+    elif [ `git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-` ]; then
+	current_version=`git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3`
+    else
+        current_version=$current_rev
+    fi
+}
+
 # Parse arguments
 function parse_args {
     while (( "$#" ))
@@ -609,16 +622,7 @@ function user_prompts {
             fi
             main_proj_url=`git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
             if [ $fetch = "false" ]; then
-                current_rev=`git rev-parse HEAD` 
-                if [ `git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-` ]; then
-		    current_version=`git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4`
-                elif [ `git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-` ]; then
-		    current_version=`git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4`
-                elif [ `git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-` ]; then
-		    current_version=`git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3`
-		else
-                    current_version=$current_rev
-		fi
+                set_current_version_git
                 main_proj_version=$current_version
             fi
         else
@@ -853,7 +857,7 @@ function fetch_proj {
                 fi
             fi
             if [ $skip_update = "false" ]; then
-                if [ $current_version != $version ]; then
+                if [[ $version != *$current_version ]]; then
                     print_action "Switching $dir to $version"
                     svn --non-interactive --trust-server-cert --ignore-externals switch $url
                     if [ $dir = $main_proj_dir ]; then
@@ -890,13 +894,13 @@ function fetch_proj {
             elif [ `echo $version | cut -d '/' -f 1` = "branches" ]; then
                 version=`echo $version | cut -d '/' -f 2`
             fi
-            current_version=`git branch | grep \* | cut -d ' ' -f 2`
-            if [ $current_version = "(HEAD" ]; then
-                current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
-            fi
-            current_rev=`git rev-parse HEAD`
+#            current_version=`git branch | grep \* | cut -d ' ' -f 2`
+#            if [ $current_version = "(HEAD" ]; then
+#                current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
+#            fi
+            set_current_version_git
             if [ $skip_update = "false" ]; then
-                if [ $current_version != $version ] ||
+                if [[ $version != *$current_version ]] ||
                        ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
                        [ x$checkout_time != x ]; then
                     git fetch --tags
@@ -925,10 +929,14 @@ function fetch_proj {
                         git pull
                     fi
                 else
-                    print_action "Updating $dir"
-                    if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
+                    if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ] &&
+                           [ `git branch | grep \* | cut -d ' ' -f 2` != "(no" ];
+                    then
                         # We should somehow check whether this causes conflicts
+                        print_action "Updating $dir $version"
                         git pull
+                    else
+                        print_action "$dir already on $version"
                     fi
                 fi
             else
@@ -986,7 +994,7 @@ function fetch_proj {
     # If this is a third party project, fetch the source if desired
     if [ $get_third_party = "true" ] &&
            ([ x$current_rev != x$new_rev ] ||
-                [ $current_version != $version ]) &&
+                [[ $version != *$current_version ]]) &&
            [ `echo $dir | cut -d '/' -f 1` = ThirdParty ]; then
         tp_proj=`echo $dir | cut -d '/' -f 2`
         if [ -e $dir/get.$tp_proj ]; then
@@ -1575,7 +1583,13 @@ do
             elif [ $proj = "Data" ]; then
                 url+=`echo $dir | sed s"|/|-|"`
             elif [ $proj = "CHiPPS" ]; then
-                url+="CHiPPS-"$dir
+                if [ $dir = "Alps" ]; then
+                    url+="CHiPPS-ALPS"
+                elif [ $dir = "Bcps" ]; then
+                    url+="CHiPPS-BiCePS"
+                else
+                    url+="CHiPPS-BLIS"
+                fi
             elif [ $proj = "FlopC++" ]; then
                 url+="FlopCpp"
             else
