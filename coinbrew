@@ -132,17 +132,96 @@ function get_project {
     return 0
 }
 
-function set_current_version_git {
-    current_rev=`git rev-parse HEAD`
+function get_version_git {
     if [ `git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-` ]; then
-	current_version=`git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4`
+	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4
     elif [ `git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-` ]; then
-	current_version=`git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4`
+	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4
     elif [ `git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-` ]; then
-	current_version=`git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3`
+	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3
     else
-        current_version=$current_rev
+        echo $current_rev
     fi
+}
+
+function get_version_svn {
+    if [ $proj = "BuildTools" ] &&
+           [ `echo $1 | cut -d '/' -f 6` = 'ThirdParty' ]; then
+        if [ `echo $1 | cut -d '/' -f 8` = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 8-9
+        fi
+    elif [ $proj = "CHiPPS" ]; then
+        if [ `echo $1 | cut -d '/' -f 7` = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 7-8
+        fi
+    elif [ $proj = "Data" ]; then
+        if [ `echo $1 | cut -d '/' -f 7` = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 7-8
+        fi
+    elif [ $proj = "CoinBazaar" ]; then
+        if [ `echo $1 | cut -d '/' -f 9` = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 8-9
+        fi
+    else
+        if [ `echo $1 | cut -d '/' -f 6` = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 6-7
+        fi
+    fi
+}
+
+function svn2git {
+    # Convert SVN URL to a Github one and check out with git
+    if [ $proj = "BuildTools" ] || [ $proj = "Data" ]; then
+        if [ $ssh_checkout = "false" ]; then
+            new_url="https://github.com/coin-or-tools/"
+        else
+            new_url="git@github.com:coin-or-tools/"
+        fi
+    elif [ $proj = "CoinBazaar" ]; then
+        if [ $ssh_checkout = "false" ]; then
+            new_url="https://github.com/coin-or-bazaar/"
+        else
+            new_url="git@github.com:coin-or-bazaar/"
+        fi
+    else
+        if [ $ssh_checkout = "false" ]; then
+            new_url="https://github.com/coin-or/"
+        else
+            new_url="git@github.com:coin-or/"
+        fi
+    fi
+    if [ `echo $dir | cut -d "/" -f 1` = "ThirdParty" ]; then
+        new_url+=`echo $dir | sed s"|/|-|"`
+    elif [ $proj = "Data" ]; then
+        new_url+=`echo $dir | sed s"|/|-|"`
+    elif [ $proj = "CHiPPS" ]; then
+        if [ $dir = "Alps" ]; then
+            new_url+="CHiPPS-ALPS"
+        elif [ $dir = "Bcps" ]; then
+            new_url+="CHiPPS-BiCePS"
+        else
+            new_url+="CHiPPS-BLIS"
+        fi
+    elif [ $proj = "FlopC++" ]; then
+        new_url+="FlopCpp"
+    elif [ $proj = "CoinBazaar" ]; then
+        if [ $dir = "examples" ]; then
+            new_url+="ApplicationTemplates"
+        fi
+    else
+        new_url+=$proj
+    fi
+    echo $new_url
 }
 
 # Parse arguments
@@ -622,7 +701,7 @@ function user_prompts {
             fi
             main_proj_url=`git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
             if [ $fetch = "false" ]; then
-                set_current_version_git
+                current_version=$(get_version_git)
                 main_proj_version=$current_version
             fi
         else
@@ -830,32 +909,7 @@ function fetch_proj {
             # Get current version and revision
             current_url=`svn info | fgrep "URL: https" | cut -d " " -f 2`
             current_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
-            if [ $proj = "BuildTools" ] &&
-                   [ `echo $url | cut -d '/' -f 6` = 'ThirdParty' ]; then
-                if [ `echo $current_url | cut -d '/' -f 8` = trunk ]; then
-                    current_version=trunk
-                else
-                    current_version=`echo $url | cut -d '/' -f 8-9`
-                fi
-            elif [ $proj = "CHiPPS" ]; then
-                if [ `echo $current_url | cut -d '/' -f 7` = trunk ]; then
-                    current_version=trunk
-                else
-                    current_version=`echo $url | cut -d '/' -f 7-8`
-                fi
-            elif [ $proj = "Data" ]; then
-                if [ `echo $current_url | cut -d '/' -f 7` = trunk ]; then
-                    current_version=trunk
-                else
-                    current_version=`echo $url | cut -d '/' -f 7-8`
-                fi
-            else
-                if [ `echo $current_url | cut -d '/' -f 6` = trunk ]; then
-                    current_version=trunk
-                else
-                    current_version=`echo $url | cut -d '/' -f 6-7`
-                fi
-            fi
+            current_version=$(get_version_svn $current_url)
             if [ $skip_update = "false" ]; then
                 if [[ $version != *$current_version ]]; then
                     print_action "Switching $dir to $version"
@@ -898,7 +952,8 @@ function fetch_proj {
 #            if [ $current_version = "(HEAD" ]; then
 #                current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
 #            fi
-            set_current_version_git
+            current_rev=`git rev-parse HEAD`
+            current_version=$(get_version_git)
             if [ $skip_update = "false" ]; then
                 if [[ $version != *$current_version ]] ||
                        ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
@@ -1527,74 +1582,13 @@ do
         fi
     else
         #The URL is for an SVN project
-        if [ $proj = "BuildTools" ] &&
-               [ `echo $url | cut -d '/' -f 6` = 'ThirdParty' ]; then
-            if [ `echo $url | cut -d '/' -f 8` = trunk ]; then
-                version=master
-            else
-                version=`echo $url | cut -d '/' -f 8-9`
-            fi
-        elif [ $proj = "CHiPPS" ]; then
-            if [ `echo $url | cut -d '/' -f 7` = trunk ]; then
-                version=master
-            else
-                version=`echo $url | cut -d '/' -f 7-8`
-            fi
-        elif [ $proj = "Data" ]; then
-            if [ `echo $url | cut -d '/' -f 7` = trunk ]; then
-                version=master
-            else
-                version=`echo $url | cut -d '/' -f 7-8`
-            fi
-        else
-            if [ `echo $url | cut -d '/' -f 6` = trunk ]; then
-                version=master
-            else
-                version=`echo $url | cut -d '/' -f 6-7`
-            fi
+        version=$(get_version_svn $url)
+        if [ version = "trunk" ]; then
+            version=master
         fi
-        if [ $version != "master" ]; then
-            version_num=`echo $version | cut -d '/' -f 2`
-        else
-            version_num=master
-        fi
-        
         if [ ! -d $dir ] && [ $VCS = "git" ]; then
-            if [ $proj = "BuildTools" ] || [ $proj = "Data" ]; then
-                if [ $ssh_checkout = "false" ]; then
-                    url="https://github.com/coin-or-tools/"
-                else
-                    url="git@github.com:coin-or-tools/"
-                fi
-            else
-                if [ $ssh_checkout = "false" ]; then
-                    url="https://github.com/coin-or/"
-                else
-                    url="git@github.com:coin-or/"
-                fi
-            fi
-            # Convert SVN URL to a Github one and check out with git
-            if [ `echo $version | cut -d '/' -f 1` = "branches" ]; then
-                version=`echo $version | cut -d '/' -f 2`
-            fi
-            svn_repo=`echo $url | cut -d '/' -f 5`
-            if [ `echo $dir | cut -d "/" -f 1` = "ThirdParty" ]; then
-                url+=`echo $dir | sed s"|/|-|"`
-            elif [ $proj = "Data" ]; then
-                url+=`echo $dir | sed s"|/|-|"`
-            elif [ $proj = "CHiPPS" ]; then
-                if [ $dir = "Alps" ]; then
-                    url+="CHiPPS-ALPS"
-                elif [ $dir = "Bcps" ]; then
-                    url+="CHiPPS-BiCePS"
-                else
-                    url+="CHiPPS-BLIS"
-                fi
-            elif [ $proj = "FlopC++" ]; then
-                url+="FlopCpp"
-            else
-                url+=$proj
-            fi
+            # Convert SVN URL to a Github one
+            svn2git
         fi
     fi
 
