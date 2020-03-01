@@ -133,6 +133,7 @@ function get_project {
 }
 
 function get_version_git {
+    current_rev=`git rev-parse HEAD`
     if [ `git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-` ]; then
 	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4
     elif [ `git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-` ]; then
@@ -952,7 +953,6 @@ function fetch_proj {
 #            if [ $current_version = "(HEAD" ]; then
 #                current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
 #            fi
-            current_rev=`git rev-parse HEAD`
             current_version=$(get_version_git)
             if [ $skip_update = "false" ]; then
                 if [[ $version != *$current_version ]] ||
