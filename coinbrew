@@ -1588,7 +1588,7 @@ do
         fi
         if [ ! -d $dir ] && [ $VCS = "git" ]; then
             # Convert SVN URL to a Github one
-            svn2git
+            url=$(svn2git)
         fi
     fi
 
