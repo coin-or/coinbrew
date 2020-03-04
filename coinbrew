@@ -263,8 +263,16 @@ function parse_args {
                             prefix=$option_arg
                             ;;
                         *)  
-                            echo "Prefix path must be absolute."
-                            exit 3
+                            prefix=$PWD/$option_arg
+                            ;;
+                    esac
+                elif [ x"$build_dir" != x ]; then
+                    case $build_dir in
+                        [\\/$]* | ?:[\\/]* | NONE | '' )
+                            prefix=$build_dir
+                            ;;
+                        *)
+                            prefix=$PWD/$build_dir
                             ;;
                     esac
                 else
@@ -954,6 +962,7 @@ function fetch_proj {
 #                current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
 #            fi
             current_version=$(get_version_git)
+            current_rev=`git rev-parse HEAD`
             if [ $skip_update = "false" ]; then
                 if [[ $version != *$current_version ]] ||
                        ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
@@ -1285,10 +1294,7 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
    fi
    
    #Check whether build directory creation was successful
-   if [ -d $build_dir ]; then
-       echo "Package will be built in $build_dir"
-       echo
-   else
+   if [ ! -d $build_dir ]; then
        echo "Build directory cannot be created."
        echo "Please create it and make it writable."
        echo "Then re-run script"
@@ -1339,6 +1345,8 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
             echo
         fi
         install=true
+        echo "Package will be built in $build_dir"
+        echo
     fi
     if [ $install = "true" ]; then
         configure_options["--with-coin-instdir=$prefix"]=""
