@@ -922,12 +922,6 @@ function user_prompts {
             fi
         fi
     fi
-
-    # Return error is configuration options were specified, but no build command
-    if [ x"${#configure_options[*]}" != x0 ] && [ $build = "false" ]; then
-        echo "Configuration options should be specified only with build command"
-        exit 3
-    fi    
 }
 
 function fetch_proj {
