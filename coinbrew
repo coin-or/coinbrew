@@ -461,7 +461,6 @@ function parse_args {
                 reconfigure=true
                 ;;
             --no-third-party)
-                configure_options["--no-third-party"]=""
                 get_third_party=false
                 ;;
             -n|--no-prompt)
