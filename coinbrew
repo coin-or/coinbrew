@@ -39,6 +39,7 @@ function help {
     echo "             --reconfigure re-run configure"
     echo "             --prefix=/dir/to/install (where to install, default: $PWD/dist)"
     echo "             --skip-dependencies don't build dependencies"
+    echo "             --fully-static build fully statis executables on Linux and OS X" 
     echo
     echo "  install: Install all projects in location specified by prefix (after build and test)"
     echo
@@ -69,6 +70,10 @@ function get_cached_options {
     # skip options that are empty (happens when reading empty .config file)
     for c in ${!copts[*]} ; do
         [ -z "${copts[$c]}" ] && continue
+        if [ "${copts[$c]}" = "--no-third-party" ]; then
+            get_third_party=false
+            continue
+        fi
         configure_options["${copts[$c]}"]=""
     done
     # print configuration options, one per line
@@ -266,6 +271,9 @@ function parse_args {
                             prefix=$PWD/$option_arg
                             ;;
                     esac
+                    if [ $legacy_format = false ]; then
+                        shift
+                    fi
                 elif [ x"$build_dir" != x ]; then
                     case $build_dir in
                         [\\/$]* | ?:[\\/]* | NONE | '' )
@@ -278,9 +286,6 @@ function parse_args {
                 else
                     echo "No path provided for --prefix"
                     exit 3
-                fi
-                if [ $legacy_format = false ]; then
-                    shift
                 fi
                 ;;
             -b|--build-dir)
@@ -406,6 +411,17 @@ function parse_args {
                 configure_options["$arg"]=""
                 enable_debug=true
                 ;;
+            --fully-static)
+                configure_options["--enable-static"]=""
+                configure_options["--disable-shared"]=""
+                configure_options["LT_LDFLAGS=-all-static"]=""
+                configure_options["--disable-bzlib"]=""
+                configure_options["--disable-readline"]=""
+                configure_options["--without-cholmod"]=""
+                configure_options["--without-lapack"]=""
+                configure_options["--without-amd"]=""
+                get_third_party=false
+                ;;
             -h|--help)
                 help
                 exit 0
@@ -445,6 +461,7 @@ function parse_args {
                 reconfigure=true
                 ;;
             --no-third-party)
+                configure_options["--no-third-party"]=""
                 get_third_party=false
                 ;;
             -n|--no-prompt)
@@ -896,9 +913,12 @@ function user_prompts {
                         exit 0
                 esac
             else
-                echo "Please re-run the build and force reconfiguration with --reconfigure."
-                echo "Exiting..."
-                exit 10
+                echo "Options specifed on command line being ignored."
+                echo "  - If you wish to use new options in the same build"
+                echo "    directory, re-run with --reconfigure"
+                echo "  - If you wish to build in a new directory,"
+                echo "    re-run with --build-dir"
+                configure_options=()
             fi
         fi
     fi
@@ -1372,8 +1392,12 @@ if [ $build = "true" ]; then
         echo "Caching configuration options..."
         mkdir -p $build_dir/.config
         printf "%s\n" "${!configure_options[@]}" > \
-	  $build_dir/.config/$main_proj-$version_num
+               $build_dir/.config/$main_proj-$version_num
         printf "%s\n" "${!configure_options[@]}"
+        if [ $get_third_party = "false" ]; then
+            echo "--no-third-party" >> \
+	         $build_dir/.config/$main_proj-$version_num
+        fi
     else
         get_cached_options $build_dir/.config/$main_proj-$version_num
     fi
@@ -1482,9 +1506,13 @@ for c in ${!configure_options[@]} ; do
             cppad)
                 proj_dir="cppad"
                 ;;
-            *)
-                echo "Warning: Unknow project $proj_name"
+            amd|cholmod)
                 found_project=false
+                ;;
+            *)
+                echo "Warning: Unknown project $proj_name"
+                found_project=false
+                ;;
         esac
         if [ $found_project = "true" ]; then
             if [ x"$coin_skip_projects" != x ]; then
