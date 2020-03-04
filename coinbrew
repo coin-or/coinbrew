@@ -1148,11 +1148,11 @@ function build_proj {
     if [ $run_tests = "all" ] ||
            ([ $run_tests = "main" ] && [ x$main_proj != x ] && [ $main_proj_dir = $dir ]); then
         print_action "Running $dir unit test"
-        if [ $verbosity -ge 3 ]; then
+        if [ $verbosity -ge 2 ]; then
             if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
-                invoke_make $verbosity test
+                invoke_make $((verbosity+1)) test
             else
-                invoke_make $(($verbosity-2)) test
+                invoke_make 1 test
             fi
         else
             invoke_make 1 test
