@@ -27,6 +27,7 @@ function help {
     echo "             --no-third-party don't download third party source (getter-scripts)"
     echo "             --skip-update Skip updating projects that are already checked out (useful if you have local changes)"
     echo "             --skip-dependencies don't fetch dependencies"
+    echo "             --time check out project and all dependencies at a time stamp"
     echo "             --auto-stash stash changes before switching version (experimental)"
     echo
     echo "  build: Configure, build, test (optional), and pre-install all projects"
@@ -39,7 +40,7 @@ function help {
     echo "             --reconfigure re-run configure"
     echo "             --prefix=/dir/to/install (where to install, default: $PWD/dist)"
     echo "             --skip-dependencies don't build dependencies"
-    echo "             --fully-static build fully statis executables on Linux and OS X" 
+    echo "             --fully-static build fully static executables on Linux and OS X" 
     echo
     echo "  install: Install all projects in location specified by prefix (after build and test)"
     echo
@@ -47,7 +48,7 @@ function help {
     echo
     echo "General options:"
     echo "  --debug: Turn on debugging output"
-    echo "  --no-prompt: Turn on non-interactive mode"
+    echo "  --no-prompt: Turn off non-interactive mode"
     echo "  --help: Print help"
     echo 
 }
@@ -996,7 +997,7 @@ function fetch_proj {
                         fi
                     elif [ x"$checkout_time" != x ]; then
                         print_action "Checking out $dir version $version as of $checkout_time"
-                        git checkout `git rev-list -n 1 --first-parent --before="$checkout_time" $version`
+                        git checkout `git rev-list -n 1 --first-parent --before="$checkout_time" remotes/origin/$version`
                     else
                         print_action "Switching $dir to $version"
                         git checkout $version
