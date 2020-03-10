@@ -1613,8 +1613,11 @@ do
     else
         #The URL is for an SVN project
         version=$(get_version_svn $url)
-        if [ version = "trunk" ]; then
+        if [ $version = "trunk" ]; then
             version=master
+            version_num=master
+        else
+            version_num=`echo $version | cut -d '/' -f 2`
         fi
         if [ ! -d $dir ] && [ $VCS = "git" ]; then
             # Convert SVN URL to a Github one
