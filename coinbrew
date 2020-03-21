@@ -1149,6 +1149,7 @@ function build_proj {
     if [ $run_tests = "all" ] ||
            ([ $run_tests = "main" ] && [ x$main_proj != x ] && [ $main_proj_dir = $dir ]); then
         print_action "Running $dir unit test"
+        export LD_LIBRARY_PATH=$prefix/lib
         if [ $verbosity -ge 2 ]; then
             if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
                 invoke_make $((verbosity+1)) test
