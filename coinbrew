@@ -413,14 +413,10 @@ function parse_args {
                 enable_debug=true
                 ;;
             --fully-static)
-                configure_options["--enable-static"]=""
                 configure_options["--disable-shared"]=""
                 configure_options["LT_LDFLAGS=-all-static"]=""
-                configure_options["--disable-bzlib"]=""
+                configure_options["LD_FLAGS=-static"]=""
                 configure_options["--disable-readline"]=""
-                configure_options["--without-cholmod"]=""
-                configure_options["--without-lapack"]=""
-                configure_options["--without-amd"]=""
                 get_third_party=false
                 ;;
             -h|--help)
@@ -1149,6 +1145,7 @@ function build_proj {
     if [ $run_tests = "all" ] ||
            ([ $run_tests = "main" ] && [ x$main_proj != x ] && [ $main_proj_dir = $dir ]); then
         print_action "Running $dir unit test"
+        # Fix for systems where the unit test doesn't seem to run with specifying LD_LIBRARY_PATH
         export LD_LIBRARY_PATH=$prefix/lib
         if [ $verbosity -ge 2 ]; then
             if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
