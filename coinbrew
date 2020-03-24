@@ -416,7 +416,6 @@ function parse_args {
                 configure_options["--disable-shared"]=""
                 configure_options["LT_LDFLAGS=-all-static"]=""
                 configure_options["LDFLAGS=-static"]=""
-                get_third_party=false
                 ;;
             -h|--help)
                 help
