@@ -112,7 +112,7 @@ function invoke_make {
     fi
 }
 
-function get_project {
+function should_build {
     TMP_IFS=$IFS
     unset IFS
     for i in $coin_skip_projects
@@ -134,6 +134,20 @@ function get_project {
             return 1
         fi
     fi
+    IFS=$TMP_IFS
+    return 0
+}
+
+function should_fetch {
+    TMP_IFS=$IFS
+    unset IFS
+    for i in $coin_skip_projects
+    do
+        if [ $1 = $i ]; then
+            IFS=$TMP_IFS
+            return 1
+        fi
+    done
     IFS=$TMP_IFS
     return 0
 }
@@ -1623,7 +1637,7 @@ do
 
     # Get the source (if requested)
     if [ $fetch = "true" ]; then
-        if get_project $dir; then
+        if should_fetch $dir; then
             if [ x$main_proj_dir = x ] ||  [ $dir != $main_proj_dir ]; then
                 fetch_proj
             fi
@@ -1634,11 +1648,11 @@ do
     
     # Build the project (if requested)
     if [ $build = "true" ] && [ $dir != "BuildTools" ]; then
-        if [ ! -d $dir ] && get_project $dir; then
+        if [ ! -d $dir ] && should_fetch $dir; then
             print_action "Warning: project $dir is missing"
             fetch_proj
         fi
-        if get_project $dir; then
+        if should_build $dir; then
             build_proj
         else
             print_action "Skipping $dir"
@@ -1648,7 +1662,7 @@ do
     # Install the project (if requested)
     if ([ $install = "true" ] ||
             ([ $build = "true" ] && [ -w $prefix ])) &&
-           [ $dir != "BuildTools" ] && get_project $dir; then
+           [ $dir != "BuildTools" ] && should_build $dir; then
         install_proj
     fi
 
