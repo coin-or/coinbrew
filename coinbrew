@@ -407,7 +407,7 @@ function parse_args {
                 if [ x"$option_arg" != x ]; then
                     run_tests=$option_arg
                 else
-                    echo "No argument specified with --test."
+                    echo "No argument specified with --tests."
                     exit 3
                 fi
                 if [ $legacy_format = false ]; then
