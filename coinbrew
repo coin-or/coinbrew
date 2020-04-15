@@ -1158,7 +1158,11 @@ function build_proj {
            ([ $run_tests = "main" ] && [ x$main_proj != x ] && [ $main_proj_dir = $dir ]); then
         print_action "Running $dir unit test"
         # Fix for systems where the unit test doesn't seem to run with specifying LD_LIBRARY_PATH
-        export LD_LIBRARY_PATH=$prefix/lib:$LD_LIBRARY_PATH
+        if [[ -v LD_LIBRARY_PATH ]]; then
+            export LD_LIBRARY_PATH=$prefix/lib:$LD_LIBRARY_PATH
+        else
+            export LD_LIBRARY_PATH=$prefix/lib
+        fi
         if [ $verbosity -ge 2 ]; then
             if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
                 invoke_make $((verbosity+1)) test
