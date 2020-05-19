@@ -8,7 +8,7 @@ and installs the binaries, libraries, and header files. It has many features
 that are yet to be documented. It can probably do what you need even if it is
 not mentioned here, so please feel free to ask questions!
 
-Full documentation, as it currently exists is at 
+Full documentation, as it currently exists, is at 
 
 https://coin-or.github.io/coinbrew
 
