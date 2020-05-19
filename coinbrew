@@ -1436,7 +1436,7 @@ for c in ${!configure_options[@]} ; do
             lapack)
                 proj_dir="ThirdParty/Lapack"
                 ;;
-            metic)
+            metis)
                 proj_dir="ThirdParty/Metis"
                 ;;
             mumps)
