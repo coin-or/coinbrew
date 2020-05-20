@@ -8,6 +8,14 @@
 # - fix dependency-tracking or remove it from configure
 # - consider using pushd/popd instead of cd somewhere/cd ..
 # - look at TODO and FIXME below
+# - Read config.site
+# - Remove parts of code dealing with SVN
+# - Make it possible to just build with the current versions regardless of Dependencies
+# - Handle user requesting fetch of a tagged version
+# - Don't complain when there is no Dependencies files
+# - Make it possible to build a series of projects
+# - Think about whether to switch Dependencies file to some JSON or YAML format.
+# - Would it make sense to use the same spec as spack or some other package manager?
 
 # script debugging
 #set -x
