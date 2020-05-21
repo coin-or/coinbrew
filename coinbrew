@@ -28,13 +28,11 @@ function help {
     echo "Commands:"
     echo
     echo "  fetch: Checkout source code for project and dependencies"
-    echo "    options: --svn (check out SVN projects with SVN)"
-    echo "             --git (check out all projects from git)"
-    echo "             --ssh (checkout git projects using ssh"
+    echo "    options: --ssh (checkout git projects using ssh"
     echo "             --skip='proj1 proj2' skip listed projects"
-    echo "             --no-third-party don't download third party source (getter-scripts)"
-    echo "             --skip-update Skip updating projects that are already checked out (useful if you have local changes)"
-    echo "             --skip-dependencies don't fetch dependencies"
+    echo "             --no-third-party don't fetch third party source (run getter-scripts)"
+    echo "             --skip-update skip updating projects that are already checked out (useful if you have local changes)"
+    echo "             --skip-dependencies don't fetch dependencies, only main project"
     echo "             --time check out project and all dependencies at a time stamp"
     echo "             --auto-stash stash changes before switching version (experimental)"
     echo
@@ -48,7 +46,8 @@ function help {
     echo "             --reconfigure re-run configure"
     echo "             --prefix=/dir/to/install (where to install, default: $PWD/dist)"
     echo "             --skip-dependencies don't build dependencies"
-    echo "             --fully-static build fully static executables on Linux and OS X" 
+    echo "             --no-third-party don't build third party projects"
+    echo "             --static build static executables on Linux and OS X" 
     echo
     echo "  install: Install all projects in location specified by prefix (after build and test)"
     echo
@@ -434,7 +433,7 @@ function parse_args {
                 configure_options["$arg"]=""
                 enable_debug=true
                 ;;
-            --fully-static)
+            --static)
                 configure_options["--disable-shared"]=""
                 configure_options["LT_LDFLAGS=-all-static"]=""
                 configure_options["LDFLAGS=-static"]=""
@@ -458,12 +457,6 @@ function parse_args {
                 ;;
             --sparse)
                 sparse=true
-                ;;
-            --svn)
-                VCS=svn
-                ;;
-            --git)
-                VCS=git
                 ;;
             --ssh)
                 ssh_checkout=true
@@ -624,40 +617,16 @@ function user_prompts {
                 2)  main_proj=Clp;;
                 3)  main_proj=Cbc;;
                 4)  main_proj=DyLP;;
-                5)
-                    if [ $VCS = git ]; then
-                        main_proj=FlopCpp
-                    else
-                        main_proj=FlopC++
-                    fi
-                    ;;
+                5)  main_proj=FlopCpp;;
                 6)  main_proj=Vol;;
                 7)  main_proj=SYMPHONY;;
                 8)  main_proj=Smi;;
                 9)  main_proj=CoinMP;;
                 10)  main_proj=Bcp;;
                 11)  main_proj=Ipopt;;
-                12)
-                    if [ $VCS = git ]; then
-                        main_proj=CHiPPS-ALPS
-                    else
-                        main_proj=CHiPPS/Alps
-                    fi
-                    ;;
-                13) 
-                    if [ $VCS = git ]; then
-                        main_proj=CHiPPS-BiCePS
-                    else
-                        main_proj=CHiPPS/Bcps
-                    fi
-                    ;;
-                14) 
-                    if [ $VCS = git ]; then
-                        main_proj=CHiPPS-BLIS
-                    else
-                        main_proj=CHiPPS/Blis
-                    fi
-                    ;;
+                12)  main_proj=CHiPPS-ALPS;;
+                13)  main_proj=CHiPPS-BiCePS;;
+                14)  main_proj=CHiPPS-BLIS;;
                 15)  main_proj=Dip;;
                 16)  main_proj=Bonmin;;
                 17)  main_proj=Couenne;;
@@ -700,7 +669,7 @@ function user_prompts {
         else
             main_proj=`echo $main_proj | cut -d '/' -f 2 | cut -d '.' -f 1`
         fi
-    elif [ $VCS = "git" ]; then
+    else
         if [ x$main_proj_version = x ]; then
             main_proj_version=master
         fi
@@ -709,11 +678,6 @@ function user_prompts {
         else
             main_proj_url="git@github.com:coin-or/$main_proj"
         fi
-    else
-        if [ x$main_proj_version = x ]; then
-            main_proj_version=trunk
-        fi
-        main_proj_url="https://projects.coin-or.org/svn/$main_proj/$main_proj_version/$main_proj"
     fi
 
     # Figure out main project directory
@@ -737,29 +701,11 @@ function user_prompts {
     if [ -d $main_proj_dir ]; then
         cd $main_proj_dir
         # Possibly switch url and version for existing projects
-        if [ -d .git ]; then
-            if [ $main_proj_version = "trunk" ]; then
-                main_proj_version=master
-            fi
-            main_proj_url=`git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
-            if [ $fetch = "false" ]; then
-                current_version=$(get_version_git)
-                main_proj_version=$current_version
-            fi
-        else
-            if [ $main_proj_version = "master" ]; then
-                main_proj_version=trunk
-            fi
-            main_proj_url="https://projects.coin-or.org/svn/$main_proj/$main_proj_version/$main_proj"
-            if [ $fetch = "false" ]; then
-                if [ `svn info | fgrep "URL" | cut -d '/' -f 6` = trunk ]; then
-                    current_version=trunk
-                else
-                    current_version=`echo $url | cut -d '/' -f 6-7`
-                fi
-                main_proj_version=$current_version
-            fi
-        fi    
+        main_proj_url=`git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
+        if [ $fetch = "false" ]; then
+            current_version=$(get_version_git)
+            main_proj_version=$current_version
+        fi
         if [ $fetch = "false" ] && [ $build = "true" ]; then
             echo "################################################"
             echo "### Building version $current_version"
@@ -856,11 +802,7 @@ function user_prompts {
                 y) main_proj_version=releases/`git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
                    ;;
                 n) echo "Please enter another version name in the form of"
-                   if [ $VCS = "svn" ]; then
-                       echo 'trunk', 'releases/x.y.z', or 'stable/x.y'
-                   else
-                       echo 'master', 'releases/x.y.z', or 'stable/x.y'
-                   fi
+                   echo 'master', 'releases/x.y.z', or 'stable/x.y'
                    echo -n "=> "
                    read choice
                    main_proj_version=$choice
@@ -944,119 +886,56 @@ function fetch_proj {
     current_rev=
     if [ -d $dir ]; then
         cd $dir
-        if [ -d .svn ]; then
-            # Get current version and revision
-            current_url=`svn info | fgrep "URL: https" | cut -d " " -f 2`
-            current_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
-            current_version=$(get_version_svn $current_url)
-            if [ $skip_update = "false" ]; then
-                if [[ $version != *$current_version ]]; then
+        if [ `echo $version | cut -d '/' -f 1` = "branches" ]; then
+            version=`echo $version | cut -d '/' -f 2`
+        fi
+        current_version=$(get_version_git)
+        current_rev=`git rev-parse HEAD`
+        if [ $skip_update = "false" ]; then
+            if [[ $version != *$current_version ]] ||
+                   ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
+                   [ x$checkout_time != x ]; then
+                git fetch --tags
+                if [ x$sha != x ]; then
+                    print_action "Switching $dir to SHA $sha"
+                    stashed=false
+                    if [ $auto_stash = true ]; then
+                        if [[ `git stash save` == "No" ]]; then
+                            stashed=false
+                        fi
+                    fi
+                    git checkout $sha
+                    if [ $auto_stash = true ] && [ $stashed = true ]; then
+                        # We should check whether this succeeds somehow...
+                        git stash pop
+                    fi
+                elif [ x"$checkout_time" != x ]; then
+                    print_action "Checking out $dir version $version as of $checkout_time"
+                    git checkout `git rev-list -n 1 --first-parent --before="$checkout_time" remotes/origin/$version`
+                else
                     print_action "Switching $dir to $version"
-                    svn --non-interactive --trust-server-cert --ignore-externals switch $url
-                    if [ $dir = $main_proj_dir ]; then
-                        set +e
-                        svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > xxx 2>&1
-                        if [ $? == 0 ]; then
-                            mv xxx Dependencies
-                        else
-                            rm xxx
-                        fi
-                        set -e
-                    fi
-                else
-                    print_action "Updating $dir"
-                    svn --non-interactive --trust-server-cert --ignore-externals update
-                    if [ $dir = $main_proj_dir ]; then
-                        set +e
-                        svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > xxx 2>&1
-                        if [ $? == 0 ]; then
-                            mv xxx Dependencies
-                        else
-                            rm xxx
-                        fi
-                        set -e
-                    fi
+                    git checkout $version
+                fi
+                if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
+                    # We should somehow check whether this causes conflicts
+                    git pull
                 fi
             else
-                print_action "Skipping update of $dir"
+                if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ] &&
+                       [ `git branch | grep \* | cut -d ' ' -f 2` != "(no" ];
+                then
+                    # We should somehow check whether this causes conflicts
+                    print_action "Updating $dir $version"
+                    git pull
+                else
+                    print_action "$dir already on $version"
+                fi
             fi
-            new_rev=`svn info | fgrep "Revision:" | cut -d " " -f 2`
         else
-            if [ $version = "trunk" ] ; then
-                version=master
-            elif [ `echo $version | cut -d '/' -f 1` = "branches" ]; then
-                version=`echo $version | cut -d '/' -f 2`
-            fi
-#            current_version=`git branch | grep \* | cut -d ' ' -f 2`
-#            if [ $current_version = "(HEAD" ]; then
-#                current_version=`git branch | grep \* | cut -d ' ' -f 5 | cut -d ')' -f 1`
-#            fi
-            current_version=$(get_version_git)
-            current_rev=`git rev-parse HEAD`
-            if [ $skip_update = "false" ]; then
-                if [[ $version != *$current_version ]] ||
-                       ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
-                       [ x$checkout_time != x ]; then
-                    git fetch --tags
-                    if [ x$sha != x ]; then
-                        print_action "Switching $dir to SHA $sha"
-                        stashed=false
-                        if [ $auto_stash = true ]; then
-                            if [[ `git stash save` == "No" ]]; then
-                                stashed=false
-                            fi
-                        fi
-                        git checkout $sha
-                        if [ $auto_stash = true ] && [ $stashed = true ]; then
-                            # We should check whether this succeeds somehow...
-                            git stash pop
-                        fi
-                    elif [ x"$checkout_time" != x ]; then
-                        print_action "Checking out $dir version $version as of $checkout_time"
-                        git checkout `git rev-list -n 1 --first-parent --before="$checkout_time" remotes/origin/$version`
-                    else
-                        print_action "Switching $dir to $version"
-                        git checkout $version
-                    fi
-                    if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
-                        # We should somehow check whether this causes conflicts
-                        git pull
-                    fi
-                else
-                    if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ] &&
-                           [ `git branch | grep \* | cut -d ' ' -f 2` != "(no" ];
-                    then
-                        # We should somehow check whether this causes conflicts
-                        print_action "Updating $dir $version"
-                        git pull
-                    else
-                        print_action "$dir already on $version"
-                    fi
-                fi
-            else
-                print_action "Skipping update of $dir"
-            fi
-            new_rev=`git rev-parse HEAD`
+            print_action "Skipping update of $dir"
         fi
-    elif [ x`echo $url | cut -d '/' -f 3` = x"projects.coin-or.org" ]; then
-        print_action "Fetching $dir $version"
-        svn co --non-interactive --trust-server-cert --ignore-externals $url $dir
-        cd $dir
-        if [ $dir = $main_proj_dir ]; then
-            set +e
-            svn cat --non-interactive --trust-server-cert https://projects.coin-or.org/svn/$proj/$version/Dependencies > xxx 2>&1
-            if [ $? == 0 ]; then
-                mv xxx Dependencies
-            else
-                rm xxx
-            fi
-            set -e
-        fi
-        new_rev=`svn info | fgrep "Revision:" | cut -d ' ' -f 2`
+        new_rev=`git rev-parse HEAD`
     else
-        if [ $version = "trunk" ] ; then
-            version=master
-        fi
         if [ $sparse = "true" ]; then
             print_action "Fetching $dir $version"
             mkdir $dir
@@ -1273,7 +1152,6 @@ num_actions=0
 sparse=false
 prefix=
 coin_skip_projects=
-svn=true
 fetch=false
 build=false
 install=false
@@ -1292,7 +1170,6 @@ main_proj_version=
 main_proj_sha=
 main_proj_dir=
 MAKE=make
-VCS=git
 no_prompt=false
 skip_update=false
 ssh_checkout=false
@@ -1361,7 +1238,7 @@ if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
     fi
     if [ $build = "true" ]; then
         echo
-        echo "Installation is now done automatically following build and test of each project."
+        echo "Installation is done automatically following build and test of each project."
         echo
         if [ x$prefix = x ]; then
             prefix=$root_dir/dist
@@ -1633,7 +1510,7 @@ do
             version_num=master
         fi
     else
-        #The URL is for an SVN project
+        #The URL is for an old SVN project
         version=$(get_version_svn $url)
         if [ $version = "trunk" ]; then
             version=master
@@ -1641,7 +1518,7 @@ do
         else
             version_num=`echo $version | cut -d '/' -f 2`
         fi
-        if [ ! -d $dir ] && [ $VCS = "git" ]; then
+        if [ ! -d $dir ]; then
             # Convert SVN URL to a Github one
             url=$(svn2git)
         fi
