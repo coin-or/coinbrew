@@ -1475,9 +1475,9 @@ if [ $skip_dependencies = "false" ]; then
     elif [ x$main_proj != x ] && [ -e $main_proj_dir/$main_proj_dir/Dependencies ]; then
         deps=`cat $main_proj_dir/$main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
     else
-        echo "Can't find dependencies file...exiting"
+        echo "No dependencies file found, only main project will be built"
         echo
-        exit 3
+        deps=
     fi
 else
     deps=
