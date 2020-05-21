@@ -22,7 +22,7 @@
 #PS4='${LINENO}:${PWD}: '
 
 function help {
-    echo "Usage: coinbrew <command1> <command2> <name|URL:branch> --option option_par ..."
+    echo "Usage: coinbrew <command> <name|URL@version> --option value ..."
     echo "       Run without arguments for interactive mode"
     echo
     echo "Commands:"
@@ -502,19 +502,33 @@ function parse_args {
                 uninstall=true
                 ;;
             *)
+                # Look for things that seem to be arguments for configure
                 if [[ "$arg" == *=* ]] || [[ "$arg" == --* ]]; then
                     configure_options["$arg"]=""
-                elif [[ $arg == *:* ]]; then
-                    if [ `echo $arg | cut -d ':' -f 1` = https ] ||
-                       [ `echo $arg | cut -d '@' -f 1` = git ]; then
-                        main_proj=`echo $arg | cut -d ':' -f 1-2`
-                        main_proj_version=`echo $arg | cut -d ':' -f 3`
-                    else
-                        main_proj=${arg%%:*}
-                        main_proj_version=${arg#*:}
-                    fi
+                fi
+
+                #strip out the "https:" or "git@"  
+                if [ $(echo $arg | cut -d ':' -f 1) = https ]; then
+                    tmp=$(echo $arg | cut -d ':' -f 2-)
+                elif [ $(echo $arg | cut -d '@' -f 1) = git ]; then
+                    tmp=$(echo $arg | cut -d '@' -f 2-)
                 else
-                    main_proj=$arg
+                    tmp=$arg
+                fi
+
+                #Now look for the version number after the last ":" or "@"
+                #We support both formats for now. If there is any "@", then
+                #the format is the one with version after "@", otherwise, it
+                #is the version with ":"
+                if [[ $tmp == *@* ]]; then
+                    main_proj=${arg%@*}
+                    main_proj_version=${arg##*@}
+                elif [[ $tmp == *:* ]]; then
+                    main_proj=${arg%:*}
+                    main_proj_version=${arg##*:}
+                    echo "Warning: specifying version after ':' is deprecated and will be removed in a future version"
+                else
+                    main_proj=$tmp
                 fi
                 ;;
         esac
