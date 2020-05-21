@@ -127,8 +127,8 @@ function should_build {
             return 1
         fi
     done
-    if [ `echo $dir | cut -d '/' -f 1` = ThirdParty ]; then
-        if [ `echo $dir | cut -d '/' -f 2` = HSL ]; then
+    if [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
+        if [ $(echo $dir | cut -d '/' -f 2) = HSL ]; then
             if [ ! -f $dir/coinhsl/common/deps.f ]; then
                 IFS=$TMP_IFS
                 return 1
@@ -158,12 +158,12 @@ function should_fetch {
 }
 
 function get_version_git {
-    current_rev=`git rev-parse HEAD`
-    if [ `git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-` ]; then
+    current_rev=$(git rev-parse HEAD)
+    if [ $(git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-) ]; then
 	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4
-    elif [ `git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-` ]; then
+    elif [ $(git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-) ]; then
 	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4
-    elif [ `git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-` ]; then
+    elif [ $(git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-) ]; then
 	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3
     else
         echo $current_rev
@@ -172,32 +172,32 @@ function get_version_git {
 
 function get_version_svn {
     if [ $proj = "BuildTools" ] &&
-           [ `echo $1 | cut -d '/' -f 6` = 'ThirdParty' ]; then
-        if [ `echo $1 | cut -d '/' -f 8` = trunk ]; then
+           [ $(echo $1 | cut -d '/' -f 6) = 'ThirdParty' ]; then
+        if [ $(echo $1 | cut -d '/' -f 8) = trunk ]; then
             echo "trunk"
         else
             echo $1 | cut -d '/' -f 8-9
         fi
     elif [ $proj = "CHiPPS" ]; then
-        if [ `echo $1 | cut -d '/' -f 7` = trunk ]; then
+        if [ $(echo $1 | cut -d '/' -f 7) = trunk ]; then
             echo "trunk"
         else
             echo $1 | cut -d '/' -f 7-8
         fi
     elif [ $proj = "Data" ]; then
-        if [ `echo $1 | cut -d '/' -f 7` = trunk ]; then
+        if [ $(echo $1 | cut -d '/' -f 7) = trunk ]; then
             echo "trunk"
         else
             echo $1 | cut -d '/' -f 7-8
         fi
     elif [ $proj = "CoinBazaar" ]; then
-        if [ `echo $1 | cut -d '/' -f 9` = trunk ]; then
+        if [ $(echo $1 | cut -d '/' -f 9) = trunk ]; then
             echo "trunk"
         else
             echo $1 | cut -d '/' -f 8-9
         fi
     else
-        if [ `echo $1 | cut -d '/' -f 6` = trunk ]; then
+        if [ $(echo $1 | cut -d '/' -f 6) = trunk ]; then
             echo "trunk"
         else
             echo $1 | cut -d '/' -f 6-7
@@ -226,10 +226,10 @@ function svn2git {
             new_url="git@github.com:coin-or/"
         fi
     fi
-    if [ `echo $dir | cut -d "/" -f 1` = "ThirdParty" ]; then
-        new_url+=`echo $dir | sed s"|/|-|"`
+    if [ $(echo $dir | cut -d "/" -f 1) = "ThirdParty" ]; then
+        new_url+=$(echo $dir | sed s"|/|-|")
     elif [ $proj = "Data" ]; then
-        new_url+=`echo $dir | sed s"|/|-|"`
+        new_url+=$(echo $dir | sed s"|/|-|")
     elif [ $proj = "CHiPPS" ]; then
         if [ $dir = "Alps" ]; then
             new_url+="CHiPPS-ALPS"
@@ -669,17 +669,17 @@ function user_prompts {
     
     # Figure out project version and URL. First guess at correct values,
     # change later if project is already checked out
-    if [ `echo $main_proj | cut -d ':' -f 1` = https ] ||
-           [ `echo $main_proj | cut -d '@' -f 1` = git ]; then
+    if [ $(echo $main_proj | cut -d ':' -f 1) = https ] ||
+           [ $(echo $main_proj | cut -d '@' -f 1) = git ]; then
         #We assume this is a fork of a git project
         if [ x$main_proj_version = x ]; then
             main_proj_version=master
         fi
         main_proj_url=$main_proj
-        if [ `echo $main_proj | cut -d ':' -f 1` = https ]; then
-            main_proj=`echo $main_proj_url | cut -d '/' -f 5 | cut -d '.' -f 1`
+        if [ $(echo $main_proj | cut -d ':' -f 1) = https ]; then
+            main_proj=$(echo $main_proj_url | cut -d '/' -f 5 | cut -d '.' -f 1)
         else
-            main_proj=`echo $main_proj | cut -d '/' -f 2 | cut -d '.' -f 1`
+            main_proj=$(echo $main_proj | cut -d '/' -f 2 | cut -d '.' -f 1)
         fi
     else
         if [ x$main_proj_version = x ]; then
@@ -693,8 +693,8 @@ function user_prompts {
     fi
 
     # Figure out main project directory
-    if [ x`echo $main_proj | cut -d '-' -f 1` = x"CHiPPS" ]; then
-        case `echo $main_proj | cut -d '-' -f 2` in
+    if [ x$(echo $main_proj | cut -d '-' -f 1) = x"CHiPPS" ]; then
+        case $(echo $main_proj | cut -d '-' -f 2) in
             ALPS)
                 main_proj_dir=Alps
                 ;;
@@ -713,7 +713,7 @@ function user_prompts {
     if [ -d $main_proj_dir ]; then
         cd $main_proj_dir
         # Possibly switch url and version for existing projects
-        main_proj_url=`git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
+        main_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
         if [ $fetch = "false" ]; then
             current_version=$(get_version_git)
             main_proj_version=$current_version
@@ -760,12 +760,12 @@ function user_prompts {
     fi
 
     # Figure out if the user really wants a release (for git main projects only)
-    if [ `echo $main_proj_url | cut -d ':' -f 1` = "git@github.com" ] ||
-           [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then
-        latest_release=`git ls-remote --tags $main_proj_url`
+    if [ $(echo $main_proj_url | cut -d ':' -f 1) = "git@github.com" ] ||
+           [ $(echo $main_proj_url | cut -d '/' -f 3) = "github.com" ]; then
+        latest_release=$(git ls-remote --tags $main_proj_url)
 	if echo "$latest_release" | fgrep releases &> /dev/null ; then
-	  latest_release=`echo "$latest_release" | fgrep releases | \
-	  	cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
+	  latest_release=$(echo "$latest_release" | fgrep releases | \
+	  	cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
 	fi
         if [ $get_latest_release = "true" ] ; then
 	  if [ -n "$latest_release" ] ; then
@@ -811,7 +811,7 @@ function user_prompts {
                 esac
             done
             case $choice in
-                y) main_proj_version=releases/`git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1`
+                y) main_proj_version=releases/$(git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
                    ;;
                 n) echo "Please enter another version name in the form of"
                    echo 'master', 'releases/x.y.z', or 'stable/x.y'
@@ -898,11 +898,11 @@ function fetch_proj {
     current_rev=
     if [ -d $dir ]; then
         cd $dir
-        if [ `echo $version | cut -d '/' -f 1` = "branches" ]; then
-            version=`echo $version | cut -d '/' -f 2`
+        if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
+            version=$(echo $version | cut -d '/' -f 2)
         fi
         current_version=$(get_version_git)
-        current_rev=`git rev-parse HEAD`
+        current_rev=$(git rev-parse HEAD)
         if [ $skip_update = "false" ]; then
             if [[ $version != *$current_version ]] ||
                    ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
@@ -912,7 +912,7 @@ function fetch_proj {
                     print_action "Switching $dir to SHA $sha"
                     stashed=false
                     if [ $auto_stash = true ]; then
-                        if [[ `git stash save` == "No" ]]; then
+                        if [[ $(git stash save) == "No" ]]; then
                             stashed=false
                         fi
                     fi
@@ -923,18 +923,18 @@ function fetch_proj {
                     fi
                 elif [ x"$checkout_time" != x ]; then
                     print_action "Checking out $dir version $version as of $checkout_time"
-                    git checkout `git rev-list -n 1 --first-parent --before="$checkout_time" remotes/origin/$version`
+                    git checkout $(git rev-list -n 1 --first-parent --before="$checkout_time" remotes/origin/$version)
                 else
                     print_action "Switching $dir to $version"
                     git checkout $version
                 fi
-                if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ]; then
+                if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ]; then
                     # We should somehow check whether this causes conflicts
                     git pull
                 fi
             else
-                if [ `git branch | grep \* | cut -d ' ' -f 2` != "(HEAD" ] &&
-                       [ `git branch | grep \* | cut -d ' ' -f 2` != "(no" ];
+                if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
+                       [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ];
                 then
                     # We should somehow check whether this causes conflicts
                     print_action "Updating $dir $version"
@@ -946,7 +946,7 @@ function fetch_proj {
         else
             print_action "Skipping update of $dir"
         fi
-        new_rev=`git rev-parse HEAD`
+        new_rev=$(git rev-parse HEAD)
     else
         if [ $sparse = "true" ]; then
             print_action "Fetching $dir $version"
@@ -972,7 +972,7 @@ function fetch_proj {
             fi
             cd $dir
         fi     
-        new_rev=`git rev-parse HEAD`
+        new_rev=$(git rev-parse HEAD)
     fi
     cd $root_dir
 
@@ -980,8 +980,8 @@ function fetch_proj {
     if [ $get_third_party = "true" ] &&
            ([ x$current_rev != x$new_rev ] ||
                 [[ $version != *$current_version ]]) &&
-           [ `echo $dir | cut -d '/' -f 1` = ThirdParty ]; then
-        tp_proj=`echo $dir | cut -d '/' -f 2`
+           [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
+        tp_proj=$(echo $dir | cut -d '/' -f 2)
         if [ -e $dir/get.$tp_proj ]; then
             cd $dir
             ./get.$tp_proj
@@ -1120,7 +1120,7 @@ function uninstall_all {
     for ((dir=${#subdirs[@]}-1; i>=0; i--))
     do
         if [ $build_dir != $PWD ]; then
-            proj_dir=`echo $dir | cut -d '/' -f 1`
+            proj_dir=$(echo $dir | cut -d '/' -f 1)
             if [ $proj_dir = "Data" ] || [ $proj_dir = "ThirdParty" ]; then
                 proj_dir=$dir
             fi
@@ -1239,12 +1239,12 @@ IFS=$'\n'
 # the code but left the build directory (with configuration options) intact.
 
 if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
-    version_num=`echo $main_proj_version | cut -d '/' -f 2`
+    version_num=$(echo $main_proj_version | cut -d '/' -f 2)
     if [ -e $build_dir/.config/$main_proj-$version_num ]; then
-        for i in `cat $build_dir/.config/$main_proj-$version_num`
+        for i in $(cat $build_dir/.config/$main_proj-$version_num)
         do
             if [[ "$i" == --with-coin-instdir* ]]; then
-                prefix=`echo $i | cut -d '=' -f 2`
+                prefix=$(echo $i | cut -d '=' -f 2)
             fi
         done
     fi
@@ -1291,7 +1291,7 @@ fi
 # case we're doing an implied fetch.
 
 if [ $build = "true" ]; then
-    version_num=`echo $main_proj_version | cut -d '/' -f 2`
+    version_num=$(echo $main_proj_version | cut -d '/' -f 2)
     if [ ! -e $build_dir/.config/$main_proj-$version_num ] ||
            [ $reconfigure = "true" ]; then
         echo "Caching configuration options..."
@@ -1312,7 +1312,7 @@ fi
 for c in ${!configure_options[@]} ; do
     if [[ $c == --without-* ]]; then
         found_project=true
-        proj_name=`echo "$c" | cut -d '-' -f 4`
+        proj_name=$(echo "$c" | cut -d '-' -f 4)
         proj_name=${proj_name,,}
         case $proj_name in
             asl)
@@ -1441,7 +1441,7 @@ if [ x$main_proj != x ]; then
 # thing back, hence arbitrary branch names like trunk or autotools-update
 # come through just fine.
 
-    version_num=`echo $version | cut -d '/' -f 2`
+    version_num=$(echo $version | cut -d '/' -f 2)
     sha=$main_proj_sha
     if [ $fetch = true ]; then
         fetch_proj
@@ -1463,15 +1463,15 @@ fi
 # Build list of dependencies
 if [ $skip_dependencies = "false" ]; then
     if [ -e Dependencies ] && [ x$main_proj = x ]; then
-        deps=`cat Dependencies | tr '\t' ' ' | tr -s ' '`
+        deps=$(cat Dependencies | tr '\t' ' ' | tr -s ' ')
     elif [ -e .coin-or/Dependencies ] && [ x$main_proj = x ]; then
-        deps=`cat .coin-or/Dependencies | tr '\t' ' ' | tr -s ' '`
+        deps=$(cat .coin-or/Dependencies | tr '\t' ' ' | tr -s ' ')
     elif [ x$main_proj != x ] && [ -e $main_proj_dir/Dependencies ]; then
-        deps=`cat $main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
+        deps=$(cat $main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' ')
     elif [ x$main_proj != x ] && [ -e $main_proj_dir/.coin-or/Dependencies ]; then
-        deps=`cat $main_proj_dir/.coin-or/Dependencies | tr '\t' ' ' | tr -s ' '`
+        deps=$(cat $main_proj_dir/.coin-or/Dependencies | tr '\t' ' ' | tr -s ' ')
     elif [ x$main_proj != x ] && [ -e $main_proj_dir/$main_proj_dir/Dependencies ]; then
-        deps=`cat $main_proj_dir/$main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' '`
+        deps=$(cat $main_proj_dir/$main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' ')
     else
         echo "No dependencies file found, only main project will be built"
         echo
@@ -1486,8 +1486,8 @@ if [ x$main_proj != x ]; then
     if [ x"$deps" != x ]; then
         deps+=$'\n'
     fi
-    if [ `echo $main_proj_url | cut -d ':' -f 1` = "git@github.com" ] ||
-           [ `echo $main_proj_url | cut -d '/' -f 3` = "github.com" ]; then    
+    if [ $(echo $main_proj_url | cut -d ':' -f 1) = "git@github.com" ] ||
+           [ $(echo $main_proj_url | cut -d '/' -f 3) = "github.com" ]; then    
         deps+="$main_proj_dir $main_proj_url $main_proj_version"
     else
         deps+="$main_proj_dir $main_proj_url"
@@ -1507,17 +1507,17 @@ fi
 for entry in $deps
 do
     if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
-    dir=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1`
-    url=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2`
-    proj=`echo $url | cut -d '/' -f 5`
+    dir=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1)
+    url=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
+    proj=$(echo $url | cut -d '/' -f 5)
     sha=
     # Set the URL of the project, the version, and the build dir
-    if [ `echo $url | cut -d ':' -f 1` = "git@github.com" ] ||
-       [ `echo $url | cut -d '/' -f 3` = "github.com" ]; then
+    if [ $(echo $url | cut -d ':' -f 1) = "git@github.com" ] ||
+       [ $(echo $url | cut -d '/' -f 3) = "github.com" ]; then
         #The URL is for a git project
-        version=`echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3`
+        version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
         if [ $version != "master" ]; then
-            version_num=`echo $version | cut -d '/' -f 2`
+            version_num=$(echo $version | cut -d '/' -f 2)
         else
             version_num=master
         fi
@@ -1528,7 +1528,7 @@ do
             version=master
             version_num=master
         else
-            version_num=`echo $version | cut -d '/' -f 2`
+            version_num=$(echo $version | cut -d '/' -f 2)
         fi
         if [ ! -d $dir ]; then
             # Convert SVN URL to a Github one
@@ -1588,7 +1588,7 @@ fi
 
 if [ $install = "true" ]; then
     if command -v ld >/dev/null 2>&1; then
-        if [[ `ld --verbose | grep SEARCH_DIR` =~ $prefix/lib ]]; then
+        if [[ $(ld --verbose | grep SEARCH_DIR) =~ $prefix/lib ]]; then
             if command -v /sbin/ldconfig >/dev/null 2>&1; then
                 echo
                 echo "Running ldconfig to update library cache"
