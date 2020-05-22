@@ -55,7 +55,7 @@ coinbrew fetch <ProjectName|URL@version>
 ```
 For example,
 ```
-coinbrew fetch Cbc@stable/2.10 --verbosity 2
+coinbrew fetch Cbc@stable/2.10 
 ```
 Note that this command can be run even if you have previously fetched another
 project with overlapping dependencies. You can even fetch two projects that
@@ -64,7 +64,7 @@ automatically check out the appropriate versions of all dependent projects,
 although this may fail if any of these projects have uncommitted local
 changes. To build a fork, specify the URL, e.g.,
 ```
-coinbrew fetch https://github.com/tkralphs/Cbc@stable/2.10 --verbosity=2
+coinbrew fetch https://github.com/tkralphs/Cbc@stable/2.10 
 ```
 
 ### Build and install project from source
@@ -72,7 +72,7 @@ coinbrew fetch https://github.com/tkralphs/Cbc@stable/2.10 --verbosity=2
 To build a project that has already been fetched with the versions of all
 dependent projects that are already checked out, do
 ```
-coinbrew build <ProjectName> <configure_options>
+coinbrew build <ProjectName> <coinbrew_options> <configure_options>
 ```
 For example,
 ```
