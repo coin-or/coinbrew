@@ -7,12 +7,16 @@ matrix:
     - os: linux
       env: PROJECT="Osi@master" FETCH=true
     - os: linux
-      env: PROJECT="git@github.com:tkralphs/Osi@stable/0.108" FETCH=true
+      env: PROJECT="https://github.com/tkralphs/Osi@stable/0.108" FETCH=true
     - os: linux
       env: PROJECT="https://github.com/tkralphs/Osi@master" FETCH=false
     - os: linux
       env: PROJECT="Osi --no-prompt" FETCH=false
     - os: linux
+      addons:
+        apt:
+          packages:
+          - gfortran
       env: PROJECT="SYMPHONY@WS" FETCH=false
     - os: osx
       env: PROJECT="Osi --no-prompt" FETCH=false
