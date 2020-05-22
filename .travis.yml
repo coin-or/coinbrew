@@ -3,21 +3,41 @@ language: cpp
 matrix:
   include:
     - os: linux
+      addons:
+        apt:
+          packages:
+          - gfortran
       env: PROJECT="Osi --no-prompt" FETCH=true
     - os: linux
+      addons:
+        apt:
+          packages:
+          - gfortran
       env: PROJECT="Osi@master" FETCH=true
     - os: linux
+      addons:
+        apt:
+          packages:
+          - gfortran
       env: PROJECT="https://github.com/tkralphs/Osi@stable/0.108" FETCH=true
     - os: linux
+      addons:
+        apt:
+          packages:
+          - gfortran
       env: PROJECT="https://github.com/tkralphs/Osi@master" FETCH=false
     - os: linux
+      addons:
+        apt:
+          packages:
+          - gfortran
       env: PROJECT="Osi --no-prompt" FETCH=false
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
-      env: PROJECT="SYMPHONY@WS" FETCH=false
+      env: PROJECT="SYMPHONY@stable/5.6" FETCH=false
     - os: osx
       env: PROJECT="Osi --no-prompt" FETCH=false
 
