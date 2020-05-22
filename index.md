@@ -51,45 +51,48 @@ The following assumes the `coinbrew` script is in your executable path. If
 not, be sure to add the path to the executable in the commands below. To get
 the most recent sources for a project, along with all its depencencies, use 
 ```
-coinbrew fetch <ProjectName|URL:branch> --no-prompt
+coinbrew fetch <ProjectName|URL@version>
 ```
 For example,
 ```
-coinbrew fetch Cbc:stable/2.10 --verbosity=2 --no-prompt
+coinbrew fetch Cbc@stable/2.10 --verbosity 2
 ```
 Note that this command can be run even if you have previously fetched another
 project with overlapping dependencies. You can even fetch two projects that
 require different versions of a common dependency. Each fetch command will
-automatically check out the appropriate version of all dependent projects,
+automatically check out the appropriate versions of all dependent projects,
 although this may fail if any of these projects have uncommitted local
 changes. To build a fork, specify the URL, e.g.,
 ```
-coinbrew fetch https://github.com/tkralphs/Cbc:stable/2.10 --verbosity=2 --no-prompt
+coinbrew fetch https://github.com/tkralphs/Cbc@stable/2.10 --verbosity=2
 ```
 
-### Build project from source
+### Build and install project from source
 
-To build a project, do
+To build a project that has already been fetched with the versions of all
+dependent projects that are already checked out, do
 ```
-coinbrew build <ProjectName> --no-prompt <configure_options>
+coinbrew build <ProjectName> <configure_options>
 ```
 For example,
 ```
-coinbrew build Cbc --verbosity=2 --test --enable-debug --prefix=/usr/local
+coinbrew build Cbc --test --enable-debug --prefix=/usr/local 
 ```
-The build artifacts for each project will be generated in the `build` directory by 
-default (a different directory can be specified with `--build-dir` or `-b`). When a 
-prefix is specified, final installation is done automatically at build time if the install 
-directory is writable. Otherwise, the `install` command must be explicitly invoked 
-be invoked, as the installatin must be done using sudo (see below). The explicit invokation 
-can be done either as a separate step or at the same time.
-```
-coinbrew build install Cbc --verbosity=2 --test --enable-debug --prefix=/usr/local
-```
-In the latter case, the sudo password will need to be enetered upon reaching the first install 
-step, so the build cannot be don unattended. For this reason, a separate install step is
-recommended. If no prefix is specified, then the installation is to the `dist/` subdirectory. 
 
+The build artifacts for each project will be generated in the `build`
+directory by default (a different directory can be specified with
+`--build-dir` or `-b`). Installation is done automatically at build time to
+the specified `prefix` (`dist/` by default). If the install directory is not
+writable, the `install` command must be invoked via sudo and the user will be
+prompted for sudo authorization.
+
+It is not necessary to fetch a project before building it. This will be done
+automatically if the project does not exist. If the project does exist,
+however, the fetch will not be done automatically. If it is desired to do an
+update of the project source before building, this can be done with
+```
+coinbrew fetch build Cbc@master --test --enable-debug --prefix=/usr/local
+```
 Any option valid for a project's `configure` script can be specified as
 arguments to `coinbrew` and will be passed through. To see what arguments are
 available for configuration, do
@@ -97,13 +100,6 @@ available for configuration, do
 coinbrew Cbc --configure-help
 ```
 
-### Install executables, libraries, and header files
-
-After building with an (non-writeable) installation prefix specified, the project may be
-installed using the command
-```
-sudo coinbrew install <ProjectName>
-```
 ## Help
 
 To get help, do
@@ -116,28 +112,32 @@ Welcome to the COIN-OR fetch and build utility
 
 For help, run script with --help.
 
-Usage: coinbrew <command1> <command2> <name|URL:branch> --option option_par ...
+Usage: coinbrew <command> <name|URL@version> --option value ...
        Run without arguments for interactive mode
 
 Commands:
 
   fetch: Checkout source code for project and dependencies
-    options: --svn (check out SVN projects with SVN)
-             --git (check out all projects from git)
-             --ssh (checkout git projects using ssh
+    options: --ssh checkout git projects using ssh protocol rather than https
              --skip='proj1 proj2' skip listed projects
-             --no-third-party don't download third party source (getter-scripts)
-             --skip-update Skip updating projects that are already checked out (useful if you have local changes)
+             --no-third-party don't fetch third party source (run getter-scripts)
+             --skip-update skip updating projects that are already checked out (useful if you have local changes)
+             --skip-dependencies don't fetch dependencies, only main project
+             --time check out project and all dependencies at a time stamp
+             --auto-stash stash changes before switching version (experimental)
 
   build: Configure, build, test (optional), and pre-install all projects
-    options: --xxx=yyy (will be passed through to configure)
+    options: --configure-help (print help on build configuration
+             --xxx=yyy (will be passed through to configure)
              --parallel-jobs=n build in parallel with maximum 'n' jobs
-             --build-dir=\dir\to\build\in do a VPATH build (default: /home/tkral/coinbrew/build)
-             --test run unit test of main project before install
-             --test-all run unit tests of all projects before install
+             --build-dir=/dir/to/build/in where to build (default: /mnt/c/Users/tkral/Documents/Projects/coinbrew/build)
+             --tests which tests to before install all/main/none
              --verbosity=i set verbosity level (1-4)
              --reconfigure re-run configure
-             --prefix=\dir\to\install (where to install, default: /home/tkral/coinbrew/build)
+             --prefix=/dir/to/install (where to install, default: /mnt/c/Users/tkral/Documents/Projects/coinbrew/dist)
+             --skip-dependencies don't build dependencies
+             --no-third-party don't build third party projects
+             --static build static executables on Linux and OS X
 
   install: Install all projects in location specified by prefix (after build and test)
 
@@ -145,6 +145,7 @@ Commands:
 
 General options:
   --debug: Turn on debugging output
-  --no-prompt: Turn on non-interactive mode
+  --no-prompt: Turn off non-interactive mode
   --help: Print help
+
 ```
