@@ -8,7 +8,16 @@ and installs the binaries, libraries, and header files. It has many features
 that are yet to be documented. It can probably do what you need even if it is
 not mentioned here, so please feel free to ask questions!
 
-Full documentation, as it currently exists, is at 
+## Quick start example
+
+```
+wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
+./coinbrew build Cbc@stable/2.10
+```
+
+## Documentation
+
+Full documentation is at 
 
 https://coin-or.github.io/coinbrew
 
