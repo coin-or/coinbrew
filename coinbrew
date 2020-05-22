@@ -19,6 +19,11 @@
 #set -x
 #PS4='${LINENO}:${PWD}: '
 
+###################################################################################
+# First, we have a bunch of helper functions.
+# The main script starts after all the function definitions.
+###################################################################################
+
 function help {
     echo "Usage: coinbrew <command> <name|URL@version> --option value ..."
     echo "       Run without arguments for interactive mode"
@@ -26,7 +31,7 @@ function help {
     echo "Commands:"
     echo
     echo "  fetch: Checkout source code for project and dependencies"
-    echo "    options: --ssh (checkout git projects using ssh"
+    echo "    options: --ssh checkout git projects using ssh protocol rather than https"
     echo "             --skip='proj1 proj2' skip listed projects"
     echo "             --no-third-party don't fetch third party source (run getter-scripts)"
     echo "             --skip-update skip updating projects that are already checked out (useful if you have local changes)"
@@ -58,6 +63,10 @@ function help {
     echo 
 }
 
+###################################################################################
+# Helper to print status messages 
+###################################################################################
+
 function print_action {
     echo
     echo "##################################################"
@@ -66,191 +75,10 @@ function print_action {
     echo
 }
 
-function get_cached_options {
-    local lclFile="$1"
-    echo "Reading cached options from $lclFile"
-    # read options from file, one option per line, and store into array copts
-    readarray -t copts < "$lclFile"
-    # move options from copts[0], copts[1], ... into
-    # configure_options, where they are stored as the keys
-    # skip options that are empty (happens when reading empty .config file)
-    for c in ${!copts[*]} ; do
-        [ -z "${copts[$c]}" ] && continue
-        if [ "${copts[$c]}" = "--no-third-party" ]; then
-            get_third_party=false
-            continue
-        fi
-        configure_options["${copts[$c]}"]=""
-    done
-    # print configuration options, one per line
-    # (TODO might need verbosity level check)
-    printf "%s\n" "${!configure_options[@]}"
-}
+###################################################################################
+# Parse command-line arguments to the script
+###################################################################################
 
-function invoke_make {
-    v=$1
-    shift
-    if [ $v = 1 ]; then
-        set +e
-        $sudo $MAKE -j $jobs $@ > /dev/null 2>&1
-        if [ $? -ne 0 ]; then
-            $sudo $MAKE -j $jobs $@ > /dev/null
-            echo
-            echo "Build failed, see error output above"
-            echo
-            exit 1
-        fi
-        set -e
-    elif [ $v = 2 ]; then
-        set +e
-        $sudo $MAKE -j $jobs $@ 2> /dev/null
-        if [ $? -ne 0 ]; then
-            $sudo $MAKE -j $jobs $@ > /dev/null
-            echo
-            echo "Build failed, see error output above"
-            echo
-            exit 1
-        fi
-        set -e
-    else
-        $sudo $MAKE V=1 -j $jobs $@
-    fi
-}
-
-function should_build {
-    TMP_IFS=$IFS
-    unset IFS
-    for i in $coin_skip_projects
-    do
-        if [ $1 = $i ]; then
-            IFS=$TMP_IFS
-            return 1
-        fi
-    done
-    if [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
-        if [ $(echo $dir | cut -d '/' -f 2) = HSL ]; then
-            if [ ! -f $dir/coinhsl/common/deps.f ]; then
-                IFS=$TMP_IFS
-                return 1
-            fi
-        elif ([ -e $dir ] && [ ! -e $dir/.build ]) ||
-           [ $get_third_party = false ]; then
-            IFS=$TMP_IFS
-            return 1
-        fi
-    fi
-    IFS=$TMP_IFS
-    return 0
-}
-
-function should_fetch {
-    TMP_IFS=$IFS
-    unset IFS
-    for i in $coin_skip_projects
-    do
-        if [ $1 = $i ]; then
-            IFS=$TMP_IFS
-            return 1
-        fi
-    done
-    IFS=$TMP_IFS
-    return 0
-}
-
-function get_version_git {
-    current_rev=$(git rev-parse HEAD)
-    if [ $(git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-) ]; then
-	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4
-    elif [ $(git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-) ]; then
-	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4
-    elif [ $(git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-) ]; then
-	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3
-    else
-        echo $current_rev
-    fi
-}
-
-function get_version_svn {
-    if [ $proj = "BuildTools" ] &&
-           [ $(echo $1 | cut -d '/' -f 6) = 'ThirdParty' ]; then
-        if [ $(echo $1 | cut -d '/' -f 8) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 8-9
-        fi
-    elif [ $proj = "CHiPPS" ]; then
-        if [ $(echo $1 | cut -d '/' -f 7) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 7-8
-        fi
-    elif [ $proj = "Data" ]; then
-        if [ $(echo $1 | cut -d '/' -f 7) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 7-8
-        fi
-    elif [ $proj = "CoinBazaar" ]; then
-        if [ $(echo $1 | cut -d '/' -f 9) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 8-9
-        fi
-    else
-        if [ $(echo $1 | cut -d '/' -f 6) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 6-7
-        fi
-    fi
-}
-
-function svn2git {
-    # Convert SVN URL to a Github one and check out with git
-    if [ $proj = "BuildTools" ] || [ $proj = "Data" ]; then
-        if [ $ssh_checkout = "false" ]; then
-            new_url="https://github.com/coin-or-tools/"
-        else
-            new_url="git@github.com:coin-or-tools/"
-        fi
-    elif [ $proj = "CoinBazaar" ]; then
-        if [ $ssh_checkout = "false" ]; then
-            new_url="https://github.com/coin-or-bazaar/"
-        else
-            new_url="git@github.com:coin-or-bazaar/"
-        fi
-    else
-        if [ $ssh_checkout = "false" ]; then
-            new_url="https://github.com/coin-or/"
-        else
-            new_url="git@github.com:coin-or/"
-        fi
-    fi
-    if [ $(echo $dir | cut -d "/" -f 1) = "ThirdParty" ]; then
-        new_url+=$(echo $dir | sed s"|/|-|")
-    elif [ $proj = "Data" ]; then
-        new_url+=$(echo $dir | sed s"|/|-|")
-    elif [ $proj = "CHiPPS" ]; then
-        if [ $dir = "Alps" ]; then
-            new_url+="CHiPPS-ALPS"
-        elif [ $dir = "Bcps" ]; then
-            new_url+="CHiPPS-BiCePS"
-        else
-            new_url+="CHiPPS-BLIS"
-        fi
-    elif [ $proj = "FlopC++" ]; then
-        new_url+="FlopCpp"
-    elif [ $proj = "CoinBazaar" ]; then
-        if [ $dir = "examples" ]; then
-            new_url+="ApplicationTemplates"
-        fi
-    else
-        new_url+=$proj
-    fi
-    echo $new_url
-}
-
-# Parse arguments
 function parse_args {
     while (( "$#" ))
     do
@@ -505,811 +333,34 @@ function parse_args {
                     configure_options["$arg"]=""
                 fi
 
-                #strip out the "https:" or "git@"  
-                if [ $(echo $arg | cut -d ':' -f 1) = https ]; then
-                    tmp=$(echo $arg | cut -d ':' -f 2-)
-                elif [ $(echo $arg | cut -d '@' -f 1) = git ]; then
-                    tmp=$(echo $arg | cut -d '@' -f 2-)
-                else
-                    tmp=$arg
-                fi
+                slug=$(echo $arg | sed 's|https://github.com/||' | sed 's|git@github.com:||')
 
                 #Now look for the version number after the last ":" or "@"
                 #We support both formats for now. If there is any "@", then
                 #the format is the one with version after "@", otherwise, it
                 #is the version with ":"
-                if [[ $tmp == *@* ]]; then
+                if [[ $slug == *@* ]]; then
                     main_proj=${arg%@*}
                     main_proj_version=${arg##*@}
-                elif [[ $tmp == *:* ]]; then
+                elif [[ $slug == *:* ]]; then
                     main_proj=${arg%:*}
                     main_proj_version=${arg##*:}
                     echo "Warning: specifying version after ':' is deprecated and will be removed in a future version"
                 else
-                    main_proj=$tmp
+                    main_proj=$arg
                 fi
                 ;;
         esac
     done
 }
 
-function user_prompts {
+###################################################################################
+# Find out if we're supposed to skip any projects
+###################################################################################
 
-    if [ $no_prompt = false ]; then
-        echo "Entering interactive mode (suppress with --no-prompt)..."
-        echo 
-    fi
-
-    # Prompt user for what actions to perform
-    if [ $num_actions = 0 ]; then
-        if [ $no_prompt = "false" ]; then
-            echo "Please choose an action by typing 1-4."
-            echo " 1. Fetch source code of a project and its dependencies."
-            echo " 2. Build a project and its dependencies."
-            echo " 3. Install a project and its dependencies."
-            echo " 4. Help"
-            echo -n "=> "
-            read choice
-            case $choice in
-                1)
-                    fetch=true
-                    ;;
-                2)
-                    build=true
-                    echo "Please specify a build directory (can be relative or absolute)."
-                    echo -n "=> "
-                    read user_build_dir
-                    case $user_build_dir in
-                        [\\/$]* | ?:[\\/]* | NONE | '' )
-                            build_dir=$user_build_dir
-                            ;;
-                        *)
-                            build_dir=$PWD/$user_build_dir
-                            ;;
-                    esac
-                    ;;
-                3) 
-                    install=true
-                    echo "Please specify an install directory (can be relative or absolute)."
-                    echo -n "=> "
-                    read prefix
-                    ;;
-                4)
-                    help
-                    exit 0
-                    ;;
-            esac
-        else
-            if [ $configure_help = false ]; then
-                help
-                exit 0
-            fi
-        fi
-    fi
-
-    if [ x"$prefix" != x ] && [ $build = "false" ]; then
-        echo "Prefix should only be specified with the build command"
-        exit 3
-    fi
-
-    # If main project is not set, prompt user to pick one or return error
-    if [ x$main_proj = x ]; then
-        if [ $no_prompt = false ]; then
-            echo
-            echo "Please choose a main project to fetch/build by typing 1-18"
-            echo "or simply type the repository name of another project not" 
-            echo "listed here (it must be a project with a 'Dependencies' file)."
-            echo " 1. Osi"
-            echo " 2. Clp"
-            echo " 3. Cbc"
-            echo " 4. DyLP"
-            echo " 5. FlopC++"
-            echo " 6. Vol"
-            echo " 7. SYMPHONY"
-            echo " 8. Smi"
-            echo " 9. CoinMP"
-            echo " 10. Bcp"
-            echo " 11. Ipopt"
-            echo " 12. Alps"
-            echo " 13. BiCePS"
-            echo " 14. Blis"
-            echo " 15. Dip"
-            echo " 16. Bonmin"
-            echo " 17. Couenne"
-            echo " 18. Optimization Services"
-            echo " 19. MibS"
-            echo " 20. DisCO"
-            echo " 21. All"
-            echo " 22. Let me enter another project"
-            echo -n "=> "
-            read choice
-            echo
-            case $choice in
-                1)  main_proj=Osi;;
-                2)  main_proj=Clp;;
-                3)  main_proj=Cbc;;
-                4)  main_proj=DyLP;;
-                5)  main_proj=FlopCpp;;
-                6)  main_proj=Vol;;
-                7)  main_proj=SYMPHONY;;
-                8)  main_proj=Smi;;
-                9)  main_proj=CoinMP;;
-                10)  main_proj=Bcp;;
-                11)  main_proj=Ipopt;;
-                12)  main_proj=CHiPPS-ALPS;;
-                13)  main_proj=CHiPPS-BiCePS;;
-                14)  main_proj=CHiPPS-BLIS;;
-                15)  main_proj=Dip;;
-                16)  main_proj=Bonmin;;
-                17)  main_proj=Couenne;;
-                18)  main_proj=OS;;
-                19)  main_proj=MibS;;
-                20)  main_proj=DisCO;;
-                21)  main_proj=COIN-OR-OptimizationSuite;;
-                22)
-                    echo "Enter the name or URL of the project"
-                    echo -n "=> "
-                    read choice2
-                    main_proj=$choice2
-                    ;;
-                *)  main_proj=$choice;;
-            esac
-        else
-            if [ $configure_help = "true" ]; then
-                echo "For help with problem configuration, please specify a project"
-                echo "For example 'coinbrew Xyz --configure-help'"
-            else
-                echo "In non-interactive mode, main project must be specified."
-            fi
-            exit 20
-        fi
-    fi
-
-    ### Main Project should now be set ###
+function find_skip_projects {
     
-    # Figure out project version and URL. First guess at correct values,
-    # change later if project is already checked out
-    if [ $(echo $main_proj | cut -d ':' -f 1) = https ] ||
-           [ $(echo $main_proj | cut -d '@' -f 1) = git ]; then
-        #We assume this is a fork of a git project
-        if [ x$main_proj_version = x ]; then
-            main_proj_version=master
-        fi
-        main_proj_url=$main_proj
-        if [ $(echo $main_proj | cut -d ':' -f 1) = https ]; then
-            main_proj=$(echo $main_proj_url | cut -d '/' -f 5 | cut -d '.' -f 1)
-        else
-            main_proj=$(echo $main_proj | cut -d '/' -f 2 | cut -d '.' -f 1)
-        fi
-    else
-        if [ x$main_proj_version = x ]; then
-            main_proj_version=master
-        fi
-        if [ $ssh_checkout = "false" ]; then
-            main_proj_url="https://github.com/coin-or/$main_proj"
-        else
-            main_proj_url="git@github.com:coin-or/$main_proj"
-        fi
-    fi
-
-    # Figure out main project directory
-    if [ x$(echo $main_proj | cut -d '-' -f 1) = x"CHiPPS" ]; then
-        case $(echo $main_proj | cut -d '-' -f 2) in
-            ALPS)
-                main_proj_dir=Alps
-                ;;
-            BiCePS)
-                main_proj_dir=Bcps
-                ;;
-            BLIS)
-                main_proj_dir=Blis
-                ;;
-        esac
-    else
-        main_proj_dir=$main_proj
-    fi
-    
-    # Check whether project is already checked out 
-    if [ -d $main_proj_dir ]; then
-        cd $main_proj_dir
-        # Possibly switch url and version for existing projects
-        main_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
-        if [ $fetch = "false" ]; then
-            current_version=$(get_version_git)
-            main_proj_version=$current_version
-        fi
-        if [ $fetch = "false" ] && [ $build = "true" ]; then
-            echo "################################################"
-            echo "### Building version $current_version"
-            echo "### with existing versions of dependencies."
-            echo "### Run 'fetch' first to switch versions" 
-            echo "### or to ensure correct dependencies"
-            echo "################################################"
-            echo 
-            if [ $no_prompt = false ]; then
-                echo "Fetch now? y/n"
-                got_choice=false
-                while [ $got_choice = "false" ]; do
-                    echo -n "=> "
-                    read choice
-                    case $choice in
-                        y|n) got_choice=true;;
-                        *) ;;
-                    esac
-                done
-                case $choice in
-                    y)
-                        fetch="true"
-                        ;;
-                    n)
-                        ;;
-                esac
-            fi
-        fi
-        cd $root_dir
-    elif [ $fetch = "false" ]; then
-        # Project is not checked out and fetching is not requested
-        echo "It appears that project has not been fetched yet."
-        if [ $configure_help = "false" ]; then
-            echo "Fetching automatically..."
-            fetch=true
-        else
-            echo "Please fetch before asking for help on configuration."
-            exit 30
-        fi
-    fi
-
-    # Figure out if the user really wants a release (for git main projects only)
-    if [ $(echo $main_proj_url | cut -d ':' -f 1) = "git@github.com" ] ||
-           [ $(echo $main_proj_url | cut -d '/' -f 3) = "github.com" ]; then
-        latest_release=$(git ls-remote --tags $main_proj_url)
-	if echo "$latest_release" | fgrep releases &> /dev/null ; then
-	  latest_release=$(echo "$latest_release" | fgrep releases | \
-	  	cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
-	fi
-        if [ $get_latest_release = "true" ] ; then
-	  if [ -n "$latest_release" ] ; then
-            echo 
-            if [ x$main_proj_version != x ]; then
-                echo "Fetching latest release $latest_release rather than specified version $main_proj_version."
-            else
-                echo "Fetching latest release $latest_release"
-            fi
-            echo
-            main_proj_version="releases/$latest_release"
-	  else
-	    echo
-	    echo "It appears that $main_proj has no releases. You'll need to specify a branch as ${main_proj}:branch."
-	    exit 31
-	  fi
-        fi
-        if [ $main_proj_version = "master" ] && \
-	   ([ $fetch = "true" ] || [ $install = "true" ]) && \
-	   [ -n "$latest_release" ] ; then
-            echo "NOTE: You are working with the development version."
-            echo "      You might consider the latest release version,"
-            echo "      which appears to be releases/$latest_release"
-            echo "      To fetch this release, execute coinbrew as"
-            echo 
-            echo "      coinbrew fetch $main_proj:releases/$latest_release"
-            echo
-        fi
-    
-        if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
-               [ $no_prompt = false ]; then
-            echo
-            echo "It appears that the last 10 releases of $main_proj are"
-            git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -10
-            echo "Do you want to work with the latest release? (y/n)"
-            got_choice=false
-            while [ $got_choice = "false" ]; do
-                echo -n "=> "
-                read choice
-                case $choice in
-                    y|n) got_choice=true;;
-                    *) ;;
-                esac
-            done
-            case $choice in
-                y) main_proj_version=releases/$(git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
-                   ;;
-                n) echo "Please enter another version name in the form of"
-                   echo 'master', 'releases/x.y.z', or 'stable/x.y'
-                   echo -n "=> "
-                   read choice
-                   main_proj_version=$choice
-                   ;;
-            esac
-            echo
-        fi
-    fi
-
-    # Figure out if this is a re-build and the user specified new options
-    if [ -e $build_dir/.config/$main_proj-$main_proj_version ] &&
-           [ $build = "true" ] && [ $reconfigure = false ]; then
-        echo "###"
-        echo "### Cached configuration options from previous build found."
-        echo "###"
-        if [ x"${#configure_options[*]}" != x0 ]; then
-            echo
-            echo "You are trying to run the build again and have specified"
-            echo "configuration options on the command line."
-            echo
-            if [ $no_prompt = false ]; then
-                echo "Please choose one of the following options."
-                echo " The indicated action will be performed for you AUTOMATICALLY"
-                echo "1. Run the build again with the previously specified options."
-                echo "   This can also be accomplished invoking the build"
-                echo "   command without any arguments."
-                echo "2. Configure in a new build directory (whose name you will be"
-                echo "   prmpted to specify) with new options."
-                echo "3. Re-configure in the same build directory with the new"
-                echo "   options. This option is not recommended unless you know"
-                echo "   what you're doing!."
-                echo "4. Quit"
-                echo
-                got_choice=false
-                while [ $got_choice = "false" ]; do
-                    echo "Please type 1, 2, 3, or 4"
-                    echo -n "=> "
-                    read choice
-                    case $choice in
-                        1|2|3|4) got_choice=true;;
-                        *) ;;
-                    esac
-                done
-                case $choice in
-                    1)  ;;
-                    2)
-                        echo "Please enter a new build directory:"
-                        echo -n "=> "
-                        read dir
-                        if [ x"$dir" != x ]; then
-                            case $dir in
-                                [\\/$]* | ?:[\\/]* | NONE | '' )
-                                    build_dir=$dir
-                                    ;;
-                                *)
-                                    build_dir=$PWD/$dir
-                                    ;;
-                            esac
-                        fi
-                        ;;
-                    3)
-                        rm $build_dir/.config/$main_proj-$main_proj_version
-                        reconfigure=true
-                        ;;
-                    4)
-                        exit 0
-                esac
-            else
-                echo "Options specifed on command line being ignored."
-                echo "  - If you wish to use new options in the same build"
-                echo "    directory, re-run with --reconfigure"
-                echo "  - If you wish to build in a new directory,"
-                echo "    re-run with --build-dir"
-                configure_options=()
-            fi
-        fi
-    fi
-}
-
-function fetch_proj {
-    current_rev=
-    if [ -d $dir ]; then
-        cd $dir
-        if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
-            version=$(echo $version | cut -d '/' -f 2)
-        fi
-        current_version=$(get_version_git)
-        current_rev=$(git rev-parse HEAD)
-        if [ $skip_update = "false" ]; then
-            if [[ $version != *$current_version ]] ||
-                   ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
-                   [ x$checkout_time != x ]; then
-                git fetch --tags
-                if [ x$sha != x ]; then
-                    print_action "Switching $dir to SHA $sha"
-                    stashed=false
-                    if [ $auto_stash = true ]; then
-                        if [[ $(git stash save) == "No" ]]; then
-                            stashed=false
-                        fi
-                    fi
-                    git checkout $sha
-                    if [ $auto_stash = true ] && [ $stashed = true ]; then
-                        # We should check whether this succeeds somehow...
-                        git stash pop
-                    fi
-                elif [ x"$checkout_time" != x ]; then
-                    print_action "Checking out $dir version $version as of $checkout_time"
-                    git checkout $(git rev-list -n 1 --first-parent --before="$checkout_time" remotes/origin/$version)
-                else
-                    print_action "Switching $dir to $version"
-                    git checkout $version
-                fi
-                if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ]; then
-                    # We should somehow check whether this causes conflicts
-                    git pull
-                fi
-            else
-                if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
-                       [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ];
-                then
-                    # We should somehow check whether this causes conflicts
-                    print_action "Updating $dir $version"
-                    git pull
-                else
-                    print_action "$dir already on $version"
-                fi
-            fi
-        else
-            print_action "Skipping update of $dir"
-        fi
-        new_rev=$(git rev-parse HEAD)
-    else
-        if [ $sparse = "true" ]; then
-            print_action "Fetching $dir $version"
-            mkdir $dir
-            cd $dir
-            git init
-            git remote add origin $url
-            git config core.sparsecheckout true
-            echo $proj/ >> .git/info/sparse-checkout
-            git fetch --tags
-            git checkout $version
-            cd -
-        else
-            if [ x$sha = x ]; then
-                print_action "Fetching $dir $version"
-                git clone --branch=$version $url $dir
-            else
-                print_action "Fetching $dir SHA $sha"
-                git clone $url $dir
-                cd $dir
-                git checkout $sha
-                cd -
-            fi
-            cd $dir
-        fi     
-        new_rev=$(git rev-parse HEAD)
-    fi
-    cd $root_dir
-
-    # If this is a third party project, fetch the source if desired
-    if [ $get_third_party = "true" ] &&
-           ([ x$current_rev != x$new_rev ] ||
-                [[ $version != *$current_version ]]) &&
-           [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
-        tp_proj=$(echo $dir | cut -d '/' -f 2)
-        if [ -e $dir/get.$tp_proj ]; then
-            cd $dir
-            ./get.$tp_proj
-            touch .build
-            cd -
-        else
-            echo "Not downloading source for $tp_proj..."
-        fi
-    fi  
-}
-        
-function build_proj {
-    mkdir -p $build_dir/$dir/$version_num
-    echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
-    cd $build_dir/$dir/$version_num
-    
-    if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
-        if [ $reconfigure = "true" ]; then
-            print_action "Reconfiguring $dir $version_num"
-        else
-            print_action "Configuring $dir $version_num"
-        fi
-        if [ -e $root_dir/$dir/$dir/configure ]; then
-            config_script="$root_dir/$dir/$dir/configure"
-        else
-            config_script="$root_dir/$dir/configure"
-        fi
-        if [ $verbosity -ge 4 ] || ( [ $verbosity -ge 2 ] &&
-                                         [ x$main_proj != x ] &&
-                                         [ $main_proj_dir = $dir ]); then
-            "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
-        else
-            set +e
-            "$config_script" --disable-dependency-tracking --disable-option-checking --prefix=$prefix "${!configure_options[@]}" > /dev/null
-            if [ $? -ne 0 ]; then
-                echo
-                echo "Configuration failed, re-running with output enabled"
-                echo
-                "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" 
-                exit 1
-            fi
-            set -e
-        fi
-    fi
-    if [ $rebuild = "true" ]; then
-        print_action "Cleaning $dir"
-        if [ $verbosity = 4 ]; then
-            $MAKE clean
-        else
-            set +e
-            $MAKE clean > /dev/null 2>&1
-            if [ $? -ne 0 ]; then
-                $sudo $MAKE clean > /dev/null
-                echo
-                echo "Build failed, see error output above"
-                echo
-                exit 1
-            fi
-            set -e
-        fi
-    fi
-    print_action "Building $dir $version_num"
-    if [ $verbosity -ge 2 ]; then
-        if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
-            invoke_make $verbosity ""
-        else
-            invoke_make $(($verbosity-1)) ""
-        fi
-    else
-        invoke_make 1 ""
-    fi
-    if [ $run_tests = "all" ] ||
-           ([ $run_tests = "main" ] && [ x$main_proj != x ] && [ $main_proj_dir = $dir ]); then
-        print_action "Running $dir unit test"
-        # Fix for systems where the unit test doesn't seem to run with specifying LD_LIBRARY_PATH
-        if [[ -v LD_LIBRARY_PATH ]]; then
-            export LD_LIBRARY_PATH=$prefix/lib:$LD_LIBRARY_PATH
-        else
-            export LD_LIBRARY_PATH=$prefix/lib
-        fi
-        if [ $verbosity -ge 2 ]; then
-            if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
-                invoke_make $((verbosity+1)) test
-            else
-                invoke_make 1 test
-            fi
-        else
-            invoke_make 1 test
-        fi
-    fi
-    cd $root_dir
-}
-
-function install_proj {
-    print_action "Installing $dir $version_num"
-    cd $build_dir/$dir/$version_num
-    sudo=""
-    if [ ! -w $prefix ]; then
-        if [ ! $(id -u) = 0 ]; then
-            echo "Prefix is not writable."
-            echo "Install step needs to be run with sudo"
-            sudo=sudo
-        fi
-    fi
-    if [ $verbosity -ge 4 ]; then
-        invoke_make 4 install
-    else
-        invoke_make 1 install
-    fi
-    cd $root_dir
-}
-
-function uninstall_proj {
-    print_action "Uninstalling $dir"
-    cd $build_dir/$dir/$version_num
-    sudo=""
-    if [ ! -w $prefix ]; then
-        if [ ! $(id -u) = 0 ]; then
-            echo "Prefix is not writable."
-            echo "Uninstall step needs to be run with sudo"
-            sudo=sudo
-        fi
-    fi
-    if [ $verbosity -ge 4 ]; then
-        invoke_make 4 uninstall
-    else
-        invoke_make 1 uninstall
-    fi
-    cd $root_dir
-}
-
-# This is some old code that I don't think is necessary
-function uninstall_all {
-    # We have to uninstall in reverse order
-    # subdirs must be defined for this to work
-    for ((dir=${#subdirs[@]}-1; i>=0; i--))
-    do
-        if [ $build_dir != $PWD ]; then
-            proj_dir=$(echo $dir | cut -d '/' -f 1)
-            if [ $proj_dir = "Data" ] || [ $proj_dir = "ThirdParty" ]; then
-                proj_dir=$dir
-            fi
-            cd $build_dir/$proj_dir
-        else
-            cd $dir
-        fi
-        print_action "Uninstalling $proj_dir"
-        invoke_make $verbosity uninstall
-        cd $root_dir
-    done
-    if [ -e $main_proj ]; then
-        if [ $build_dir != $PWD ]; then
-            mkdir -p $build_dir/$main_proj_dir
-            cd $build_dir/$main_proj_dir
-        else
-            cd $main_proj_dir
-        fi
-    fi
-    print_action "Uninstalling $main_proj"
-    invoke_make $verbosity uninstall
-    cd $root_dir
-}
-    
-# Exit when command fails
-set -e
-#Attempt to use undefined variable outputs error message, and forces an exit
-set -u
-#Causes a pipeline to return the exit status of the last command in the pipe
-#that returned a non-zero return value.
-set -o pipefail
-
-#Take care of issues caused by other languages
-export LC_NUMERIC="en_US.UTF-8"
-export LANG="en_US.UTF-8"
-
-# Set defaults
-root_dir=$PWD
-declare -i num_actions
-num_actions=0
-sparse=false
-prefix=
-coin_skip_projects=
-fetch=false
-build=false
-install=false
-uninstall=false
-run_tests=all
-declare -A configure_options
-configure_options=()
-jobs=1
-build_dir=
-rebuild=false
-reconfigure=false
-get_third_party=true
-verbosity=1
-main_proj=
-main_proj_version=
-main_proj_sha=
-main_proj_dir=
-MAKE=make
-no_prompt=false
-skip_update=false
-ssh_checkout=false
-configure_help=false
-sudo=""
-checkout_time=
-disable_uninstalled=true
-enable_debug=false
-skip_dependencies=false
-get_latest_release=false
-auto_stash=false
-
-echo "Welcome to the COIN-OR fetch and build utility"
-echo 
-echo "For help, run script with --help."
-echo 
-
-parse_args "$@"
-
-if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
-   #Set the default build directory
-   if [ x$build_dir = x ] ; then
-       if [ $enable_debug = "false" ]; then
-           build_dir=$root_dir/build
-       else
-           build_dir=$root_dir/build-debug
-       fi
-   fi
-   
-   #Try to create the build directory if it doesn't exist
-   if [ ! -d $build_dir ]; then
-       set +e
-       mkdir -p $build_dir 2> /dev/null
-       set -e
-   fi
-   
-   #Check whether build directory creation was successful
-   if [ ! -d $build_dir ]; then
-       echo "Build directory cannot be created."
-       echo "Please create it and make it writable."
-       echo "Then re-run script"
-       exit 4
-   fi
-fi
-
-user_prompts
-
-# This changes the default separator used in for loops to carriage return.
-# We need this later.
-TMP_IFS=$IFS
-IFS=$'\n'
-
-# Set the install directory. Clean up the version in case we're doing an
-# implied fetch on a build request. Only important if the user has deleted
-# the code but left the build directory (with configuration options) intact.
-
-if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
-    version_num=$(echo $main_proj_version | cut -d '/' -f 2)
-    if [ -e $build_dir/.config/$main_proj-$version_num ]; then
-        for i in $(cat $build_dir/.config/$main_proj-$version_num)
-        do
-            if [[ "$i" == --with-coin-instdir* ]]; then
-                prefix=$(echo $i | cut -d '=' -f 2)
-            fi
-        done
-    fi
-    if [ $build = "true" ]; then
-        echo
-        echo "Installation is done automatically following build and test of each project."
-        echo
-        if [ x$prefix = x ]; then
-            prefix=$root_dir/dist
-            mkdir -p $root_dir/dist
-        elif [ ! -d $prefix ]; then
-            set +e
-            mkdir -p $prefix 2> /dev/null
-            set -e
-        fi
-        if [ -w $prefix ]; then
-            echo "Installation directory is writable."
-            echo
-        else
-            echo "Installation directory is not writable."
-            echo "Sudo access will be requested."
-            echo "Only installation is run as sudo."
-            echo
-        fi
-        install=true
-        echo "Package will be built in $build_dir"
-        echo
-    fi
-    if [ $install = "true" ]; then
-        configure_options["--with-coin-instdir=$prefix"]=""
-        echo "Package will be installed to $prefix "
-        echo
-        if [ ! -w $prefix ]; then
-            echo "Installation directory is not writable."
-            echo "Sudo authentication will be required for installation."
-            echo "NOTE: For safety, only commands related to installation"
-            echo "      will be run with sudo. Builds are done as normal user."
-            sudo mkdir -p $prefix
-        fi
-    fi
-fi
-
-# Cache configuration options. Clean up the version number as per above, in
-# case we're doing an implied fetch.
-
-if [ $build = "true" ]; then
-    version_num=$(echo $main_proj_version | cut -d '/' -f 2)
-    if [ ! -e $build_dir/.config/$main_proj-$version_num ] ||
-           [ $reconfigure = "true" ]; then
-        echo "Caching configuration options..."
-        mkdir -p $build_dir/.config
-        printf "%s\n" "${!configure_options[@]}" > \
-               $build_dir/.config/$main_proj-$version_num
-        printf "%s\n" "${!configure_options[@]}"
-        if [ $get_third_party = "false" ]; then
-            echo "--no-third-party" >> \
-	         $build_dir/.config/$main_proj-$version_num
-        fi
-    else
-        get_cached_options $build_dir/.config/$main_proj-$version_num
-    fi
-fi
-
-#Find out if we're supposed to skip any projects
-for c in ${!configure_options[@]} ; do
+    for c in ${!configure_options[@]} ; do
     if [[ $c == --without-* ]]; then
         found_project=true
         proj_name=$(echo "$c" | cut -d '-' -f 4)
@@ -1429,22 +480,1091 @@ for c in ${!configure_options[@]} ; do
     fi
 done
 
+}
+###################################################################################
+# Determine whether we're supposed to build the project
+###################################################################################
+
+function should_build {
+
+    TMP_IFS=$IFS
+    unset IFS
+    for i in $coin_skip_projects
+    do
+        if [ $1 = $i ]; then
+            IFS=$TMP_IFS
+            return 1
+        fi
+    done
+    if [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
+        if [ $(echo $dir | cut -d '/' -f 2) = HSL ]; then
+            if [ ! -f $dir/coinhsl/common/deps.f ]; then
+                IFS=$TMP_IFS
+                return 1
+            fi
+        elif ([ -e $dir ] && [ ! -e $dir/.build ]) ||
+           [ $get_third_party = false ]; then
+            IFS=$TMP_IFS
+            return 1
+        fi
+    fi
+    IFS=$TMP_IFS
+    return 0
+
+}
+
+###################################################################################
+# Determine whether we're supposed to fetch the project
+###################################################################################
+
+function should_fetch {
+
+    if [ $skip_update = true ]; then
+        return 1
+    fi
+    
+    TMP_IFS=$IFS
+    unset IFS
+    for i in $coin_skip_projects
+    do
+        if [ $1 = $i ]; then
+            IFS=$TMP_IFS
+            return 1
+        fi
+    done
+    IFS=$TMP_IFS
+    return 0
+
+}
+
+###################################################################################
+# Determine the version currently checked out in a git repo
+###################################################################################
+
+function get_version_git {
+    current_rev=$(git rev-parse HEAD)
+    if [ $(git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-) ]; then
+	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4
+    elif [ $(git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-) ]; then
+	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4
+    elif [ $(git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-) ]; then
+	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3
+    else
+        echo $current_rev
+    fi
+}
+
+###################################################################################
+# Determine version from an SVN URL (there are still some SVN URLs in Dependencies
+###################################################################################
+
+function get_version_svn {
+    if [ $proj = "BuildTools" ] &&
+           [ $(echo $1 | cut -d '/' -f 6) = 'ThirdParty' ]; then
+        if [ $(echo $1 | cut -d '/' -f 8) = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 8-9
+        fi
+    elif [ $proj = "CHiPPS" ]; then
+        if [ $(echo $1 | cut -d '/' -f 7) = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 7-8
+        fi
+    elif [ $proj = "Data" ]; then
+        if [ $(echo $1 | cut -d '/' -f 7) = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 7-8
+        fi
+    elif [ $proj = "CoinBazaar" ]; then
+        if [ $(echo $1 | cut -d '/' -f 9) = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 8-9
+        fi
+    else
+        if [ $(echo $1 | cut -d '/' -f 6) = trunk ]; then
+            echo "trunk"
+        else
+            echo $1 | cut -d '/' -f 6-7
+        fi
+    fi
+}
+
+###################################################################################
+# Convert an SVN URL to a git URL
+###################################################################################
+
+function svn2git {
+    # Convert SVN URL to a Github one and check out with git
+    if [ $proj = "BuildTools" ] || [ $proj = "Data" ]; then
+        if [ $ssh_checkout = "false" ]; then
+            new_url="https://github.com/coin-or-tools/"
+        else
+            new_url="git@github.com:coin-or-tools/"
+        fi
+    elif [ $proj = "CoinBazaar" ]; then
+        if [ $ssh_checkout = "false" ]; then
+            new_url="https://github.com/coin-or-bazaar/"
+        else
+            new_url="git@github.com:coin-or-bazaar/"
+        fi
+    else
+        if [ $ssh_checkout = "false" ]; then
+            new_url="https://github.com/coin-or/"
+        else
+            new_url="git@github.com:coin-or/"
+        fi
+    fi
+    if [ $(echo $dir | cut -d "/" -f 1) = "ThirdParty" ]; then
+        new_url+=$(echo $dir | sed s"|/|-|")
+    elif [ $proj = "Data" ]; then
+        new_url+=$(echo $dir | sed s"|/|-|")
+    elif [ $proj = "CHiPPS" ]; then
+        if [ $dir = "Alps" ]; then
+            new_url+="CHiPPS-ALPS"
+        elif [ $dir = "Bcps" ]; then
+            new_url+="CHiPPS-BiCePS"
+        else
+            new_url+="CHiPPS-BLIS"
+        fi
+    elif [ $proj = "FlopC++" ]; then
+        new_url+="FlopCpp"
+    elif [ $proj = "CoinBazaar" ]; then
+        if [ $dir = "examples" ]; then
+            new_url+="ApplicationTemplates"
+        fi
+    else
+        new_url+=$proj
+    fi
+    echo $new_url
+}
+
+###################################################################################
+# Prompt user for what actionas to perform
+###################################################################################
+
+function prompt_for_action {
+    # Prompt user for what actions to perform
+    echo "Please choose an action by typing 1-4."
+    echo " 1. Fetch source code of a project and its dependencies."
+    echo " 2. Build a project and its dependencies."
+    echo " 3. Install a project and its dependencies."
+    echo " 4. Help"
+    echo -n "=> "
+    read choice
+    case $choice in
+        1)
+            fetch=true
+            ;;
+        2)
+            build=true
+            echo "Please specify a build directory (can be relative or absolute)."
+            echo -n "=> "
+            read user_build_dir
+            case $user_build_dir in
+                [\\/$]* | ?:[\\/]* | NONE | '' )
+                    build_dir=$user_build_dir
+                    ;;
+                *)
+                    build_dir=$PWD/$user_build_dir
+                    ;;
+            esac
+            ;;
+        3) 
+            install=true
+            echo "Please specify an install directory (can be relative or absolute)."
+            echo -n "=> "
+            read prefix
+            ;;
+        4)
+            help
+            exit 0
+            ;;
+    esac
+}
+
+###################################################################################
+# Prompt user for main project
+###################################################################################
+
+function prompt_for_main {
+    # Prompt user to pick a main project or return error
+    echo
+    echo "Please choose a main project to fetch/build by typing 1-18"
+    echo "or simply type the repository name of another project not" 
+    echo "listed here (it must be a project with a 'Dependencies' file)."
+    echo " 1. Osi"
+    echo " 2. Clp"
+    echo " 3. Cbc"
+    echo " 4. DyLP"
+    echo " 5. FlopC++"
+    echo " 6. Vol"
+    echo " 7. SYMPHONY"
+    echo " 8. Smi"
+    echo " 9. CoinMP"
+    echo " 10. Bcp"
+    echo " 11. Ipopt"
+    echo " 12. Alps"
+    echo " 13. BiCePS"
+    echo " 14. Blis"
+    echo " 15. Dip"
+    echo " 16. Bonmin"
+    echo " 17. Couenne"
+    echo " 18. Optimization Services"
+    echo " 19. MibS"
+    echo " 20. DisCO"
+    echo " 21. All"
+    echo " 22. Let me enter another project"
+    echo -n "=> "
+    read choice
+    echo
+    case $choice in
+        1)  main_proj=Osi;;
+        2)  main_proj=Clp;;
+        3)  main_proj=Cbc;;
+        4)  main_proj=DyLP;;
+        5)  main_proj=FlopCpp;;
+        6)  main_proj=Vol;;
+        7)  main_proj=SYMPHONY;;
+        8)  main_proj=Smi;;
+        9)  main_proj=CoinMP;;
+        10)  main_proj=Bcp;;
+        11)  main_proj=Ipopt;;
+        12)  main_proj=CHiPPS-ALPS;;
+        13)  main_proj=CHiPPS-BiCePS;;
+        14)  main_proj=CHiPPS-BLIS;;
+        15)  main_proj=Dip;;
+        16)  main_proj=Bonmin;;
+        17)  main_proj=Couenne;;
+        18)  main_proj=OS;;
+        19)  main_proj=MibS;;
+        20)  main_proj=DisCO;;
+        21)  main_proj=COIN-OR-OptimizationSuite;;
+        22)
+            echo "Enter the name or URL of the project"
+            echo -n "=> "
+            read choice2
+            main_proj=$choice2
+            ;;
+        *)  main_proj=$choice;;
+    esac
+}
+
+###################################################################################
+# Ask user whether to fetch
+###################################################################################
+
+function prompt_for_fetch {
+
+    echo "Fetch now? y/n"
+    got_choice=false
+    while [ $got_choice = "false" ]; do
+        echo -n "=> "
+        read choice
+        case $choice in
+            y|n) got_choice=true;;
+            *) ;;
+        esac
+    done
+    case $choice in
+        y)
+            fetch="true"
+            ;;
+        n)
+            ;;
+    esac
+
+}
+
+###################################################################################
+# Ask user what verion to install
+###################################################################################
+
+function prompt_for_version {
+    echo
+    echo "You haven't specified a project version"
+    echo "It appears that the last 10 releases of $main_proj are"
+    git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -10
+    echo "Do you want to work with the latest release? (y/n)"
+    got_choice=false
+    while [ $got_choice = "false" ]; do
+        echo -n "=> "
+        read choice
+        case $choice in
+            y|n) got_choice=true;;
+            *) ;;
+        esac
+    done
+    case $choice in
+        y) main_proj_version=releases/$(git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
+           ;;
+        n) echo "Please enter another version name in the form of"
+           echo 'master', 'releases/x.y.z', or 'stable/x.y'
+           echo -n "=> "
+           read choice
+           main_proj_version=$choice
+           ;;
+    esac
+    echo
+}
+
+###################################################################################
+# Ask user what to do when there are new configuration options for rebuild
+###################################################################################
+
+function prompt_for_rebuild {
+    
+    echo "Please choose one of the following options."
+    echo " The indicated action will be performed for you AUTOMATICALLY"
+    echo "1. Run the build again with the previously specified options."
+    echo "   This can also be accomplished invoking the build"
+    echo "   command without any arguments."
+    echo "2. Configure in a new build directory (whose name you will be"
+    echo "   prmpted to specify) with new options."
+    echo "3. Re-configure in the same build directory with the new"
+    echo "   options. This option is not recommended unless you know"
+    echo "   what you're doing!."
+    echo "4. Quit"
+    echo
+    got_choice=false
+    while [ $got_choice = "false" ]; do
+        echo "Please type 1, 2, 3, or 4"
+        echo -n "=> "
+        read choice
+        case $choice in
+            1|2|3|4) got_choice=true;;
+            *) ;;
+        esac
+    done
+    case $choice in
+        1)  ;;
+        2)
+            echo "Please enter a new build directory:"
+            echo -n "=> "
+            read dir
+            if [ x"$dir" != x ]; then
+                case $dir in
+                    [\\/$]* | ?:[\\/]* | NONE | '' )
+                        build_dir=$dir
+                        ;;
+                    *)
+                        build_dir=$PWD/$dir
+                        ;;
+                esac
+            fi
+            ;;
+        3)
+            rm $build_dir/.config/$main_proj-$main_proj_version
+            reconfigure=true
+            ;;
+        4)
+            exit 0
+    esac
+}
+
+###################################################################################
+# Fetch or update one project
+###################################################################################
+
+function fetch_proj {
+
+    current_rev=
+    if [ -d $dir ]; then
+        # If the project is already checxked out, then check whether the checked out
+        # version is the correct one. Siwtch if necessary. Otherwise, just update
+        cd $dir
+        current_version=$(get_version_git)
+        current_rev=$(git rev-parse HEAD)
+        if [[ $version != *$current_version ]] ||
+               ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
+               [ x$checkout_time != x ]; then
+            git fetch --tags
+            if [ x$sha != x ]; then
+                print_action "Switching $dir to SHA $sha"
+                stashed=false
+                if [ $auto_stash = true ]; then
+                    if [[ $(git stash save) == "No" ]]; then
+                        stashed=false
+                    fi
+                fi
+                git checkout $sha
+                if [ $auto_stash = true ] && [ $stashed = true ]; then
+                    # We should check whether this succeeds somehow...
+                    git stash pop
+                fi
+            elif [ x"$checkout_time" != x ]; then
+                print_action "Checking out $dir version $version as of $checkout_time"
+                git checkout $(git rev-list -n 1 --first-parent --before="$checkout_time" remotes/origin/$version)
+            else
+                print_action "Switching $dir to $version"
+                git checkout $version
+            fi
+            if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ]; then
+                # We should somehow check whether this causes conflicts
+                git pull
+            fi
+        else
+            if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
+                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ];
+            then
+                # We should somehow check whether this causes conflicts
+                print_action "Updating $dir $version"
+                git pull
+            else
+                print_action "$dir already on $version"
+            fi
+        fi
+        new_rev=$(git rev-parse HEAD)
+    else
+        # If project is not checked out yet, just check out the correct version
+        if [ $sparse = "true" ]; then
+            print_action "Fetching $dir $version"
+            mkdir $dir
+            cd $dir
+            git init
+            git remote add origin $url
+            git config core.sparsecheckout true
+            echo $proj/ >> .git/info/sparse-checkout
+            git fetch --tags
+            git checkout $version
+            cd -
+        else
+            if [ x$sha = x ]; then
+                print_action "Fetching $dir $version"
+                git clone --branch=$version $url $dir
+            else
+                print_action "Fetching $dir SHA $sha"
+                git clone $url $dir
+                cd $dir
+                git checkout $sha
+                cd -
+            fi
+            cd $dir
+        fi     
+        new_rev=$(git rev-parse HEAD)
+    fi
+    cd $root_dir
+
+    # If this is a third party project, fetch the source if desired
+    if [ $get_third_party = "true" ] &&
+           ([ x$current_rev != x$new_rev ] ||
+                [[ $version != *$current_version ]]) &&
+           [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
+        tp_proj=$(echo $dir | cut -d '/' -f 2)
+        if [ -e $dir/get.$tp_proj ]; then
+            cd $dir
+            ./get.$tp_proj
+            touch .build
+            cd -
+        else
+            echo "Not downloading source for $tp_proj..."
+        fi
+    fi  
+}
+        
+###################################################################################
+# Wrapper for invoking make with different verbosities
+###################################################################################
+
+function invoke_make {
+    v=$1
+    shift
+    if [ $v = 1 ]; then
+        set +e
+        $sudo $MAKE -j $jobs $@ > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            $sudo $MAKE -j $jobs $@ > /dev/null
+            echo
+            echo "Build failed, see error output above"
+            echo
+            exit 1
+        fi
+        set -e
+    elif [ $v = 2 ]; then
+        set +e
+        $sudo $MAKE -j $jobs $@ 2> /dev/null
+        if [ $? -ne 0 ]; then
+            $sudo $MAKE -j $jobs $@ > /dev/null
+            echo
+            echo "Build failed, see error output above"
+            echo
+            exit 1
+        fi
+        set -e
+    else
+        $sudo $MAKE V=1 -j $jobs $@
+    fi
+}
+
+###################################################################################
+# Do the build of one project
+###################################################################################
+
+function build_proj {
+    cd $dir
+    version_num=$(get_version_git)
+    cd $root_dir
+    mkdir -p $build_dir/$dir/$version_num
+    echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
+    cd $build_dir/$dir/$version_num
+    
+    if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
+        if [ $reconfigure = "true" ]; then
+            print_action "Reconfiguring $dir $version_num"
+        else
+            print_action "Configuring $dir $version_num"
+        fi
+        if [ -e $root_dir/$dir/$dir/configure ]; then
+            config_script="$root_dir/$dir/$dir/configure"
+        else
+            config_script="$root_dir/$dir/configure"
+        fi
+        if [ $verbosity -ge 4 ] || ( [ $verbosity -ge 2 ] &&
+                                         [ x$main_proj != x ] &&
+                                         [ $main_proj_dir = $dir ]); then
+            "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
+        else
+            set +e
+            "$config_script" --disable-dependency-tracking --disable-option-checking --prefix=$prefix "${!configure_options[@]}" > /dev/null
+            if [ $? -ne 0 ]; then
+                echo
+                echo "Configuration failed, re-running with output enabled"
+                echo
+                "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" 
+                exit 1
+            fi
+            set -e
+        fi
+    fi
+    if [ $rebuild = "true" ]; then
+        print_action "Cleaning $dir"
+        if [ $verbosity = 4 ]; then
+            $MAKE clean
+        else
+            set +e
+            $MAKE clean > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                $sudo $MAKE clean > /dev/null
+                echo
+                echo "Build failed, see error output above"
+                echo
+                exit 1
+            fi
+            set -e
+        fi
+    fi
+    print_action "Building $dir $version_num"
+    if [ $verbosity -ge 2 ]; then
+        if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
+            invoke_make $verbosity ""
+        else
+            invoke_make $(($verbosity-1)) ""
+        fi
+    else
+        invoke_make 1 ""
+    fi
+    if [ $run_tests = "all" ] ||
+           ([ $run_tests = "main" ] && [ x$main_proj != x ] && [ $main_proj_dir = $dir ]); then
+        print_action "Running $dir unit test"
+        # Fix for systems where the unit test doesn't seem to run with specifying LD_LIBRARY_PATH
+        if [[ -v LD_LIBRARY_PATH ]]; then
+            export LD_LIBRARY_PATH=$prefix/lib:$LD_LIBRARY_PATH
+        else
+            export LD_LIBRARY_PATH=$prefix/lib
+        fi
+        if [ $verbosity -ge 2 ]; then
+            if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
+                invoke_make $((verbosity+1)) test
+            else
+                invoke_make 1 test
+            fi
+        else
+            invoke_make 1 test
+        fi
+    fi
+    cd $root_dir
+}
+
+###################################################################################
+# Install a project
+###################################################################################
+
+function install_proj {
+    print_action "Installing $dir $version_num"
+    cd $build_dir/$dir/$version_num
+    sudo=""
+    if [ ! -w $prefix ]; then
+        if [ ! $(id -u) = 0 ]; then
+            echo "Prefix is not writable."
+            echo "Install step needs to be run with sudo"
+            sudo=sudo
+        fi
+    fi
+    if [ $verbosity -ge 4 ]; then
+        invoke_make 4 install
+    else
+        invoke_make 1 install
+    fi
+    cd $root_dir
+}
+
+###################################################################################
+# Uninstall a project
+###################################################################################
+
+function uninstall_proj {
+    print_action "Uninstalling $dir"
+    cd $build_dir/$dir/$version_num
+    sudo=""
+    if [ ! -w $prefix ]; then
+        if [ ! $(id -u) = 0 ]; then
+            echo "Prefix is not writable."
+            echo "Uninstall step needs to be run with sudo"
+            sudo=sudo
+        fi
+    fi
+    if [ $verbosity -ge 4 ]; then
+        invoke_make 4 uninstall
+    else
+        invoke_make 1 uninstall
+    fi
+    cd $root_dir
+}
+
+###################################################################################
+# Get cached build options
+###################################################################################
+
+function get_cached_options {
+    local lclFile="$1"
+    echo "Reading cached options from $lclFile"
+    # read options from file, one option per line, and store into array copts
+    readarray -t copts < "$lclFile"
+    # move options from copts[0], copts[1], ... into
+    # configure_options, where they are stored as the keys
+    # skip options that are empty (happens when reading empty .config file)
+    for c in ${!copts[*]} ; do
+        [ -z "${copts[$c]}" ] && continue
+        if [ "${copts[$c]}" = "--no-third-party" ]; then
+            get_third_party=false
+            continue
+        fi
+        configure_options["${copts[$c]}"]=""
+    done
+    # print configuration options, one per line
+    # (TODO might need verbosity level check)
+    printf "%s\n" "${!configure_options[@]}"
+}
+
+###########################################################################
+# Main script starts here
+###########################################################################
+
+# Exit when command fails
+set -e
+#Attempt to use undefined variable outputs error message, and forces an exit
+set -u
+#Causes a pipeline to return the exit status of the last command in the pipe
+#that returned a non-zero return value.
+set -o pipefail
+
+#Take care of issues caused by other languages
+export LC_NUMERIC="en_US.UTF-8"
+export LANG="en_US.UTF-8"
+
+# Set defaults
+root_dir=$PWD
+declare -i num_actions
+num_actions=0
+sparse=false
+prefix=
+coin_skip_projects=
+fetch=false
+build=false
+install=false
+uninstall=false
+run_tests=all
+declare -A configure_options
+configure_options=()
+jobs=1
+build_dir=
+rebuild=false
+reconfigure=false
+get_third_party=true
+verbosity=1
+main_proj=
+main_proj_version=
+main_proj_sha=
+main_proj_dir=
+MAKE=make
+no_prompt=false
+skip_update=false
+ssh_checkout=false
+configure_help=false
+sudo=""
+checkout_time=
+disable_uninstalled=true
+enable_debug=false
+skip_dependencies=false
+get_latest_release=false
+auto_stash=false
+
+echo "Welcome to the COIN-OR fetch and build utility"
+echo 
+echo "For help, run script with --help."
+echo 
+
+###################################################################################
+# Parse the command-line arguments
+###################################################################################
+
+parse_args "$@"
+
+###################################################################################
+# Set the default build directory
+###################################################################################
+
+if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
+
+   if [ x$build_dir = x ] ; then
+       if [ $enable_debug = "false" ]; then
+           build_dir=$root_dir/build
+       else
+           build_dir=$root_dir/build-debug
+       fi
+   fi
+   
+   #Try to create the build directory if it doesn't exist
+   if [ ! -d $build_dir ]; then
+       set +e
+       mkdir -p $build_dir 2> /dev/null
+       set -e
+   fi
+   
+   #Check whether build directory creation was successful
+   if [ ! -d $build_dir ]; then
+       echo "Build directory cannot be created."
+       echo "Please create it and make it writable."
+       echo "Then re-run script"
+       exit 4
+   fi
+fi
+
+###################################################################################
+# Check to see if user specified an action and prompt if not
+###################################################################################
+
+if [ $num_actions = 0 ]; then
+    if [ $no_prompt = false ]; then
+        prompt_for_action
+    else
+        if [ $configure_help = false ]; then
+            help
+            exit 0
+        fi
+    fi
+fi
+
+if [ x"$prefix" != x ] && [ $build = "false" ]; then
+    echo "Prefix should only be specified with the build command"
+    exit 3
+fi
+
+###################################################################################
+# Check to see if user specified a project and prompt if not
+###################################################################################
+
+if [ x$main_proj = x ]; then
+    if [ $no_prompt = false ]; then
+        prompt_for_main
+    else
+        if [ $configure_help = "true" ]; then
+            echo "For help with problem configuration, please specify a project"
+            echo "For example 'coinbrew Xyz --configure-help'"
+        else
+            echo "In non-interactive mode, main project must be specified."
+        fi
+        exit 20
+    fi
+fi
+
+### Main Project should now be set ###
+
+###################################################################################
+# Figure out project version and URL. First guess at correct values,
+# change later if project is already checked out
+###################################################################################
+
+if [ $(echo $main_proj | cut -d ':' -f 1) = https ] ||
+       [ $(echo $main_proj | cut -d '@' -f 1) = git ]; then
+    #We assume this is a fork of a git project
+    main_proj_url=$main_proj
+    if [ $(echo $main_proj | cut -d ':' -f 1) = https ]; then
+        main_proj=$(echo $main_proj_url | cut -d '/' -f 5 | cut -d '.' -f 1)
+    else
+        main_proj=$(echo $main_proj | cut -d '/' -f 2 | cut -d '.' -f 1)
+    fi
+else
+    if [ $ssh_checkout = "false" ]; then
+        main_proj_url="https://github.com/coin-or/$main_proj"
+    else
+        main_proj_url="git@github.com:coin-or/$main_proj"
+    fi
+fi
+
+###################################################################################
+# Figure out main project directory
+###################################################################################
+
+if [ x$(echo $main_proj | cut -d '-' -f 1) = x"CHiPPS" ]; then
+    case $(echo $main_proj | cut -d '-' -f 2) in
+        ALPS)
+            main_proj_dir=Alps
+            ;;
+        BiCePS)
+            main_proj_dir=Bcps
+            ;;
+        BLIS)
+            main_proj_dir=Blis
+            ;;
+    esac
+else
+    main_proj_dir=$main_proj
+fi
+
+###################################################################################
+# Check whether project is already checked out 
+###################################################################################
+
+if [ -d $main_proj_dir ]; then
+    cd $main_proj_dir
+    # Possibly switch url and version for existing projects
+    main_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
+    if [ $fetch = "false" ]; then
+        current_version=$(get_version_git)
+        main_proj_version=$current_version
+    fi
+    if [ $fetch = "false" ] && [ $build = "true" ]; then
+        echo "################################################"
+        echo "### Building version $current_version"
+        echo "### with existing versions of dependencies."
+        echo "### Ctrl-c and run 'fetch' to switch versions" 
+        echo "### or to ensure correct dependencies"
+        echo "################################################"
+        echo
+        #           Don't annoy people with this prompt for now
+        #            if [ $no_prompt = false ]; then
+        #                prompt_for_fetch
+        #            fi
+    fi
+    cd $root_dir
+elif [ $fetch = "false" ]; then
+    # Project is not checked out and fetching is not requested
+    echo "It appears that project has not been fetched yet."
+    if [ $configure_help = "false" ]; then
+        echo "Fetching will be done automatically..."
+        fetch=true
+    else
+        echo "Please fetch before asking for help on configuration."
+        exit 30
+    fi
+fi
+
+###################################################################################
+# Figure out if the user really wants a release
+###################################################################################
+
+latest_release=$(git ls-remote --tags $main_proj_url)
+if echo "$latest_release" | fgrep releases &> /dev/null ; then
+    latest_release=$(echo "$latest_release" | fgrep releases | \
+	  	         cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
+fi
+if [ $get_latest_release = "true" ] ; then
+    if [ -n "$latest_release" ] ; then
+        echo 
+        if [ x$main_proj_version != x ]; then
+            echo "Fetching latest release $latest_release rather than specified version $main_proj_version."
+        else
+            echo "Fetching latest release $latest_release"
+        fi
+        echo
+        main_proj_version="releases/$latest_release"
+    else
+	echo
+	echo "It appears that $main_proj has no releases. You'll need to specify a branch as ${main_proj}:branch."
+	exit 31
+    fi
+fi
+if [ $main_proj_version = "master" ] && \
+       ([ $fetch = "true" ] || [ $install = "true" ]) && \
+       [ -n "$latest_release" ] ; then
+    echo "NOTE: You are working with the development version."
+    echo "      You might consider the latest release version,"
+    echo "      which appears to be releases/$latest_release"
+    echo "      To fetch this release, execute coinbrew as"
+    echo 
+    echo "      coinbrew fetch $main_proj:releases/$latest_release"
+    echo
+fi
+
+###################################################################################
+# Prompt user for version if not already specified
+###################################################################################
+
+if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
+       [ $no_prompt = false ]; then
+    prompt_for_version
+fi
+
+###################################################################################
+# Figure out if this is a re-build and the user specified new options
+###################################################################################
+
+if [ -e $build_dir/.config/$main_proj-$main_proj_version ] &&
+       [ $build = "true" ] && [ $reconfigure = false ]; then
+    echo "###"
+    echo "### Cached configuration options from previous build found."
+    echo "###"
+    if [ x"${#configure_options[*]}" != x0 ]; then
+        echo
+        echo "You are trying to run the build again and have specified"
+        echo "configuration options on the command line."
+        echo
+        if [ $no_prompt = false ]; then
+            prompt_for_rebuild
+        else
+            echo "Options specifed on command line being ignored."
+            echo "  - If you wish to use new options in the same build"
+            echo "    directory, re-run with --reconfigure"
+            echo "  - If you wish to build in a new directory,"
+            echo "    re-run with --build-dir"
+            configure_options=()
+        fi
+    fi
+fi
+
+###################################################################################
+# This changes the default separator used in for loops to carriage return.
+# We need this later.
+###################################################################################
+
+TMP_IFS=$IFS
+IFS=$'\n'
+
+###################################################################################
+# Set the install directory. Clean up the version in case we're doing an
+# implied fetch on a build request. Only important if the user has deleted
+# the code but left the build directory (with configuration options) intact.
+###################################################################################
+
+if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
+    version_num=$(echo $main_proj_version | cut -d '/' -f 2)
+    if [ -e $build_dir/.config/$main_proj-$version_num ]; then
+        for i in $(cat $build_dir/.config/$main_proj-$version_num)
+        do
+            if [[ "$i" == --with-coin-instdir* ]]; then
+                prefix=$(echo $i | cut -d '=' -f 2)
+            fi
+        done
+    fi
+    if [ $build = "true" ]; then
+        echo
+        echo "Installation is done automatically following build and test of each project."
+        echo
+        if [ x$prefix = x ]; then
+            prefix=$root_dir/dist
+            mkdir -p $root_dir/dist
+        elif [ ! -d $prefix ]; then
+            set +e
+            mkdir -p $prefix 2> /dev/null
+            set -e
+        fi
+        if [ -w $prefix ]; then
+            echo "Installation directory is writable."
+            echo
+        else
+            echo "Installation directory is not writable."
+            echo "Sudo access will be requested."
+            echo "Only installation is run as sudo."
+            echo
+        fi
+        install=true
+        echo "Package will be built in $build_dir"
+        echo
+    fi
+    if [ $install = "true" ]; then
+        configure_options["--with-coin-instdir=$prefix"]=""
+        echo "Package will be installed to $prefix "
+        echo
+        if [ ! -w $prefix ]; then
+            echo "Installation directory is not writable."
+            echo "Sudo authentication will be required for installation."
+            echo "NOTE: For safety, only commands related to installation"
+            echo "      will be run with sudo. Builds are done as normal user."
+            sudo mkdir -p $prefix
+        fi
+    fi
+fi
+
+###################################################################################
+# Cache configuration options. Clean up the version number as per above, in
+# case we're doing an implied fetch.
+###################################################################################
+
+if [ $build = "true" ]; then
+    version_num=$(echo $main_proj_version | cut -d '/' -f 2)
+    if [ ! -e $build_dir/.config/$main_proj-$version_num ] ||
+           [ $reconfigure = "true" ]; then
+        echo "Caching configuration options..."
+        mkdir -p $build_dir/.config
+        printf "%s\n" "${!configure_options[@]}" > \
+               $build_dir/.config/$main_proj-$version_num
+        printf "%s\n" "${!configure_options[@]}"
+        if [ $get_third_party = "false" ]; then
+            echo "--no-third-party" >> \
+	         $build_dir/.config/$main_proj-$version_num
+        fi
+    else
+        get_cached_options $build_dir/.config/$main_proj-$version_num
+    fi
+fi
+
+###################################################################################
+# Find out if we're supposed to skip any projects
+###################################################################################
+
+find_skip_projects
+
+###################################################################################
 # Fetch main project first
+###################################################################################
+
 if [ x$main_proj != x ]; then
     url=$main_proj_url
     dir=$main_proj_dir
     proj=$main_proj
+    # If we get here without a version set, then default to master
+    if [ x$main_proj_version = x ]; then
+        main_proj_version=master
+    elif [ $fetch != true ]; then
+        echo
+        echo "It appears that a main project version has been specified, but"
+        echo "fetching was not requested. Build will proceed with current version."
+    fi
     version=$main_proj_version
 
-# Clean up the version number. Trickery! For something like releases/1.5.4,
-# this will return just 1.5.4.  But if there's no '/', you get the whole
-# thing back, hence arbitrary branch names like trunk or autotools-update
-# come through just fine.
+    # Clean up the version number. Trickery! For something like releases/1.5.4,
+    # this will return just 1.5.4.  But if there's no '/', you get the whole
+    # thing back, hence arbitrary branch names like trunk or autotools-update
+    # come through just fine.
 
     version_num=$(echo $version | cut -d '/' -f 2)
     sha=$main_proj_sha
     if [ $fetch = true ]; then
-        fetch_proj
+        fetch_proj 
     fi
     if [ $configure_help = true ]; then
         echo "Here is the help output for the main configure script."
@@ -1460,7 +1580,10 @@ if [ x$main_proj != x ]; then
     fi
 fi
 
+###################################################################################
 # Build list of dependencies
+###################################################################################
+
 if [ $skip_dependencies = "false" ]; then
     if [ -e Dependencies ] && [ x$main_proj = x ]; then
         deps=$(cat Dependencies | tr '\t' ' ' | tr -s ' ')
@@ -1481,7 +1604,10 @@ else
     deps=
 fi
 
+###################################################################################
 # Add main project to list (if one is specified)
+###################################################################################
+
 if [ x$main_proj != x ]; then
     if [ x"$deps" != x ]; then
         deps+=$'\n'
@@ -1494,16 +1620,23 @@ if [ x$main_proj != x ]; then
     fi
 fi
 
-#If we are going to build against installed packages, we need to disable
-#the uninstalled .pc files. Otherwise, they are preferred.
+###################################################################################
+# If we are going to build against installed packages, we need to disable
+# the uninstalled .pc files. Otherwise, they are preferred.
+###################################################################################
+
 if ([ $install = "true" ] || [[ $prefix == $root_dir/* ]]) &&
        [ $disable_uninstalled = "true" ]; then
     export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
+    echo
     echo "Disabling uninstalled packages"
 fi
 
-# Go through each project in order and fetch, build, install (as instructed).
+###################################################################################
+# Finally, go through each project in order and fetch, build, install (as instructed).
 # Skip comments (lines starting with '#').
+###################################################################################
+
 for entry in $deps
 do
     if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
@@ -1511,48 +1644,50 @@ do
     url=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
     proj=$(echo $url | cut -d '/' -f 5)
     sha=
-    # Set the URL of the project, the version, and the build dir
-    if [ $(echo $url | cut -d ':' -f 1) = "git@github.com" ] ||
-       [ $(echo $url | cut -d '/' -f 3) = "github.com" ]; then
-        #The URL is for a git project
-        version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
-        if [ $version != "master" ]; then
-            version_num=$(echo $version | cut -d '/' -f 2)
-        else
-            version_num=master
-        fi
-    else
-        #The URL is for an old SVN project
-        version=$(get_version_svn $url)
-        if [ $version = "trunk" ]; then
-            version=master
-            version_num=master
-        else
-            version_num=$(echo $version | cut -d '/' -f 2)
-        fi
-        if [ ! -d $dir ]; then
-            # Convert SVN URL to a Github one
-            url=$(svn2git)
-        fi
-    fi
 
     # Get the source (if requested)
-    if [ $fetch = "true" ]; then
+    if [ $fetch = "true" ] || [ ! -d $dir ]; then
         if should_fetch $dir; then
+            if [ ! -d $dir ] && [ $fetch != "true" ]; then
+                print_action "Warning: project $dir is missing, fetching automatically"
+            fi
             if [ x$main_proj_dir = x ] ||  [ $dir != $main_proj_dir ]; then
+                # Determine the desired version
+                if [[ $url == *github* ]]; then
+                    #The URL is for a git project
+                    version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
+                    if [ $version != "master" ]; then
+                        version_num=$(echo $version | cut -d '/' -f 2)
+                    else
+                        version_num=master
+                    fi
+                else
+                    #The URL is for an old SVN project
+                    version=$(get_version_svn $url)
+                    if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
+                        version=$(echo $version | cut -d '/' -f 2)
+                    fi
+                    if [ $version = "trunk" ]; then
+                        version=master
+                        version_num=master
+                    else
+                        version_num=$(echo $version | cut -d '/' -f 2)
+                    fi
+                    if [ ! -d $dir ]; then
+                        # Convert SVN URL to a Github one
+                        url=$(svn2git)
+                    fi
+                fi
+                # Now fetch the project
                 fetch_proj
             fi
-        else
+        elif [ $fetch = true ]; then
             print_action "Skipping $dir"
         fi
     fi
     
     # Build the project (if requested)
     if [ $build = "true" ] && [ $dir != "BuildTools" ]; then
-        if [ ! -d $dir ] && should_fetch $dir; then
-            print_action "Warning: project $dir is missing"
-            fetch_proj
-        fi
         if should_build $dir; then
             build_proj
         else
@@ -1573,6 +1708,10 @@ do
     fi
 done
 
+###################################################################################
+# Clean up some directories left by uninstall
+###################################################################################
+
 if [ x$prefix != x ] && [ $uninstall = "true" ]; then
     sudo=""
     if [ ! -w $prefix ]; then
@@ -1585,6 +1724,10 @@ if [ x$prefix != x ] && [ $uninstall = "true" ]; then
     echo
     $sudo rm -rf $prefix/include/coin $prefix/share/coin
 fi
+
+###################################################################################
+# Run ldconfig to add libraries to cache
+###################################################################################
 
 if [ $install = "true" ]; then
     if command -v ld >/dev/null 2>&1; then
@@ -1602,6 +1745,10 @@ if [ $install = "true" ]; then
         fi
     fi
 fi
+
+###################################################################################
+# Tell user what to do post-install
+###################################################################################
 
 if [ $install = "true" ]; then
     echo
