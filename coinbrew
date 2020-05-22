@@ -1291,15 +1291,12 @@ if [ x$main_proj = x ]; then
     fi
 fi
 
-### Main Project should now be set ###
-
 ###################################################################################
-# Figure out project version and URL. First guess at correct values,
-# change later if project is already checked out
+# Check if the user specified a fork and if so, extract project name from it
+# Otherwise, set URL provisionally (might change if project is already checked out)
 ###################################################################################
 
-if [ $(echo $main_proj | cut -d ':' -f 1) = https ] ||
-       [ $(echo $main_proj | cut -d '@' -f 1) = git ]; then
+if [[ $main_proj == https* ]] || [[ $main_proj == git* ]]; then
     #We assume this is a fork of a git project
     main_proj_url=$main_proj
     if [ $(echo $main_proj | cut -d ':' -f 1) = https ]; then
@@ -1314,6 +1311,8 @@ else
         main_proj_url="git@github.com:coin-or/$main_proj"
     fi
 fi
+
+### Main Project should now be set ###
 
 ###################################################################################
 # Figure out main project directory
@@ -1336,13 +1335,20 @@ else
 fi
 
 ###################################################################################
-# Check whether project is already checked out 
+# Check whether project is already checked out and set URL appropriately
 ###################################################################################
 
 if [ -d $main_proj_dir ]; then
     cd $main_proj_dir
     # Possibly switch url and version for existing projects
-    main_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
+    current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
+    if [ $main_proj_url != $current_proj_url ]; then
+        echo
+        echo "Warning: specified a fork when project is already cloned from a different repo."
+        echo "Proceeding with existing repo."
+        echo
+        main_proj_url=$current_proj_url
+    fi
     if [ $fetch = "false" ]; then
         current_version=$(get_version_git)
         main_proj_version=$current_version
@@ -1361,15 +1367,17 @@ if [ -d $main_proj_dir ]; then
         #            fi
     fi
     cd $root_dir
-elif [ $fetch = "false" ]; then
-    # Project is not checked out and fetching is not requested
-    echo "It appears that project has not been fetched yet."
-    if [ $configure_help = "false" ]; then
-        echo "Fetching will be done automatically..."
-        fetch=true
-    else
-        echo "Please fetch before asking for help on configuration."
-        exit 30
+else
+    if [ $fetch = "false" ]; then
+        # Project is not checked out and fetching is not requested
+        echo "It appears that project has not been fetched yet."
+        if [ $configure_help = "false" ]; then
+            echo "Fetching will be done automatically..."
+            fetch=true
+        else
+            echo "Please fetch before asking for help on configuration."
+            exit 30
+        fi
     fi
 fi
 
