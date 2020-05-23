@@ -13,6 +13,8 @@
 # - Handle user requesting fetch of a tagged version already checked out
 # - Make it possible to build a series of projects
 # - Think about whether to switch Dependencies file to some JSON or YAML format.
+# - Provide an option to build Python extensions
+# - Provide an option to download dependencies in binary format
 # - Would it make sense to use the same spec as spack or some other package manager?
 
 # script debugging
@@ -30,7 +32,7 @@ function help {
     echo
     echo "Commands:"
     echo
-    echo "  fetch: Checkout source code for project and dependencies"
+    echo "  fetch: Clone repos of project and dependencies"
     echo "    options: --ssh checkout git projects using ssh protocol rather than https"
     echo "             --skip='proj1 proj2' skip listed projects"
     echo "             --no-third-party don't fetch third party source (run getter-scripts)"
@@ -39,26 +41,27 @@ function help {
     echo "             --time check out project and all dependencies at a time stamp"
     echo "             --auto-stash stash changes before switching version (experimental)"
     echo
-    echo "  build: Configure, build, test (optional), and pre-install all projects"
+    echo "  build: Configure, build, test (optional), and install all projects"
     echo "    options: --configure-help (print help on build configuration"
     echo "             --xxx=yyy (will be passed through to configure)"
-    echo "             --parallel-jobs=n build in parallel with maximum 'n' jobs"
-    echo "             --build-dir=/dir/to/build/in where to build (default: $PWD/build)"
-    echo "             --tests which tests to before install all/main/none"
-    echo "             --verbosity=i set verbosity level (1-4)"
+    echo "             --parallel-jobs <n> build in parallel with maximum 'n' jobs (default: 1)"
+    echo "             --build-dir </dir/to/build/in> where to build (default: $PWD/build)"
+    echo "             --tests <all|main|none> which tests to do before install (default: none)"
+    echo "             --verbosity <1-4> set verbosity level (default: 1)"
     echo "             --reconfigure re-run configure"
-    echo "             --prefix=/dir/to/install (where to install, default: $PWD/dist)"
+    echo "             --prefix=/dir/to/install where to install (default: $PWD/dist)"
     echo "             --skip-dependencies don't build dependencies"
     echo "             --no-third-party don't build third party projects"
     echo "             --static build static executables on Linux and OS X" 
     echo
-    echo "  install: Install all projects in location specified by prefix (after build and test)"
+    echo "  install: Install all projects in location specified by prefix. This is done"
+    echo "           done automatically after build, so probably not useful in general." 
     echo
     echo "  uninstall: Uninstall all projects"
     echo
     echo "General options:"
-    echo "  --debug: Turn on debugging output"
-    echo "  --no-prompt: Turn off non-interactive mode"
+    echo "  --debug: Turn on debugging output (this should be the first option specified)"
+    echo "  --no-prompt: Suppress interactive prompts"
     echo "  --help: Print help"
     echo 
 }
