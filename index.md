@@ -78,13 +78,18 @@ For example,
 ```
 coinbrew build Cbc --test --enable-debug --prefix=/usr/local 
 ```
-
 The build artifacts for each project will be generated in the `build`
 directory by default (a different directory can be specified with
 `--build-dir` or `-b`). Installation is done automatically at build time to
-the specified `prefix` (`dist/` by default). If the install directory is not
-writable, the `install` command must be invoked via sudo and the user will be
-prompted for sudo authorization.
+abother installation directory, specified with `--prefix` or `-p` (`dist/` by 
+default). If you have multiple builds, then it is sometimes convenient to 
+install into the same directory as you are building in. If you put `-p` 
+on the command line with no argument after specifying a build directory,
+then the install directory will be set to the same directory as the build
+directory. If the install directory is not writable, the `install` command 
+must be invoked via sudo and the user will be prompted for sudo authorization.
+This is only done once just after launching the script so that the install
+can be done unattended from then on. 
 
 It is not necessary to fetch a project before building it. This will be done
 automatically if the project does not exist. If the project does exist,
