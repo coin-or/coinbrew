@@ -34,7 +34,7 @@ function help {
     echo
     echo "  fetch: Clone repos of project and dependencies"
     echo "    options: --ssh checkout git projects using ssh protocol rather than https"
-    echo "             --skip='proj1 proj2' skip listed projects"
+    echo "             --skip,-s <'proj1 proj2'> skip listed projects"
     echo "             --no-third-party don't fetch third party source (run getter-scripts)"
     echo "             --skip-update skip updating projects that are already checked out (useful if you have local changes)"
     echo "             --skip-dependencies don't fetch dependencies, only main project"
@@ -44,13 +44,14 @@ function help {
     echo "  build: Configure, build, test (optional), and install all projects"
     echo "    options: --configure-help (print help on build configuration"
     echo "             --xxx=yyy (will be passed through to configure)"
-    echo "             --parallel-jobs <n> build in parallel with maximum 'n' jobs (default: 1)"
-    echo "             --build-dir </dir/to/build/in> where to build (default: $PWD/build)"
-    echo "             --tests <all|main|none> which tests to do before install (default: none)"
-    echo "             --verbosity <1-4> set verbosity level (default: 1)"
+    echo "             VAR=xxx (will be passed through to configure)"
+    echo "             --parallel-jobs,-j <n> build in parallel with maximum 'n' jobs (default: 1)"
+    echo "             --build-dir,-b </dir/to/build/in> where to build (default: $PWD/build)"
+    echo "             --tests,-t <all|main|none> which tests to do before install (default: none)"
+    echo "             --verbosity,-v <1-4> set verbosity level (default: 1)"
     echo "             --reconfigure re-run configure"
-    echo "             --prefix=/dir/to/install where to install (default: $PWD/dist)"
-    echo "             --skip-dependencies don't build dependencies"
+    echo "             --prefix,-p /dir/to/install where to install (default: $PWD/dist)"
+    echo "             --skip-dependencies don't build dependencies, only main project"
     echo "             --no-third-party don't build third party projects"
     echo "             --static build static executables on Linux and OS X" 
     echo
@@ -60,9 +61,9 @@ function help {
     echo "  uninstall: Uninstall all projects"
     echo
     echo "General options:"
-    echo "  --debug: Turn on debugging output (this should be the first option specified)"
-    echo "  --no-prompt: Suppress interactive prompts"
-    echo "  --help: Print help"
+    echo "  --debug,-d     Turn on debugging output (this should be the first option specified)"
+    echo "  --no-prompt,-n Suppress interactive prompts"
+    echo "  --help,-h      Print help"
     echo 
 }
 
