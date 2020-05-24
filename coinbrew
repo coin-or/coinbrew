@@ -39,7 +39,7 @@ function help {
     echo "             --skip-update skip updating projects that are already checked out (useful if you have local changes)"
     echo "             --skip-dependencies don't fetch dependencies, only main project"
     echo "             --time check out project and all dependencies at a time stamp"
-    echo "             --auto-stash stash changes before switching version (experimental)"
+    echo "             --auto-stash stash changes before switching versions (experimental)"
     echo
     echo "  build: Configure, build, test (optional), and install all projects"
     echo "    options: --configure-help (print help on build configuration"
@@ -50,20 +50,26 @@ function help {
     echo "             --tests,-t <all|main|none> which tests to do before install (default: none)"
     echo "             --verbosity,-v <1-4> set verbosity level (default: 1)"
     echo "             --reconfigure re-run configure"
-    echo "             --prefix,-p /dir/to/install where to install (default: $PWD/dist)"
+    echo "             --prefix,-p </dir/to/install> where to install (default: $PWD/dist)"
     echo "             --skip-dependencies don't build dependencies, only main project"
     echo "             --no-third-party don't build third party projects"
     echo "             --static build static executables on Linux and OS X" 
+    echo "             --download-binary <'proj1 proj2'> list of binary packages to download"
+    echo "             --platform <string> string specifying platform (required for binaries)"
     echo
     echo "  install: Install all projects in location specified by prefix. This is done"
     echo "           done automatically after build, so probably not useful in general." 
     echo
     echo "  uninstall: Uninstall all projects"
     echo
+    echo "  download: Download project binaries (experimental, limited projects supported)"
+    echo "    options: --platform <string> string specifying platform (required for binaries)"
+    echo "             --prefix,-p </dir/to/install> where to install (default: $PWD/dist)"
+    echo 
     echo "General options:"
-    echo "  --debug,-d     Turn on debugging output (this should be the first option specified)"
+    echo "  --debug,-d Turn on debugging output (this should be the first option specified)"
     echo "  --no-prompt,-n Suppress interactive prompts"
-    echo "  --help,-h      Print help"
+    echo "  --help,-h Print help"
     echo 
 }
 
@@ -251,6 +257,29 @@ function parse_args {
                     shift
                 fi
                 ;;
+            --download-binary)
+                if [ x"$option_arg" != x ]; then
+                    download_projs=$option_arg
+                    download=true
+                else
+                    echo "No argument specified with --download-binary"
+                    exit 3
+                fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
+                ;;
+            --platform)
+                if [ x"$option_arg" != x ]; then
+                    platform=$option_arg
+                else
+                    echo "No argument specified with --platform"
+                    exit 3
+                fi
+                if [ $legacy_format = false ]; then
+                    shift
+                fi
+                ;;
             --enable-msvc)
                 configure_options["$arg"]=""
                 disable_uninstalled=false
@@ -330,6 +359,10 @@ function parse_args {
             uninstall)
                 num_actions+=1
                 uninstall=true
+                ;;
+            download)
+                num_actions+=1
+                download=true
                 ;;
             *)
                 # Look for things that seem to be arguments for configure
@@ -524,15 +557,16 @@ function should_build {
 
 function should_fetch {
 
-    if [ $skip_update = true ]; then
+    if ([ -d $dir ] && ([ $skip_update = true ] || [ $fetch = true ])) ||
+       [ $dir = $main_proj_dir ]; then
         return 1
     fi
-    
+       
     TMP_IFS=$IFS
     unset IFS
     for i in $coin_skip_projects
     do
-        if [ $1 = $i ]; then
+        if [ $dir = $i ]; then
             IFS=$TMP_IFS
             return 1
         fi
@@ -792,7 +826,8 @@ function prompt_for_version {
     echo
     echo "You haven't specified a project version"
     echo "It appears that the last 10 releases of $main_proj are"
-    git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -10
+    git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | \
+        sort -nr -t. -k1,1 -k2,2 -k3,3 | head -10
     echo "Do you want to work with the latest release? (y/n)"
     got_choice=false
     while [ $got_choice = "false" ]; do
@@ -804,7 +839,9 @@ function prompt_for_version {
         esac
     done
     case $choice in
-        y) main_proj_version=releases/$(git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
+        y) main_proj_version=releases/$(git ls-remote --tags $main_proj_url | fgrep releases | \
+                                            cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | \
+                                            head -1)
            ;;
         n) echo "Please enter another version name in the form of"
            echo 'master', 'releases/x.y.z', or 'stable/x.y'
@@ -902,7 +939,8 @@ function fetch_proj {
                 fi
             elif [ x"$checkout_time" != x ]; then
                 print_action "Checking out $dir version $version as of $checkout_time"
-                git checkout $(git rev-list -n 1 --first-parent --before="$checkout_time" remotes/origin/$version)
+                git checkout $(git rev-list -n 1 --first-parent --before="$checkout_time" \
+                                   remotes/origin/$version)
             else
                 print_action "Switching $dir to $version"
                 git checkout $version
@@ -1030,15 +1068,18 @@ function build_proj {
         if [ $verbosity -ge 4 ] || ( [ $verbosity -ge 2 ] &&
                                          [ x$main_proj != x ] &&
                                          [ $main_proj_dir = $dir ]); then
-            "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}"
+            "$config_script" --disable-dependency-tracking --prefix=$prefix \
+                             "${!configure_options[@]}"
         else
             set +e
-            "$config_script" --disable-dependency-tracking --disable-option-checking --prefix=$prefix "${!configure_options[@]}" > /dev/null
+            "$config_script" --disable-dependency-tracking --disable-option-checking \
+                             --prefix=$prefix "${!configure_options[@]}" > /dev/null
             if [ $? -ne 0 ]; then
                 echo
                 echo "Configuration failed, re-running with output enabled"
                 echo
-                "$config_script" --disable-dependency-tracking --prefix=$prefix "${!configure_options[@]}" 
+                "$config_script" --disable-dependency-tracking --prefix=$prefix \
+                                 "${!configure_options[@]}" 
                 exit 1
             fi
             set -e
@@ -1191,6 +1232,7 @@ fetch=false
 build=false
 install=false
 uninstall=false
+download=false
 run_tests=all
 declare -A configure_options
 configure_options=()
@@ -1216,6 +1258,7 @@ enable_debug=false
 skip_dependencies=false
 get_latest_release=false
 auto_stash=false
+download_projs=
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
@@ -1234,28 +1277,30 @@ parse_args "$@"
 
 if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
 
-   if [ x$build_dir = x ] ; then
-       if [ $enable_debug = "false" ]; then
-           build_dir=$root_dir/build
-       else
-           build_dir=$root_dir/build-debug
-       fi
-   fi
-   
-   #Try to create the build directory if it doesn't exist
-   if [ ! -d $build_dir ]; then
-       set +e
-       mkdir -p $build_dir 2> /dev/null
-       set -e
-   fi
-   
-   #Check whether build directory creation was successful
-   if [ ! -d $build_dir ]; then
-       echo "Build directory cannot be created."
-       echo "Please create it and make it writable."
-       echo "Then re-run script"
-       exit 4
-   fi
+    if [ x$build_dir = x ] ; then
+        if [ $enable_debug = "false" ]; then
+            build_dir=$root_dir/build
+        else
+            build_dir=$root_dir/build-debug
+        fi
+    fi
+    
+    #Try to create the build directory if it doesn't exist
+    if [ ! -d $build_dir ]; then
+        set +e
+        mkdir -p $build_dir 2> /dev/null
+        set -e
+    fi
+    
+    #Check whether build directory creation was successful
+    if [ ! -d $build_dir ]; then
+        echo "Build directory cannot be created."
+        echo "Please create it and make it writable."
+        echo "Then re-run script"
+        exit 4
+    fi
+    echo "Package will be built in $build_dir"
+    echo
 fi
 
 ###################################################################################
@@ -1273,9 +1318,19 @@ if [ $num_actions = 0 ]; then
     fi
 fi
 
-if [ x"$prefix" != x ] && [ $build = "false" ]; then
-    echo "Prefix should only be specified with the build command"
+###################################################################################
+# Sanity checks
+###################################################################################
+
+if [ x"$prefix" != x ] && [ $build = "false" ] && [ $download = false ] &&
+       [ $install = false ]; then
+    echo "Prefix should only be specified with build, download, or install commands"
     exit 3
+fi
+
+if [ $download = "true" ] && [ $fetch = "false" ] && [ $build = "false" ] &&
+       [ $install = "false" ] && [ $uninstall = "false" ]; then
+    skip_dependencies=true
 fi
 
 ###################################################################################
@@ -1346,7 +1401,8 @@ fi
 if [ -d $main_proj_dir ]; then
     cd $main_proj_dir
     # Possibly switch url and version for existing projects
-    current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
+    current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| \
+                           cut -d ' ' -f 2)
     if [ $main_proj_url != $current_proj_url ]; then
         echo
         echo "Warning: specified a fork when project is already cloned from a different repo."
@@ -1354,7 +1410,7 @@ if [ -d $main_proj_dir ]; then
         echo
         main_proj_url=$current_proj_url
     fi
-    if [ $fetch = "false" ]; then
+    if [ $fetch = "false" ] && [ $build = true ]; then
         current_version=$(get_version_git)
         main_proj_version=$current_version
     fi
@@ -1373,7 +1429,7 @@ if [ -d $main_proj_dir ]; then
     fi
     cd $root_dir
 else
-    if [ $fetch = "false" ]; then
+    if [ $fetch = "false" ] && [ $build = "true" ]; then
         # Project is not checked out and fetching is not requested
         echo "It appears that project has not been fetched yet."
         if [ $configure_help = "false" ]; then
@@ -1433,33 +1489,6 @@ if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
 fi
 
 ###################################################################################
-# Figure out if this is a re-build and the user specified new options
-###################################################################################
-
-if [ -e $build_dir/.config/$main_proj-$main_proj_version ] &&
-       [ $build = "true" ] && [ $reconfigure = false ]; then
-    echo "###"
-    echo "### Cached configuration options from previous build found."
-    echo "###"
-    if [ x"${#configure_options[*]}" != x0 ]; then
-        echo
-        echo "You are trying to run the build again and have specified"
-        echo "configuration options on the command line."
-        echo
-        if [ $no_prompt = false ]; then
-            prompt_for_rebuild
-        else
-            echo "Options specifed on command line being ignored."
-            echo "  - If you wish to use new options in the same build"
-            echo "    directory, re-run with --reconfigure"
-            echo "  - If you wish to build in a new directory,"
-            echo "    re-run with --build-dir"
-            configure_options=()
-        fi
-    fi
-fi
-
-###################################################################################
 # This changes the default separator used in for loops to carriage return.
 # We need this later.
 ###################################################################################
@@ -1468,67 +1497,20 @@ TMP_IFS=$IFS
 IFS=$'\n'
 
 ###################################################################################
-# Set the install directory. Clean up the version in case we're doing an
-# implied fetch on a build request. Only important if the user has deleted
-# the code but left the build directory (with configuration options) intact.
+# Clean up the version number. Trickery! For something like releases/1.5.4,
+# this will return just 1.5.4.  But if there's no '/', you get the whole
+# thing back, hence arbitrary branch names like trunk or autotools-update
+# come through just fine.
 ###################################################################################
 
-if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
-    version_num=$(echo $main_proj_version | cut -d '/' -f 2)
-    if [ -e $build_dir/.config/$main_proj-$version_num ]; then
-        for i in $(cat $build_dir/.config/$main_proj-$version_num)
-        do
-            if [[ "$i" == --with-coin-instdir* ]]; then
-                prefix=$(echo $i | cut -d '=' -f 2)
-            fi
-        done
-    fi
-    if [ $build = "true" ]; then
-        echo
-        echo "Installation is done automatically following build and test of each project."
-        echo
-        if [ x$prefix = x ]; then
-            prefix=$root_dir/dist
-            mkdir -p $root_dir/dist
-        elif [ ! -d $prefix ]; then
-            set +e
-            mkdir -p $prefix 2> /dev/null
-            set -e
-        fi
-        if [ -w $prefix ]; then
-            echo "Installation directory is writable."
-            echo
-        else
-            echo "Installation directory is not writable."
-            echo "Sudo access will be requested."
-            echo "Only installation is run as sudo."
-            echo
-        fi
-        install=true
-        echo "Package will be built in $build_dir"
-        echo
-    fi
-    if [ $install = "true" ]; then
-        configure_options["--with-coin-instdir=$prefix"]=""
-        echo "Package will be installed to $prefix "
-        echo
-        if [ ! -w $prefix ]; then
-            echo "Installation directory is not writable."
-            echo "Sudo authentication will be required for installation."
-            echo "NOTE: For safety, only commands related to installation"
-            echo "      will be run with sudo. Builds are done as normal user."
-            sudo mkdir -p $prefix
-        fi
-    fi
-fi
+version_num=$(echo $main_proj_version | cut -d '/' -f 2)
 
 ###################################################################################
-# Cache configuration options. Clean up the version number as per above, in
-# case we're doing an implied fetch.
+# Cache configuration options or get previously cached options
+# Notify user if options were specified but cached options exist
 ###################################################################################
 
 if [ $build = "true" ]; then
-    version_num=$(echo $main_proj_version | cut -d '/' -f 2)
     if [ ! -e $build_dir/.config/$main_proj-$version_num ] ||
            [ $reconfigure = "true" ]; then
         echo "Caching configuration options..."
@@ -1541,8 +1523,68 @@ if [ $build = "true" ]; then
 	         $build_dir/.config/$main_proj-$version_num
         fi
     else
+        echo "###"
+        echo "### Cached configuration options from previous build found."
+        echo "###"
+        if [ x"${#configure_options[*]}" != x0 ]; then
+            echo
+            echo "You are trying to run the build again and have specified"
+            echo "configuration options on the command line."
+            echo
+            if [ $no_prompt = false ]; then
+                prompt_for_rebuild
+            else
+                echo "Options specifed on command line being ignored."
+                echo "  - If you wish to use new options in the same build"
+                echo "    directory, re-run with --reconfigure"
+                echo "  - If you wish to build in a new directory,"
+                echo "    re-run with --build-dir"
+                configure_options=()
+            fi
+        fi
         get_cached_options $build_dir/.config/$main_proj-$version_num
+        # Only needed for projects with old build tools
+        for i in $(cat $build_dir/.config/$main_proj-$version_num)
+        do
+            if [[ "$i" == --with-coin-instdir* ]]; then
+                prefix=$(echo $i | cut -d '=' -f 2)
+            fi
+        done
     fi
+fi
+
+###################################################################################
+# Set the install directory. 
+###################################################################################
+
+if [ $build = "true" ] || [ $download = "true" ]; then
+    echo
+    echo "Installation is done automatically following build and test of each project."
+    echo
+    install=true
+fi
+if [ $install = "true" ]; then
+    if [ x$prefix = x ]; then
+        prefix=$root_dir/dist
+        mkdir -p $root_dir/dist
+    elif [ ! -d $prefix ]; then
+        set +e
+        mkdir -p $prefix 2> /dev/null
+        set -e
+    fi
+    if [ -w $prefix ]; then
+        echo "Installation directory is writable."
+        echo
+    else
+        echo "Installation directory is not writable."
+        echo "Sudo authentication will be required for installation."
+        echo "NOTE: Only commands related to installation"
+        echo "      will be run with sudo. Builds are done as normal user."
+        sudo mkdir -p $prefix
+    fi
+    configure_options["--with-coin-instdir=$prefix"]=""
+    echo "Package will be installed to $prefix "
+    echo
 fi
 
 ###################################################################################
@@ -1552,7 +1594,52 @@ fi
 find_skip_projects
 
 ###################################################################################
-# Fetch main project first
+# If we are going to download and install any binaries, do that first
+###################################################################################
+
+if [ $download = "true" ]; then
+    cd $prefix
+    if [ x"$download_projs" = x ]; then
+        download_projs=${main_proj}@${version_num}
+    fi
+    for dl_proj in $download_projs
+    do
+        found_proj=false
+        case $dl_proj in
+            Cbc*)
+                additional_skip_projects="Cbc Cgl Clp Osi CoinUtils Data/Sample Data/miplib3"
+                found_proj=true
+                ;;
+            *)
+                echo "Downloading of binaries for $main_proj not supported yet"
+                ;;
+        esac
+        if [ $found_proj = true ]; then
+            if [[ $dl_proj == *@* ]]; then
+                dl_proj_version=${dl_proj##*@}
+                dl_proj=${dl_proj%@*}
+                dl_proj_version_num=$(echo $dl_proj_version | cut -d '/' -f 2)
+            else
+                echo "Warning: No project version specified for $dl_proj binary, getting master"
+                dl_proj_version=master
+            fi
+            download_file=$dl_proj-$dl_proj_version_num-$platform.tgz
+            wget https://bintray.com/coin-or/download/download_file?file_path=$download_file \
+                 -O $download_file
+            tar -xzf $download_file
+            rm $download_file
+            if [ x"$coin_skip_projects" != x ]; then
+                coin_skip_projects=$additional_skip_projects
+            else
+                coin_skip_projects="${coin_skip_projects} $additional_skip_projects"
+            fi
+        fi
+    done
+    cd -
+fi
+
+###################################################################################
+# Now fetch main project
 ###################################################################################
 
 if [ x$main_proj != x ]; then
@@ -1562,21 +1649,15 @@ if [ x$main_proj != x ]; then
     # If we get here without a version set, then default to master
     if [ x$main_proj_version = x ]; then
         main_proj_version=master
-    elif [ $fetch != true ]; then
+    elif [ $build = "true" ] && [ $fetch != "true" ]; then
         echo
         echo "It appears that a main project version has been specified, but"
         echo "fetching was not requested. Build will proceed with current version."
     fi
     version=$main_proj_version
 
-    # Clean up the version number. Trickery! For something like releases/1.5.4,
-    # this will return just 1.5.4.  But if there's no '/', you get the whole
-    # thing back, hence arbitrary branch names like trunk or autotools-update
-    # come through just fine.
-
-    version_num=$(echo $version | cut -d '/' -f 2)
     sha=$main_proj_sha
-    if [ $fetch = true ]; then
+    if should_fetch; then
         fetch_proj 
     fi
     if [ $configure_help = true ]; then
@@ -1638,7 +1719,7 @@ fi
 # the uninstalled .pc files. Otherwise, they are preferred.
 ###################################################################################
 
-if ([ $install = "true" ] || [[ $prefix == $root_dir/* ]]) &&
+if ([ $install = "true" ] && [ $build = "true" ] || [[ $prefix == $root_dir/* ]]) &&
        [ $disable_uninstalled = "true" ]; then
     export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
     echo
@@ -1659,42 +1740,42 @@ do
     sha=
 
     # Get the source (if requested)
-    if [ $fetch = "true" ] || [ ! -d $dir ]; then
-        if should_fetch $dir; then
-            if [ ! -d $dir ] && [ $fetch != "true" ]; then
-                print_action "Warning: project $dir is missing, fetching automatically"
+    if should_fetch; then
+        if [ ! -d $dir ] && [ $fetch != "true" ]; then
+            print_action "Warning: project $dir is missing, fetching automatically"
+        fi
+        # Determine the desired version
+        if [[ $url == *github* ]]; then
+            #The URL is for a git project
+            version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
+            if [ $version != "master" ]; then
+                version_num=$(echo $version | cut -d '/' -f 2)
+            else
+                version_num=master
             fi
-            if [ x$main_proj_dir = x ] ||  [ $dir != $main_proj_dir ]; then
-                # Determine the desired version
-                if [[ $url == *github* ]]; then
-                    #The URL is for a git project
-                    version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
-                    if [ $version != "master" ]; then
-                        version_num=$(echo $version | cut -d '/' -f 2)
-                    else
-                        version_num=master
-                    fi
-                else
-                    #The URL is for an old SVN project
-                    version=$(get_version_svn $url)
-                    if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
-                        version=$(echo $version | cut -d '/' -f 2)
-                    fi
-                    if [ $version = "trunk" ]; then
-                        version=master
-                        version_num=master
-                    else
-                        version_num=$(echo $version | cut -d '/' -f 2)
-                    fi
-                    if [ ! -d $dir ]; then
-                        # Convert SVN URL to a Github one
-                        url=$(svn2git)
-                    fi
-                fi
-                # Now fetch the project
-                fetch_proj
+        else
+            #The URL is for an old SVN project
+            version=$(get_version_svn $url)
+            if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
+                version=$(echo $version | cut -d '/' -f 2)
             fi
-        elif [ $fetch = true ]; then
+            if [ $version = "trunk" ]; then
+                version=master
+                version_num=master
+            else
+                version_num=$(echo $version | cut -d '/' -f 2)
+            fi
+            if [ ! -d $dir ]; then
+                # Convert SVN URL to a Github one
+                url=$(svn2git)
+            fi
+        fi
+        # Now fetch the project
+        fetch_proj
+    elif [ $fetch = true ] && [ $dir != $main_proj_dir ]; then
+        if [ -d $dir ]; then 
+            print_action "Skipping update of $dir"
+        else
             print_action "Skipping $dir"
         fi
     fi
