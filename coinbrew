@@ -1442,7 +1442,7 @@ else
 fi
 
 ###################################################################################
-# Figure out if the user really wants a release
+# Figure out what version the user really wants
 ###################################################################################
 
 latest_release=$(git ls-remote --tags $main_proj_url)
@@ -1466,6 +1466,21 @@ if [ $get_latest_release = "true" ] ; then
 	exit 31
     fi
 fi
+
+if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
+       [ $no_prompt = false ]; then
+    prompt_for_version
+fi
+
+# If we get here without a version set, then default to master
+if [ x$main_proj_version = x ]; then
+    main_proj_version=master
+elif [ $build = "true" ] && [ $fetch != "true" ]; then
+    echo
+    echo "It appears that a main project version has been specified, but"
+    echo "fetching was not requested. Build will proceed with current version."
+fi
+
 if [ $main_proj_version = "master" ] && \
        ([ $fetch = "true" ] || [ $install = "true" ]) && \
        [ -n "$latest_release" ] ; then
@@ -1481,11 +1496,6 @@ fi
 ###################################################################################
 # Prompt user for version if not already specified
 ###################################################################################
-
-if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
-       [ $no_prompt = false ]; then
-    prompt_for_version
-fi
 
 ###################################################################################
 # This changes the default separator used in for loops to carriage return.
@@ -1645,14 +1655,6 @@ if [ x$main_proj != x ]; then
     url=$main_proj_url
     dir=$main_proj_dir
     proj=$main_proj
-    # If we get here without a version set, then default to master
-    if [ x$main_proj_version = x ]; then
-        main_proj_version=master
-    elif [ $build = "true" ] && [ $fetch != "true" ]; then
-        echo
-        echo "It appears that a main project version has been specified, but"
-        echo "fetching was not requested. Build will proceed with current version."
-    fi
     version=$main_proj_version
 
     sha=$main_proj_sha
