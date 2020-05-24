@@ -557,8 +557,7 @@ function should_build {
 
 function should_fetch {
 
-    if ([ -d $dir ] && ([ $skip_update = true ] || [ $fetch = true ])) ||
-       [ $dir = $main_proj_dir ]; then
+    if [ -d $dir ] && ([ $skip_update = true ] || [ $fetch = true ]); then
         return 1
     fi
        
@@ -1659,6 +1658,8 @@ if [ x$main_proj != x ]; then
     sha=$main_proj_sha
     if should_fetch; then
         fetch_proj 
+    else
+        print_action "Skipping update of $dir"
     fi
     if [ $configure_help = true ]; then
         echo "Here is the help output for the main configure script."
@@ -1740,7 +1741,7 @@ do
     sha=
 
     # Get the source (if requested)
-    if should_fetch; then
+    if should_fetch && [ $dir != $main_proj_dir ]; then
         if [ ! -d $dir ] && [ $fetch != "true" ]; then
             print_action "Warning: project $dir is missing, fetching automatically"
         fi
