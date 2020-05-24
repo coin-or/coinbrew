@@ -557,7 +557,7 @@ function should_build {
 
 function should_fetch {
 
-    if [ -d $dir ] && ([ $skip_update = true ] || [ $fetch = true ]); then
+    if [ -d $dir ] && ([ $skip_update = true ] || [ $fetch != true ]); then
         return 1
     fi
        
