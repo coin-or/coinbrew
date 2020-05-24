@@ -9,7 +9,7 @@ matrix:
           - gfortran
       env: PROJECT="Osi"
            FETCH_ARGS="--no-prompt"
-           BUILD_ARGS="--no-prompt
+           BUILD_ARGS="--no-prompt"
            FETCH=true
     - os: linux
       addons:
