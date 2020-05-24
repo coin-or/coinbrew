@@ -7,43 +7,60 @@ matrix:
         apt:
           packages:
           - gfortran
-      env: PROJECT="Osi --no-prompt" FETCH=true
+      env: PROJECT="Osi"
+           FETCH_ARGS="--no-prompt"
+           BUILD_ARGS="--no-prompt
+           FETCH=true
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
-      env: PROJECT="Osi@master" FETCH=true
+      env: PROJECT="Osi@master" 
+           FETCH_ARGS="--no-prompt"
+           BUILD_ARGS="--no-prompt --enable-relocatable"
+           FETCH=true
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
-      env: PROJECT="https://github.com/tkralphs/Osi@stable/0.108" FETCH=true
+      env: PROJECT="https://github.com/tkralphs/Osi@stable/0.108" 
+           FETCH_ARGS="--no-prompt"
+           BUILD_ARGS="--no-prompt --enable-relocatable"
+           FETCH=true
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
-      env: PROJECT="https://github.com/tkralphs/Osi@master" FETCH=false
+      env: PROJECT="https://github.com/tkralphs/Osi@master" 
+           BUILD_ARGS="--no-prompt --enable-debug"
+           FETCH=false
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
-      env: PROJECT="Osi --no-prompt" FETCH=false
+      env: PROJECT="Osi --no-prompt" 
+           BUILD_ARGS="--no-prompt ADD_CXXFLAGS=-DFOO"
+           FETCH=false
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
-      env: PROJECT="SYMPHONY@stable/5.6" FETCH=false
+      env: PROJECT="SYMPHONY@stable/5.6" 
+           BUILD_ARGS="--no-prompt"
+           FETCH=false
     - os: osx
-      env: PROJECT="Osi --no-prompt" FETCH=false
+      env: PROJECT="Osi --no-prompt" 
+           BUILD_ARGS="--no-prompt ADD_CXXFLAGS=-DFOO"
+           FETCH=false
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [ x`brew list | fgrep bash` != x'bash' ]; then brew install bash; fi; brew update; fi
 
 script:
-  - if [ $FETCH = true ]; then bash ./coinbrew fetch $PROJECT; fi
-  - bash ./coinbrew build $PROJECT
+  - if [ $FETCH = true ]; then bash ./coinbrew fetch $PROJECT $FETCH_ARGS; fi
+  - bash ./coinbrew build $PROJECT $BUILD_ARGS
