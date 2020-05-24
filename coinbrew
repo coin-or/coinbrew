@@ -1660,7 +1660,7 @@ if [ x$main_proj != x ]; then
     sha=$main_proj_sha
     if should_fetch; then
         fetch_proj 
-    else
+    elif [ $fetch = "true" ]; then
         print_action "Skipping update of $dir"
     fi
     if [ $configure_help = true ]; then
