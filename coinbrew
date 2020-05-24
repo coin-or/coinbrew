@@ -331,24 +331,25 @@ function parse_args {
                 # Look for things that seem to be arguments for configure
                 if [[ "$arg" == *=* ]] || [[ "$arg" == --* ]]; then
                     configure_options["$arg"]=""
-                fi
-
-                slug=$(echo $arg | sed 's|https://github.com/||' | sed 's|git@github.com:||')
-
-                #Now look for the version number after the last ":" or "@"
-                #We support both formats for now. If there is any "@", then
-                #the format is the one with version after "@", otherwise, it
-                #is the version with ":"
-                if [[ $slug == *@* ]]; then
-                    main_proj=${arg%@*}
-                    main_proj_version=${arg##*@}
-                elif [[ $slug == *:* ]]; then
-                    main_proj=${arg%:*}
-                    main_proj_version=${arg##*:}
-                    echo "Warning: specifying version after ':' is deprecated and will be removed in a future version"
                 else
-                    main_proj=$arg
-                fi
+
+	            slug=$(echo $arg | sed 's|https://github.com/||' | sed 's|git@github.com:||')
+
+                    #Now look for the version number after the last ":" or "@"
+                    #We support both formats for now. If there is any "@", then
+                    #the format is the one with version after "@", otherwise, it
+                    #is the version with ":"
+                    if [[ $slug == *@* ]]; then
+                        main_proj=${arg%@*}
+                        main_proj_version=${arg##*@}
+                    elif [[ $slug == *:* ]]; then
+                        main_proj=${arg%:*}
+                        main_proj_version=${arg##*:}
+                        echo "Warning: specifying version after ':' is deprecated and will be removed in a future version"
+                    else
+                        main_proj=$arg
+                    fi
+		fi
                 ;;
         esac
     done
