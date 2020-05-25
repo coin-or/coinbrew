@@ -386,6 +386,13 @@ function parse_args {
                     else
                         main_proj=$arg
                     fi
+                    if [ $(echo $main_proj_version | awk -F"/" "{print NF}") = "1" ]; then
+                        if [ $(echo $main_proj_version | awk -F"." "{print NF}") = "2" ]; then
+                           main_proj_version="stable/$main_proj_version"
+                        elif [ $(echo $main_proj_version | awk -F"." "{print NF}") = "3" ]; then
+                           main_proj_version="releases/$main_proj_version"
+                        fi
+                    fi
 		fi
                 ;;
         esac
@@ -1619,6 +1626,14 @@ if [ $download = "true" ]; then
             Cbc*)
                 additional_skip_projects="Cbc Cgl Clp Osi CoinUtils Data/Sample Data/miplib3"
                 found_proj=true
+                if [[ $platform == *msvc* ]]; then
+                    configure_options=["--with-cbc-lib='$prefix/lib/CbcSolver.lib $prefix/lib/Cbc.lib $prefix/lib/Cgl.lib $prefix/lib/OsiClp.lib $prefix/lib/Clp.lib $prefix/lib/OsiCommonTest.lib $prefix/lib/Osi.lib $prefix/lib/CoinUtils.lib $prefix/lib/coinglpk.lib $prefix/lib/coinasl.lib'"]
+                    if [ $version_num = "master" ]; then
+                        configure_options=["--with-cbc-incdir='$prefix/include/coin-or"]
+                    else
+                        configure_options=["--with-cbc-incdir='$prefix/include/coin"]
+                    fi
+                fi
                 ;;
             *)
                 echo "Downloading of binaries for $main_proj not supported yet"
@@ -1646,11 +1661,7 @@ if [ $download = "true" ]; then
                 tar -xzf $download_file
             fi
             rm $download_file
-            if [ x"$coin_skip_projects" != x ]; then
-                coin_skip_projects=$additional_skip_projects
-            else
-                coin_skip_projects="${coin_skip_projects} $additional_skip_projects"
-            fi
+            coin_skip_projects="${coin_skip_projects:-} $additional_skip_projects"
         fi
     done
     cd -
