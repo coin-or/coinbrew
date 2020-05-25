@@ -55,7 +55,7 @@ coinbrew fetch <ProjectName|URL@version>
 ```
 For example,
 ```
-coinbrew fetch Cbc@stable/2.10 
+coinbrew fetch Cbc@2.10 
 ```
 Note that this command can be run even if you have previously fetched another
 project with overlapping dependencies. You can even fetch two projects that
