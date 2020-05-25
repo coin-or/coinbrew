@@ -1520,18 +1520,7 @@ version_num=$(echo $main_proj_version | cut -d '/' -f 2)
 ###################################################################################
 
 if [ $build = "true" ]; then
-    if [ ! -e $build_dir/.config/$main_proj-$version_num ] ||
-           [ $reconfigure = "true" ]; then
-        echo "Caching configuration options..."
-        mkdir -p $build_dir/.config
-        printf "%s\n" "${!configure_options[@]}" > \
-               $build_dir/.config/$main_proj-$version_num
-        printf "%s\n" "${!configure_options[@]}"
-        if [ $get_third_party = "false" ]; then
-            echo "--no-third-party" >> \
-	         $build_dir/.config/$main_proj-$version_num
-        fi
-    else
+    if [ -e $build_dir/.config/$main_proj-$version_num ] && [ $reconfigure = "false" ]; then
         echo "###"
         echo "### Cached configuration options from previous build found."
         echo "###"
@@ -1551,6 +1540,18 @@ if [ $build = "true" ]; then
                 configure_options=()
             fi
         fi
+    fi
+    if [ ! -e $build_dir/.config/$main_proj-$version_num ] || [ $reconfigure = "true" ]; then
+        echo "Caching configuration options..."
+        mkdir -p $build_dir/.config
+        printf "%s\n" "${!configure_options[@]}" > \
+               $build_dir/.config/$main_proj-$version_num
+        printf "%s\n" "${!configure_options[@]}"
+        if [ $get_third_party = "false" ]; then
+            echo "--no-third-party" >> \
+	         $build_dir/.config/$main_proj-$version_num
+        fi
+    else
         get_cached_options $build_dir/.config/$main_proj-$version_num
         # Only needed for projects with old build tools
         for i in $(cat $build_dir/.config/$main_proj-$version_num)
@@ -1632,10 +1633,18 @@ if [ $download = "true" ]; then
                 echo "Warning: No project version specified for $dl_proj binary, getting master"
                 dl_proj_version=master
             fi
-            download_file=$dl_proj-$dl_proj_version_num-$platform.tgz
+            if [[ $platform == *msvc* ]]; then
+                download_file=$dl_proj-$dl_proj_version_num-$platform.zip
+            else
+                download_file=$dl_proj-$dl_proj_version_num-$platform.tgz
+            fi
             wget https://bintray.com/coin-or/download/download_file?file_path=$download_file \
                  -O $download_file
-            tar -xzf $download_file
+            if [[ $platform == *msvc* ]]; then
+                unzip $download_file
+            else
+                tar -xzf $download_file
+            fi
             rm $download_file
             if [ x"$coin_skip_projects" != x ]; then
                 coin_skip_projects=$additional_skip_projects
