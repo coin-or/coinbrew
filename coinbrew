@@ -9,13 +9,11 @@
 # - consider using pushd/popd instead of cd somewhere/cd ..
 # - look at TODO and FIXME below
 # - Read config.site
-# - Make it possible to just build with the current versions regardless of Dependencies
 # - Handle user requesting fetch of a tagged version already checked out
 # - Make it possible to build a series of projects
 # - Think about whether to switch Dependencies file to some JSON or YAML format.
 # - Provide an option to build Python extensions
-# - Provide an option to download dependencies in binary format
-# - Would it make sense to use the same spec as spack or some other package manager?
+# - Provide an option to download dependencies in binary format (this is started)
 
 # script debugging
 #set -x
@@ -832,8 +830,8 @@ function prompt_for_version {
     echo
     echo "You haven't specified a project version"
     echo "It appears that the last 10 releases of $main_proj are"
-    git ls-remote --tags $main_proj_url | fgrep releases | cut -d '/' -f 4 | \
-        sort -nr -t. -k1,1 -k2,2 -k3,3 | head -10
+    git ls-remote --tags $main_proj_url | fgrep releases | fgrep -v -e "^{}" | \
+        cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -10
     echo "Do you want to work with the latest release? (y/n)"
     got_choice=false
     while [ $got_choice = "false" ]; do
