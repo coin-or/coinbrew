@@ -1404,6 +1404,18 @@ if [[ $main_proj == https* ]] || [[ $main_proj == git* ]]; then
         main_proj=$(echo $main_proj | cut -d '/' -f 2 | cut -d '.' -f 1)
     fi
 else
+    #Need to map these from directory name to repo name
+    case $main_proj in
+        Alps)
+            main_proj=CHiPPS-ALPS
+            ;;
+        Bcps)
+            main_proj=CHiPPS-BiCePS
+            ;;
+        Blis)
+            main_proj=CHiPPS-BLIS
+            ;;
+    esac
     if [ $ssh_checkout = "false" ]; then
         main_proj_url="https://github.com/coin-or/$main_proj"
     else
