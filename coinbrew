@@ -972,18 +972,19 @@ function fetch_proj {
                 print_action "Switching $dir to $version"
                 git checkout $version
             fi
-            if [ $(echo $main_proj_version | awk -F"." "{print NF}") != "3" ]; then
+            if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
+                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
                 # We should somehow check whether this causes conflicts
                 git pull
             fi
         else
-            if [ $(echo $main_proj_version | awk -F"." "{print NF}") != "3" ];
-            then
+            if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
+                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
                 # We should somehow check whether this causes conflicts
                 print_action "Updating $dir $version"
                 git pull
             else
-                print_action "$dir already on $version"
+                print_action "Repo is not on a branch (skipping update)"
             fi
         fi
         new_rev=$(git rev-parse HEAD)
@@ -1478,7 +1479,7 @@ if [ -d $main_proj_dir ]; then
     cd $main_proj_dir
     # Possibly switch url and version for existing projects
     current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' |\
-                           tr -s ' '| cut -d ' ' -f 2)
+                           tr -s ' '| cut -d ' ' -f 2 | sed s"|.git||")
     if [ $main_proj_url != $current_proj_url ]; then
         echo
         echo "Warning: specified a fork when project is already cloned from a different repo."
