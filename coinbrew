@@ -394,6 +394,9 @@ function parse_args {
                            main_proj_version="releases/$main_proj_version"
                         fi
                     fi
+                    if [ $main_proj_version = "current" ]; then
+                        keep_current=true
+                    fi
 		fi
                 ;;
         esac
@@ -941,6 +944,9 @@ function fetch_proj {
         cd $dir
         current_version=$(get_version_git)
         current_rev=$(git rev-parse HEAD)
+        if [ $keep_current = "true" ]; then
+            version=$current_version
+        fi
         if [[ $version != *$current_version ]] ||
                ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
                [ x$checkout_time != x ]; then
@@ -1290,6 +1296,7 @@ skip_dependencies=false
 get_latest_release=false
 auto_stash=false
 download_projs=
+keep_current=false
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
