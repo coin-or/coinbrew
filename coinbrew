@@ -25,6 +25,7 @@
 ###################################################################################
 
 function help {
+
     echo "Usage: coinbrew <command> <name|URL@version> --option value ..."
     echo "       Run without arguments for interactive mode"
     echo
@@ -69,6 +70,7 @@ function help {
     echo "  --no-prompt,-n Suppress interactive prompts"
     echo "  --help,-h Print help"
     echo 
+
 }
 
 ###################################################################################
@@ -88,6 +90,7 @@ function print_action {
 ###################################################################################
 
 function parse_args {
+
     while (( "$#" ))
     do
         arg=$1
@@ -380,7 +383,7 @@ function parse_args {
                     elif [[ $slug == *:* ]]; then
                         main_proj=${arg%:*}
                         main_proj_version=${arg##*:}
-                        echo "Warning: specifying version after ':' is deprecated and will be removed in a future version"
+                        echo "Warning: specifying version after ':' is deprecated and will be removed in a future version. Use '@'."
                     else
                         main_proj=$arg
                     fi
@@ -395,6 +398,7 @@ function parse_args {
                 ;;
         esac
     done
+
 }
 
 ###################################################################################
@@ -585,16 +589,18 @@ function should_fetch {
 ###################################################################################
 
 function get_version_git {
+
     current_rev=$(git rev-parse HEAD)
-    if [ $(git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-) ]; then
+    if [[ $(git show-ref --tags | fgrep $current_rev) == *releases* ]]; then
 	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4
-    elif [ $(git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-) ]; then
+    elif [[ $(git show-ref --heads | fgrep $current_rev) == *stable* ]]; then
 	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4
-    elif [ $(git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3-) ]; then
+    elif [ x"$(git show-ref --heads | fgrep $current_rev)" != x ]; then
 	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3
     else
         echo $current_rev
     fi
+
 }
 
 ###################################################################################
@@ -602,6 +608,7 @@ function get_version_git {
 ###################################################################################
 
 function get_version_svn {
+
     if [ $proj = "BuildTools" ] &&
            [ $(echo $1 | cut -d '/' -f 6) = 'ThirdParty' ]; then
         if [ $(echo $1 | cut -d '/' -f 8) = trunk ]; then
@@ -634,6 +641,7 @@ function get_version_svn {
             echo $1 | cut -d '/' -f 6-7
         fi
     fi
+
 }
 
 ###################################################################################
@@ -641,6 +649,7 @@ function get_version_svn {
 ###################################################################################
 
 function svn2git {
+
     # Convert SVN URL to a Github one and check out with git
     if [ $proj = "BuildTools" ] || [ $proj = "Data" ]; then
         if [ $ssh_checkout = "false" ]; then
@@ -683,6 +692,7 @@ function svn2git {
         new_url+=$proj
     fi
     echo $new_url
+
 }
 
 ###################################################################################
@@ -690,6 +700,7 @@ function svn2git {
 ###################################################################################
 
 function prompt_for_action {
+
     # Prompt user for what actions to perform
     echo "Please choose an action by typing 1-4."
     echo " 1. Fetch source code of a project and its dependencies."
@@ -727,6 +738,7 @@ function prompt_for_action {
             exit 0
             ;;
     esac
+
 }
 
 ###################################################################################
@@ -734,6 +746,7 @@ function prompt_for_action {
 ###################################################################################
 
 function prompt_for_main {
+
     # Prompt user to pick a main project or return error
     echo
     echo "Please choose a main project to fetch/build by typing 1-18"
@@ -794,6 +807,7 @@ function prompt_for_main {
             ;;
         *)  main_proj=$choice;;
     esac
+
 }
 
 ###################################################################################
@@ -827,6 +841,7 @@ function prompt_for_fetch {
 ###################################################################################
 
 function prompt_for_version {
+
     echo
     echo "You haven't specified a project version"
     echo "It appears that the last 10 releases of $main_proj are"
@@ -855,6 +870,7 @@ function prompt_for_version {
            ;;
     esac
     echo
+
 }
 
 ###################################################################################
@@ -909,6 +925,7 @@ function prompt_for_rebuild {
         4)
             exit 0
     esac
+
 }
 
 ###################################################################################
@@ -949,13 +966,12 @@ function fetch_proj {
                 print_action "Switching $dir to $version"
                 git checkout $version
             fi
-            if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ]; then
+            if [ $(echo $main_proj_version | awk -F"." "{print NF}") != "3" ]; then
                 # We should somehow check whether this causes conflicts
                 git pull
             fi
         else
-            if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
-                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ];
+            if [ $(echo $main_proj_version | awk -F"." "{print NF}") != "3" ];
             then
                 # We should somehow check whether this causes conflicts
                 print_action "Updating $dir $version"
@@ -1010,6 +1026,7 @@ function fetch_proj {
             echo "Not downloading source for $tp_proj..."
         fi
     fi  
+
 }
         
 ###################################################################################
@@ -1017,6 +1034,7 @@ function fetch_proj {
 ###################################################################################
 
 function invoke_make {
+
     v=$1
     shift
     if [ $v = 1 ]; then
@@ -1044,6 +1062,7 @@ function invoke_make {
     else
         $sudo $MAKE V=1 -j $jobs $@
     fi
+
 }
 
 ###################################################################################
@@ -1051,6 +1070,7 @@ function invoke_make {
 ###################################################################################
 
 function build_proj {
+
     cd $dir
     version_num=$(get_version_git)
     cd $root_dir
@@ -1136,6 +1156,7 @@ function build_proj {
         fi
     fi
     cd $root_dir
+
 }
 
 ###################################################################################
@@ -1143,6 +1164,7 @@ function build_proj {
 ###################################################################################
 
 function install_proj {
+
     print_action "Installing $dir $version_num"
     cd $build_dir/$dir/$version_num
     sudo=""
@@ -1159,6 +1181,7 @@ function install_proj {
         invoke_make 1 install
     fi
     cd $root_dir
+
 }
 
 ###################################################################################
@@ -1166,6 +1189,7 @@ function install_proj {
 ###################################################################################
 
 function uninstall_proj {
+
     print_action "Uninstalling $dir"
     cd $build_dir/$dir/$version_num
     sudo=""
@@ -1182,6 +1206,7 @@ function uninstall_proj {
         invoke_make 1 uninstall
     fi
     cd $root_dir
+
 }
 
 ###################################################################################
@@ -1189,6 +1214,7 @@ function uninstall_proj {
 ###################################################################################
 
 function get_cached_options {
+
     local lclFile="$1"
     echo "Reading cached options from $lclFile"
     # read options from file, one option per line, and store into array copts
@@ -1207,6 +1233,7 @@ function get_cached_options {
     # print configuration options, one per line
     # (TODO might need verbosity level check)
     printf "%s\n" "${!configure_options[@]}"
+
 }
 
 ###########################################################################
