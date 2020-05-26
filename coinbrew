@@ -1426,54 +1426,6 @@ else
 fi
 
 ###################################################################################
-# Check whether project is already checked out and set URL appropriately
-###################################################################################
-
-if [ -d $main_proj_dir ]; then
-    cd $main_proj_dir
-    # Possibly switch url and version for existing projects
-    current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' | tr -s ' '| \
-                           cut -d ' ' -f 2)
-    if [ $main_proj_url != $current_proj_url ]; then
-        echo
-        echo "Warning: specified a fork when project is already cloned from a different repo."
-        echo "Proceeding with existing repo."
-        echo
-        main_proj_url=$current_proj_url
-    fi
-    if [ $fetch = "false" ] && [ $build = true ]; then
-        current_version=$(get_version_git)
-        main_proj_version=$current_version
-    fi
-    if [ $fetch = "false" ] && [ $build = "true" ]; then
-        echo "################################################"
-        echo "### Building version $current_version"
-        echo "### with existing versions of dependencies."
-        echo "### Ctrl-c and run 'fetch' to switch versions" 
-        echo "### or to ensure correct dependencies"
-        echo "################################################"
-        echo
-        #           Don't annoy people with this prompt for now
-        #            if [ $no_prompt = false ]; then
-        #                prompt_for_fetch
-        #            fi
-    fi
-    cd $root_dir
-else
-    if [ $fetch = "false" ] && [ $build = "true" ]; then
-        # Project is not checked out and fetching is not requested
-        echo "It appears that project has not been fetched yet."
-        if [ $configure_help = "false" ]; then
-            echo "Fetching will be done automatically..."
-            fetch=true
-        else
-            echo "Please fetch before asking for help on configuration."
-            exit 30
-        fi
-    fi
-fi
-
-###################################################################################
 # Figure out what version the user really wants
 ###################################################################################
 
@@ -1504,31 +1456,62 @@ if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
     prompt_for_version
 fi
 
-# If we get here without a version set, then default to master
-if [ x$main_proj_version = x ]; then
-    main_proj_version=master
-elif [ $build = "true" ] && [ $fetch != "true" ]; then
+if [ x$main_proj_version != x ] && [ $build = "true" ] && [ $fetch != "true" ]; then
     echo
     echo "It appears that a main project version has been specified, but"
     echo "fetching was not requested. Build will proceed with current version."
-fi
-
-if [ $main_proj_version = "master" ] && \
-       ([ $fetch = "true" ] || [ $install = "true" ]) && \
-       [ -n "$latest_release" ] ; then
-    echo "NOTE: You are working with the development version."
-    echo "      You might consider the latest release version,"
-    echo "      which appears to be releases/$latest_release"
-    echo "      To fetch this release, execute coinbrew as"
-    echo 
-    echo "      coinbrew fetch $main_proj:releases/$latest_release"
     echo
 fi
 
 ###################################################################################
-# Prompt user for version if not already specified
+# Check whether project is already checked out and set URL appropriately
 ###################################################################################
 
+if [ -d $main_proj_dir ]; then
+    cd $main_proj_dir
+    # Possibly switch url and version for existing projects
+    current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' |\
+                           tr -s ' '| cut -d ' ' -f 2)
+    if [ $main_proj_url != $current_proj_url ]; then
+        echo
+        echo "Warning: specified a fork when project is already cloned from a different repo."
+        echo "Proceeding with existing repo."
+        echo
+        main_proj_url=$current_proj_url
+    fi
+    if [ $fetch = "false" ] && [ $build = true ]; then
+        main_proj_version=$(get_version_git)
+        echo "################################################"
+        echo "### Building version $main_proj_version"
+        echo "### with existing versions of dependencies."
+        echo "### Ctrl-c and run 'fetch' to switch versions" 
+        echo "### or to ensure correct dependencies"
+        echo "################################################"
+        echo
+    fi
+    cd $root_dir
+elif [ $fetch = "false" ] && [ $build = "true" ]; then
+    # Project is not checked out and fetching is not requested
+    echo "It appears that project has not been fetched yet."
+    if [ $configure_help = "false" ]; then
+        echo "Fetching will be done automatically..."
+        fetch=true
+    else
+        echo "Please fetch before asking for help on configuration."
+        exit 30
+    fi
+fi
+
+# If we get here without a version set, then default to latest release
+if [ x$main_proj_version = x ]; then
+    main_proj_version=releases/$latest_release
+    if [ $fetch = "true" ]; then
+        echo "NOTE: You didn't provide a version."
+        echo "      Checking out the release version by default."
+        echo
+    fi
+fi
+    
 ###################################################################################
 # This changes the default separator used in for loops to carriage return.
 # We need this later.
