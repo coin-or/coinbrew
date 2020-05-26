@@ -394,7 +394,7 @@ function parse_args {
                            main_proj_version="releases/$main_proj_version"
                         fi
                     fi
-                    if [ $main_proj_version = "current" ]; then
+                    if [ x$main_proj_version = x"current" ]; then
                         keep_current=true
                     fi
 		fi
