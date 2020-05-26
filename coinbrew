@@ -1479,7 +1479,7 @@ if [ -d $main_proj_dir ]; then
     cd $main_proj_dir
     # Possibly switch url and version for existing projects
     current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' |\
-                           tr -s ' '| cut -d ' ' -f 2 | sed s"|.git||")
+                           tr -s ' '| cut -d ' ' -f 2 | sed s"|\.git||")
     if [ $main_proj_url != $current_proj_url ]; then
         echo
         echo "Warning: specified a fork when project is already cloned from a different repo."
