@@ -1110,7 +1110,11 @@ function build_proj {
                 echo "Configuration failed, re-running with output enabled"
                 echo
                 "$config_script" --disable-dependency-tracking --prefix=$prefix \
-                                 "${!configure_options[@]}" 
+                                 "${!configure_options[@]}"
+                echo
+                echo echo "Here is the contents of config.log"
+                echo
+                cat config.log
                 exit 1
             fi
             set -e
