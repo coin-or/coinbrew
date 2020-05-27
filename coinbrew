@@ -1836,7 +1836,7 @@ do
     fi
     
     # Build the project (if requested)
-    if [ $build = "true" ] && [ $dir != "BuildTools" ]; then
+    if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
         if should_build $dir; then
             build_proj
         else
@@ -1847,7 +1847,7 @@ do
     # Install the project (if requested)
     if ([ $install = "true" ] ||
             ([ $build = "true" ] && [ -w $prefix ])) &&
-           [ $dir != "BuildTools" ] && should_build $dir; then
+           [ $dir != "BuildTools" ] && [ $dir != "examples" ] && should_build $dir; then
         install_proj
     fi
 
