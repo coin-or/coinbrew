@@ -9,11 +9,11 @@
 # - consider using pushd/popd instead of cd somewhere/cd ..
 # - look at TODO and FIXME below
 # - Read config.site
-# - Handle user requesting fetch of a tagged version already checked out
 # - Make it possible to build a series of projects
 # - Think about whether to switch Dependencies file to some JSON or YAML format.
 # - Provide an option to build Python extensions
 # - Provide an option to download dependencies in binary format (this is started)
+# - Make autostash work better https://stackoverflow.com/questions/53049088/can-git-remind-me-about-or-auto-apply-a-stash-when-switching-back-into-the-corre/53050054
 
 # script debugging
 #set -x
@@ -521,11 +521,7 @@ function find_skip_projects {
                 ;;
         esac
         if [ $found_project = "true" ]; then
-            if [ x"$coin_skip_projects" != x ]; then
-                coin_skip_projects=$proj_dir
-            else
-                coin_skip_projects="${coin_skip_projects} $proj_dir"
-            fi
+            coin_skip_projects="${coin_skip_projects:-} $proj_dir"
         fi
     fi
 done
