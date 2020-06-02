@@ -1243,6 +1243,22 @@ function get_cached_options {
 # Main script starts here
 ###########################################################################
 
+echo "Welcome to the COIN-OR fetch and build utility"
+echo 
+echo "For help, run script with --help."
+echo 
+
+###################################################################################
+# Check bash version and set variables
+###################################################################################
+
+if [ $(echo ${BASH_VERSION} | cut -d "." -f 1) -le "3" ]; then
+    echo "This script requires bash version 4 or greater."
+    echo "You are probably on macOS, which comes with version 3."
+    echo "Please install a recent bash using homebrew (https://brew.sh)."
+    exit 100
+fi
+
 # Exit when command fails
 set -e
 #Attempt to use undefined variable outputs error message, and forces an exit
@@ -1294,23 +1310,6 @@ get_latest_release=false
 auto_stash=false
 download_projs=
 keep_current=false
-
-echo "Welcome to the COIN-OR fetch and build utility"
-echo 
-echo "For help, run script with --help."
-echo 
-
-###################################################################################
-# Check bash version
-###################################################################################
-
-if [ $(bash --version | awk '/version/&&/bash/' |\
-           cut -d " " -f 4 | cut -d "." -f 1) -le "3" ]; then
-    echo "This script requires bash version 4 or greater."
-    echo "You are probably on macOS, which comes with version 3."
-    echo "Please install a recent bash using homebrew (https://brew.sh)."
-    exit 100
-fi
 
 ###################################################################################
 # Parse the command-line arguments
