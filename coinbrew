@@ -394,7 +394,7 @@ function parse_args {
                            main_proj_version="releases/$main_proj_version"
                         fi
                     fi
-                    if [ x$main_proj_version = x"current" ]; then
+                    if [ "$main_proj_version" = "current" ]; then
                         keep_current=true
                     fi
 		fi
@@ -750,7 +750,7 @@ function prompt_for_main {
     echo
     echo "Please choose a main project to fetch/build by typing 1-18"
     echo "or simply type the repository name of another project not" 
-    echo "listed here (it must be a project with a 'Dependencies' file)."
+    echo "listed here."
     echo " 1. Osi"
     echo " 2. Clp"
     echo " 3. Cbc"
@@ -944,10 +944,10 @@ function fetch_proj {
             version=$current_version
         fi
         if [[ $version != *$current_version ]] ||
-               ([ x$sha != x ] && [[ $current_rev != $sha* ]]) ||
-               [ x$checkout_time != x ]; then
+               ([ "$sha" != "" ] && [[ $current_rev != $sha* ]]) ||
+               [ "$checkout_time" != "" ]; then
             git fetch --tags
-            if [ x$sha != x ]; then
+            if [ "$sha" != "" ]; then
                 print_action "Switching $dir to SHA $sha"
                 stashed=false
                 if [ $auto_stash = true ]; then
@@ -998,7 +998,7 @@ function fetch_proj {
             git checkout $version
             cd -
         else
-            if [ x$sha = x ]; then
+            if [ "$sha" = "" ]; then
                 print_action "Fetching $dir $version"
                 git clone --branch=$version $url $dir
             else
@@ -1016,7 +1016,7 @@ function fetch_proj {
 
     # If this is a third party project, fetch the source if desired
     if [ $get_third_party = "true" ] &&
-           ([ x$current_rev != x$new_rev ] ||
+           ([ "$current_rev" != "$new_rev" ] ||
                 [[ $version != *$current_version ]]) &&
            [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
         tp_proj=$(echo $dir | cut -d '/' -f 2)
@@ -1093,7 +1093,7 @@ function build_proj {
             config_script="$root_dir/$dir/configure"
         fi
         if [ $verbosity -ge 4 ] || ( [ $verbosity -ge 2 ] &&
-                                         [ x$main_proj != x ] &&
+                                         [ "$main_proj" != "" ] &&
                                          [ $main_proj_dir = $dir ]); then
             "$config_script" --disable-dependency-tracking --prefix=$prefix \
                              "${!configure_options[@]}"
@@ -1135,7 +1135,7 @@ function build_proj {
     fi
     print_action "Building $dir $version_num"
     if [ $verbosity -ge 2 ]; then
-        if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
+        if [ "$main_proj" != "" ] && [ $main_proj_dir = $dir ]; then
             invoke_make $verbosity ""
         else
             invoke_make $(($verbosity-1)) ""
@@ -1144,16 +1144,12 @@ function build_proj {
         invoke_make 1 ""
     fi
     if [ $run_tests = "all" ] ||
-           ([ $run_tests = "main" ] && [ x$main_proj != x ] && [ $main_proj_dir = $dir ]); then
+           ([ $run_tests = "main" ] && [ "$main_proj" != "" ] && [ $main_proj_dir = $dir ]); then
         print_action "Running $dir unit test"
         # Fix for systems where the unit test doesn't seem to run with specifying LD_LIBRARY_PATH
-        if [[ -v LD_LIBRARY_PATH ]]; then
-            export LD_LIBRARY_PATH=$prefix/lib:$LD_LIBRARY_PATH
-        else
-            export LD_LIBRARY_PATH=$prefix/lib
-        fi
+        export LD_LIBRARY_PATH="$prefix/lib:${$LD_LIBRARY_PATH:-}"
         if [ $verbosity -ge 2 ]; then
-            if [ x$main_proj != x ] && [ $main_proj_dir = $dir ]; then
+            if [ "$main_proj" != "" ] && [ $main_proj_dir = $dir ]; then
                 invoke_make $((verbosity+1)) test
             else
                 invoke_make 1 test
@@ -1305,6 +1301,18 @@ echo "For help, run script with --help."
 echo 
 
 ###################################################################################
+# Check bash version
+###################################################################################
+
+if [ $(bash --version | awk '/version/&&/bash/' |\
+           cut -d " " -f 4 | cut -d "." -f 1) -le "3" ]; then
+    echo "This script requires bash version 4 or greater."
+    echo "You are probably on macOS, which comes with version 3."
+    echo "Please install a recent bash using homebrew (https://brew.sh)."
+    exit 100
+fi
+
+###################################################################################
 # Parse the command-line arguments
 ###################################################################################
 
@@ -1316,7 +1324,7 @@ parse_args "$@"
 
 if [ $build = "true" ] || [ $install = "true" ] || [ $uninstall = "true" ]; then
 
-    if [ x$build_dir = x ] ; then
+    if [ "$build_dir" = "" ] ; then
         if [ $enable_debug = "false" ]; then
             build_dir=$root_dir/build
         else
@@ -1376,7 +1384,7 @@ fi
 # Check to see if user specified a project and prompt if not
 ###################################################################################
 
-if [ x$main_proj = x ]; then
+if [ "$main_proj" = "" ]; then
     if [ $no_prompt = false ]; then
         prompt_for_main
     else
@@ -1429,7 +1437,7 @@ fi
 # Figure out main project directory
 ###################################################################################
 
-if [ x$(echo $main_proj | cut -d '-' -f 1) = x"CHiPPS" ]; then
+if [ "$(echo $main_proj | cut -d '-' -f 1)" = "CHiPPS" ]; then
     case $(echo $main_proj | cut -d '-' -f 2) in
         ALPS)
             main_proj_dir=Alps
@@ -1457,7 +1465,7 @@ fi
 if [ $get_latest_release = "true" ] ; then
     if [ -n "$latest_release" ] ; then
         echo 
-        if [ x$main_proj_version != x ]; then
+        if [ "$main_proj_version" != "" ]; then
             echo "Fetching latest release $latest_release rather than specified version $main_proj_version."
         else
             echo "Fetching latest release $latest_release"
@@ -1471,12 +1479,12 @@ if [ $get_latest_release = "true" ] ; then
     fi
 fi
 
-if [ x$main_proj != x ] && [ x$main_proj_version = x ] && [ $fetch = true ] &&
+if [ "$main_proj" != "" ] && [ "$main_proj_version" = "" ] && [ $fetch = true ] &&
        [ $no_prompt = false ]; then
     prompt_for_version
 fi
 
-if [ x$main_proj_version != x ] && [ $build = "true" ] && [ $fetch != "true" ]; then
+if [ "$main_proj_version" != "" ] && [ $build = "true" ] && [ $fetch != "true" ]; then
     echo
     echo "It appears that a main project version has been specified, but"
     echo "fetching was not requested. Build will proceed with current version."
@@ -1523,7 +1531,7 @@ elif [ $fetch = "false" ] && [ $build = "true" ]; then
 fi
 
 # If we get here without a version set, then default to latest release
-if [ x$main_proj_version = x ]; then
+if [ "$main_proj_version" = "" ]; then
     main_proj_version=releases/$latest_release
     if [ $fetch = "true" ]; then
         echo "NOTE: You didn't provide a version."
@@ -1609,7 +1617,7 @@ if [ $build = "true" ] || [ $download = "true" ]; then
     install=true
 fi
 if [ $install = "true" ]; then
-    if [ x$prefix = x ]; then
+    if [ "$prefix" = "" ]; then
         prefix=$root_dir/dist
         mkdir -p $root_dir/dist
     elif [ ! -d $prefix ]; then
@@ -1699,7 +1707,7 @@ fi
 # Now fetch main project
 ###################################################################################
 
-if [ x$main_proj != x ]; then
+if [ "$main_proj" != "" ]; then
     url=$main_proj_url
     dir=$main_proj_dir
     proj=$main_proj
@@ -1730,15 +1738,15 @@ fi
 ###################################################################################
 
 if [ $skip_dependencies = "false" ]; then
-    if [ -e Dependencies ] && [ x$main_proj = x ]; then
+    if [ -e Dependencies ] && [ "$main_proj" = "" ]; then
         deps=$(cat Dependencies | tr '\t' ' ' | tr -s ' ')
-    elif [ -e .coin-or/Dependencies ] && [ x$main_proj = x ]; then
+    elif [ -e .coin-or/Dependencies ] && [ "$main_proj" = "" ]; then
         deps=$(cat .coin-or/Dependencies | tr '\t' ' ' | tr -s ' ')
-    elif [ x$main_proj != x ] && [ -e $main_proj_dir/Dependencies ]; then
+    elif [ "$main_proj" != "" ] && [ -e $main_proj_dir/Dependencies ]; then
         deps=$(cat $main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' ')
-    elif [ x$main_proj != x ] && [ -e $main_proj_dir/.coin-or/Dependencies ]; then
+    elif [ "$main_proj" != "" ] && [ -e $main_proj_dir/.coin-or/Dependencies ]; then
         deps=$(cat $main_proj_dir/.coin-or/Dependencies | tr '\t' ' ' | tr -s ' ')
-    elif [ x$main_proj != x ] && [ -e $main_proj_dir/$main_proj_dir/Dependencies ]; then
+    elif [ "$main_proj" != "" ] && [ -e $main_proj_dir/$main_proj_dir/Dependencies ]; then
         deps=$(cat $main_proj_dir/$main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' ')
     else
         echo "No dependencies file found, only main project will be built"
@@ -1753,8 +1761,8 @@ fi
 # Add main project to list (if one is specified)
 ###################################################################################
 
-if [ x$main_proj != x ]; then
-    if [ x"$deps" != x ]; then
+if [ "$main_proj" != "" ]; then
+    if [ "$deps" != "" ]; then
         deps+=$'\n'
     fi
     if [ $(echo $main_proj_url | cut -d ':' -f 1) = "git@github.com" ] ||
@@ -1857,7 +1865,7 @@ done
 # Clean up some directories left by uninstall
 ###################################################################################
 
-if [ x$prefix != x ] && [ $uninstall = "true" ]; then
+if [ "$prefix" != "" ] && [ $uninstall = "true" ]; then
     sudo=""
     if [ ! -w $prefix ]; then
         if [ ! $(id -u) = 0 ]; then
