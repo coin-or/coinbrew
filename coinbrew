@@ -1168,23 +1168,24 @@ function build_proj {
 
 function install_proj {
 
-    print_action "Installing $dir $version_num"
-    cd $build_dir/$dir/$version_num
-    sudo=""
-    if [ ! -w $prefix ]; then
-        if [ ! $(id -u) = 0 ]; then
-            echo "Prefix is not writable."
-            echo "Install step needs to be run with sudo"
-            sudo=sudo
+    if [ -d $build_dir/$dir/$version_num ]; then
+        print_action "Installing $dir $version_num"
+        cd $build_dir/$dir/$version_num
+        sudo=""
+        if [ ! -w $prefix ]; then
+            if [ ! $(id -u) = 0 ]; then
+                echo "Prefix is not writable."
+                echo "Install step needs to be run with sudo"
+                sudo=sudo
+            fi
         fi
+        if [ $verbosity -ge 4 ]; then
+            invoke_make 4 install
+        else
+            invoke_make 1 install
+        fi
+        cd $root_dir
     fi
-    if [ $verbosity -ge 4 ]; then
-        invoke_make 4 install
-    else
-        invoke_make 1 install
-    fi
-    cd $root_dir
-
 }
 
 ###################################################################################
@@ -1193,22 +1194,24 @@ function install_proj {
 
 function uninstall_proj {
 
-    print_action "Uninstalling $dir"
-    cd $build_dir/$dir/$version_num
-    sudo=""
-    if [ ! -w $prefix ]; then
-        if [ ! $(id -u) = 0 ]; then
-            echo "Prefix is not writable."
-            echo "Uninstall step needs to be run with sudo"
-            sudo=sudo
+    if [ -d $build_dir/$dir/$version_num ]; then
+        print_action "Uninstalling $dir"
+        cd $build_dir/$dir/$version_num
+        sudo=""
+        if [ ! -w $prefix ]; then
+            if [ ! $(id -u) = 0 ]; then
+                echo "Prefix is not writable."
+                echo "Uninstall step needs to be run with sudo"
+                sudo=sudo
+            fi
         fi
+        if [ $verbosity -ge 4 ]; then
+            invoke_make 4 uninstall
+        else
+            invoke_make 1 uninstall
+        fi
+        cd $root_dir
     fi
-    if [ $verbosity -ge 4 ]; then
-        invoke_make 4 uninstall
-    else
-        invoke_make 1 uninstall
-    fi
-    cd $root_dir
 
 }
 
@@ -1506,7 +1509,8 @@ if [ -d $main_proj_dir ]; then
         echo
         main_proj_url=$current_proj_url
     fi
-    if [ $fetch = "false" ] && [ $build = true ]; then
+    if [ $fetch = "false" ] && [ $build = true ] || [ $install = true ] ||
+           [ $uninstall = true ]; then
         main_proj_version=$(get_version_git)
         echo "################################################"
         echo "### Building version $main_proj_version"
