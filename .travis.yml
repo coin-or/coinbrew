@@ -36,7 +36,6 @@ matrix:
           - gfortran
       env: PROJECT="https://github.com/tkralphs/Osi@master" 
            BUILD_ARGS="--no-prompt --enable-debug"
-           FETCH=false
     - os: linux
       addons:
         apt:
@@ -44,7 +43,7 @@ matrix:
           - gfortran
       env: PROJECT="Osi --no-prompt" 
            BUILD_ARGS="--no-prompt ADD_CXXFLAGS=-DFOO"
-           FETCH=false
+           INSTALL=true
     - os: linux
       addons:
         apt:
@@ -52,15 +51,26 @@ matrix:
           - gfortran
       env: PROJECT="SYMPHONY@stable/5.6" 
            BUILD_ARGS="--no-prompt"
-           FETCH=false
     - os: osx
       env: PROJECT="Osi --no-prompt" 
            BUILD_ARGS="--no-prompt ADD_CXXFLAGS=-DFOO"
-           FETCH=false
 
 before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then if [ x`brew list | fgrep bash` != x'bash' ]; then brew install bash; fi; brew update; fi
+  - |-
+       if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+         if [ "$(brew list | fgrep bash)" != "bash" ]; then
+           brew install bash;
+         fi;
+         brew update;
+       fi
 
 script:
-  - if [ $FETCH = true ]; then bash ./coinbrew fetch $PROJECT $FETCH_ARGS; fi
-  - bash ./coinbrew build $PROJECT $BUILD_ARGS
+  - |-
+      if [ "${FETCH:-}" = "true" ]; then
+        bash ./coinbrew fetch $PROJECT $FETCH_ARGS;
+      fi
+      bash ./coinbrew build $PROJECT $BUILD_ARGS
+      if [ "${INSTALL:-}" = "true" ]; then
+        bash ./coinbrew uninstall $PROJECT
+        bash ./coinbrew install $PROJECT
+      fi
