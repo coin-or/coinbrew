@@ -22,24 +22,24 @@ declare -a COMMON_ARGS
 export DBG_ARGS=()
 export ADD_ARGS=()
 export COMMON_ARGS=()
-if [ x$DEBUG = x"true" ]; then
+if [ "$DEBUG" = "true" ]; then
     export DBGN="-dbg"
     export DBG_ARGS+=( --enable-debug )
     export CXXFLAGS="-Og -g"
 fi
-if [ x$ASAN = x"true" ]; then
+if [ "$ASAN" = "true" ]; then
     export ASN="-asan"
     export CXXFLAGS="${CXXFLAGS} -fsanitize=address"
     export LDFLAGS="-lasan"
 fi
-if [ x$BUILD_STATIC = x"true" ]; then
+if [ "$BUILD_STATIC" = "true" ]; then
     export STATIC="-static"
     export ADD_ARGS+=( --static --with-lapack='-llapack -lblas -lgfortran -lquadmath -lm' )
 fi
-if [ x$CXX_FLAGS != x ]; then
+if [ "$CXX_FLAGS" != "" ]; then
     export ADD_ARGS+=( CXXFLAGS=${CXXFLAGS} )
 fi
-if [ x$LD_FLAGS != x ]; then
+if [ "$LD_FLAGS" != "" ]; then
     export ADD_ARGS+=( LDFLAGS=${LDFLAGS} )
 fi
 export COMMON_ARGS=( --no-prompt --verbosity ${VERBOSITY:-2} --tests main --enable-relocatable )
