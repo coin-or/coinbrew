@@ -14,6 +14,7 @@
 # - Provide an option to build Python extensions
 # - Provide an option to download dependencies in binary format (this is started)
 # - Make autostash work better https://stackoverflow.com/questions/53049088/can-git-remind-me-about-or-auto-apply-a-stash-when-switching-back-into-the-corre/53050054
+# Check for pkg-config and print out some useful message if it doesn't exist.
 
 # script debugging
 #set -x
@@ -1111,6 +1112,15 @@ function build_proj {
                 echo "Here is the contents of config.log"
                 echo
                 cat config.log
+                if [ "$(command -v pkg-config)" = "" ] &&
+                       [ "$(command -v pkgconf)" = "" ]; then
+                    echo "No pkg-config or pkgconf were found on your system"
+                    echo "If packages were not found during configuration," 
+                    echo "this could be the reason."
+                    echo "Installation is highly recommended."
+                    echo "See https://coin-or.github.io for details"
+                    echo
+                fi
                 exit 1
             fi
             set -e
@@ -1249,10 +1259,12 @@ function get_cached_options {
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
 echo "For help, run script with --help."
+echo "Please report issues at https://github.com/coin-or/coinbrew"
+echo "Detailed build documentation at https://coin-or.github.io"
 echo 
 
 ###################################################################################
-# Check bash version and set variables
+# Check bash version, existence of pkg-config,  and set variables
 ###################################################################################
 
 if [ $(echo ${BASH_VERSION} | cut -d "." -f 1) -le "3" ]; then
@@ -1260,6 +1272,14 @@ if [ $(echo ${BASH_VERSION} | cut -d "." -f 1) -le "3" ]; then
     echo "You are probably on macOS, which comes with version 3."
     echo "Please install a recent bash using homebrew (https://brew.sh)."
     exit 100
+fi
+
+if [ "$(command -v pkg-config)" = "" ] && [ "$(command -v pkgconf)" = "" ]; then
+    echo "No pkg-config or pkgconf found on system"
+    echo "If packages are not found during configuration," 
+    echo "this could be the reason. Installation is highly recommended."
+    echo "See https://coin-or.github.io for details"
+    echo
 fi
 
 # Exit when command fails
@@ -1665,6 +1685,7 @@ if [ $download = "true" ]; then
             Cbc*)
                 additional_skip_projects="Cbc Cgl Clp Osi CoinUtils Data/Sample Data/miplib3"
                 found_proj=true
+                # Why do we need to do this? It should be enough to set PKG_CONFIG_PATH
                 if [[ $platform == *msvc* ]]; then
                     configure_options=["--with-cbc-lib='$prefix/lib/CbcSolver.lib $prefix/lib/Cbc.lib $prefix/lib/Cgl.lib $prefix/lib/OsiClp.lib $prefix/lib/Clp.lib $prefix/lib/OsiCommonTest.lib $prefix/lib/Osi.lib $prefix/lib/CoinUtils.lib $prefix/lib/coinglpk.lib $prefix/lib/coinasl.lib'"]
                     if [ $version_num = "master" ]; then
