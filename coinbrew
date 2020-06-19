@@ -14,7 +14,6 @@
 # - Provide an option to build Python extensions
 # - Provide an option to download dependencies in binary format (this is started)
 # - Make autostash work better https://stackoverflow.com/questions/53049088/can-git-remind-me-about-or-auto-apply-a-stash-when-switching-back-into-the-corre/53050054
-# Check for pkg-config and print out some useful message if it doesn't exist.
 
 # script debugging
 #set -x
@@ -47,7 +46,7 @@ function help {
     echo "             VAR=xxx (will be passed through to configure)"
     echo "             --parallel-jobs,-j <n> build in parallel with maximum 'n' jobs (default: 1)"
     echo "             --build-dir,-b </dir/to/build/in> where to build (default: $PWD/build)"
-    echo "             --tests,-t <all|main|none> which tests to do before install (default: none)"
+    echo "             --tests,-t <all|main|none> which tests to do before install (default: all)"
     echo "             --verbosity,-v <1-4> set verbosity level (default: 1)"
     echo "             --reconfigure re-run configure"
     echo "             --prefix,-p </dir/to/install> where to install (default: $PWD/dist)"
