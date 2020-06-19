@@ -1,0 +1,80 @@
+matrix:
+  include:
+    - os: linux
+      dist: bionic
+      env: BUILD_STATIC=true DEBUG=false ASAN=false
+      addons:
+        apt:
+          packages:
+            - gfortran
+            - liblapack-dev
+            - libmetis-dev
+            - libnauty2-dev
+    - os: linux
+      dist: bionic
+      env: BUILD_STATIC=false DEBUG=false ASAN=false
+      addons:
+        apt:
+          packages:
+            - gfortran
+            - liblapack-dev
+            - libmetis-dev
+            - libnauty2-dev
+    - os: linux
+      dist: xenial
+      env: BUILD_STATIC=true DEBUG=false ASAN=false
+      addons:
+        apt:
+          packages:
+            - gfortran
+            - libgfortran-5-dev
+            - liblapack-dev
+            - libmetis-dev
+            - libnauty2-dev
+    - os: osx
+      osx_image: xcode11
+      env: OSX=10.14 CC=gcc CXX=g++ BUILD_STATIC=false DEBUG=false ASAN=false
+      compiler: clang
+    - os: osx
+      osx_image: xcode11
+      env: OSX=10.14  BUILD_STATIC=false DEBUG=false ASAN=false
+      compiler: clang
+    - os: osx
+      osx_image: xcode10
+      env: OSX=10.13  BUILD_STATIC=false DEBUG=false ASAN=false
+      compiler: clang
+
+  allow_failures:
+    - os: windows
+
+before_install:
+- |-
+    ############## Installing Additional Packages #################
+    export PROJECT=$(basename $PWD)
+    cd ..                      
+    git clone https://github.com/coin-or/coinbrew
+    bash coinbrew/.ci/install_packages.sh
+    case $TRAVIS_OS_NAME in
+      windows)
+        BASH=bash
+        alias make=mingw32-make  # so that Autotools can find it
+        ;;
+      osx)
+        BASH=/usr/local/bin/bash
+        ;;
+      linux)
+        BASH=bash
+        ;;
+    esac
+    export BASH
+
+before_script:
+- |-
+    ############# Fetching Dependencies ##############
+    $BASH coinbrew/coinbrew fetch $PROJECT --no-prompt --skip-update
+
+script:
+- |-
+    ############### Building Project ####################
+    source coinbrew/.ci/setup_environment.sh
+    $BASH coinbrew/coinbrew build $PROJECT "${COMMON_ARGS[@]}" "${ADD_ARGS[@]}" "${DBG_ARGS[@]}"

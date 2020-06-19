@@ -1,26 +1,66 @@
 #!/usr/bin/env bash
 
-for i in *
+#set -x
+
+old=false
+if [ "$1" = "--old" ]; then
+    old=true
+    shift
+fi
+
+cd $(dirname $0)
+CI_DIR=$PWD
+cd -
+    
+while (( "$#" ))
 do
-    if [ -d $i ] && [ -e $i/.travis.yml ]; then
-        cd $i
-        echo ============= $i ==============
+    if [ -d $1 ] && [ -e $1/.travis.yml ]; then
+        echo "%%%%% Generating CI files for $1"
+        echo
+        cd $1
         rm .travis.yml
         if [ -e .ci/.travis.pre ]; then
             cat .ci/.travis.pre > .travis.yml
+            echo >> .travis.yml
         fi
-        cat ../.travis.stub >> .travis.yml
-        if [ -e .ci/.travis.post ]; then
-            cat .ci/.travis.post >> .travis.yml
+        if [ $old = true ]; then 
+            cat $CI_DIR/.travis.build.old >> .travis.yml
+        else
+            cat $CI_DIR/.travis.build >> .travis.yml
         fi
+#        if [ -e .ci/.travis.post ]; then
+#            cat .ci/.travis.post >> .travis.yml
+#        fi
+        case $i in
+            Clp|Cbc|Dip|SYMPHONY|Blis)
+                echo >> .travis.yml
+                cat $CI_DIR/.travis.upload >> .travis.yml
+                ;;
+            *)
+                ;;
+        esac
         rm appveyor.yml
         if [ -e .ci/appveyor.pre ]; then
             cat .ci/appveyor.pre > appveyor.yml
+            echo >> appveyor.yml
         fi
-        cat ../appveyor.stub >> appveyor.yml
+        if [ $old = true ]; then 
+            cat $CI_DIR/appveyor.build.old >> appveyor.yml
+        else
+            cat $CI_DIR/appveyor.build >> appveyor.yml
+        fi
+        case $i in
+            Clp|Cbc|Dip|SYMPHONY|Blis)
+                echo >> appveyor.yml
+                cat $CI_DIR/appveyor.upload >> appveyor.yml
+                ;;
+            *)
+                ;;
+        esac
         if [ -e .ci/appveyor.post ]; then
             cat .ci/appveyor.post >> appveyor.yml
         fi
         cd -
     fi
+    shift
 done
