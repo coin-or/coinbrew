@@ -18,10 +18,16 @@ do
         echo "%%%%% Generating CI files for $1"
         echo
         cd $1
-        rm .travis.yml
+        if [ ! -d .ci ]; then
+            echo "Didn't find .ci directory. Bailing out!"
+            exit
+        fi
         if [ -e .ci/.travis.pre ]; then
             cat .ci/.travis.pre > .travis.yml
             echo >> .travis.yml
+        else
+            echo "No .travis.pre file found. Bailing out!"
+            exit
         fi
         if [ $old = true ]; then 
             cat $CI_DIR/.travis.build.old >> .travis.yml
@@ -39,10 +45,16 @@ do
             *)
                 ;;
         esac
-        rm appveyor.yml
+        if [ -e .ci/.travis.post ]; then
+            eacho "Warning: .travis.post still exists"
+        fi
+        git add .travis.yml
         if [ -e .ci/appveyor.pre ]; then
             cat .ci/appveyor.pre > appveyor.yml
             echo >> appveyor.yml
+        else
+            echo "No appveyor.pre file found. Bailing out!"
+            exit
         fi
         if [ $old = true ]; then 
             cat $CI_DIR/appveyor.build.old >> appveyor.yml
@@ -58,8 +70,10 @@ do
                 ;;
         esac
         if [ -e .ci/appveyor.post ]; then
-            cat .ci/appveyor.post >> appveyor.yml
+            eacho "Warning: appveyor.post still exists"
         fi
+        git add appveyor.yml
+        git commit -a -m "Updating Travis and Appveyor"
         cd -
     fi
     shift
