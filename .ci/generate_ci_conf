@@ -37,7 +37,7 @@ do
 #        if [ -e .ci/.travis.post ]; then
 #            cat .ci/.travis.post >> .travis.yml
 #        fi
-        case $i in
+        case $1 in
             Clp|Cbc|Dip|SYMPHONY|Blis)
                 echo >> .travis.yml
                 cat $CI_DIR/.travis.upload >> .travis.yml
@@ -61,10 +61,14 @@ do
         else
             cat $CI_DIR/appveyor.build >> appveyor.yml
         fi
-        case $i in
+        case $1 in
             Clp|Cbc|Dip|SYMPHONY|Blis)
                 echo >> appveyor.yml
-                cat $CI_DIR/appveyor.upload >> appveyor.yml
+                if [ $old = true ]; then 
+                    cat $CI_DIR/appveyor.upload.old >> appveyor.yml
+                else
+                    cat $CI_DIR/appveyor.upload >> appveyor.yml
+                fi
                 ;;
             *)
                 ;;
@@ -73,7 +77,7 @@ do
             eacho "Warning: appveyor.post still exists"
         fi
         git add appveyor.yml
-        git commit -a -m "Updating Travis and Appveyor"
+        git commit -m "Updating Travis and Appveyor"
         cd -
     fi
     shift

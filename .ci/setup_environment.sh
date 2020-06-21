@@ -9,6 +9,7 @@ case $CC in
         else
             export CCVERSION=gcc$($CC -dumpversion)
         fi
+        export ADD_CXXFLAGS="${ADD_CXXFLAGS} -fvisibility=hidden"
         ;;
     clang)
         export CCVERSION=clang$(clang --version | fgrep version | \
@@ -29,7 +30,7 @@ if [ "$DEBUG" = "true" ]; then
 fi
 if [ "$ASAN" = "true" ]; then
     export ASN="-asan"
-    export CXXFLAGS="${CXXFLAGS} -fsanitize=address"
+    export ADD_CXXFLAGS="${ADD_CXXFLAGS} -fsanitize=address"
     export LDFLAGS="-lasan"
 fi
 if [ "$BUILD_STATIC" = "true" ]; then
