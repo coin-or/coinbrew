@@ -9,7 +9,6 @@ case $CC in
         else
             export CCVERSION=gcc$($CC -dumpversion)
         fi
-        export ADD_CXXFLAGS="${ADD_CXXFLAGS} -fvisibility=hidden"
         ;;
     clang)
         export CCVERSION=clang$(clang --version | fgrep version | \
