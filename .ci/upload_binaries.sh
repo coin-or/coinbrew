@@ -14,7 +14,11 @@ case $TRAVIS_OS_NAME in
         TGZ_FILE=$PROJECT-$VERSION${STATIC:-}-$PLATFORM${DBGN:-}${ASN:-}.tgz
 esac
 echo $TGZ_FILE
-cp $PROJECT/README.md $PROJECT/LICENSE $PROJECT/AUTHORS dist
+if [ -e $PROJECT/*/LICENSE ]; then
+    cp $PROJECT/README.md $PROJECT/*/LICENSE $PROJECT/*/AUTHORS dist
+else
+    cp $PROJECT/README.md $PROJECT/LICENSE $PROJECT/AUTHORS dist
+fi
 cd dist
 if [ $TRAVIS_OS_NAME = "linux" ] && [ $TRAVIS_DIST = precise ]; then
     # adding required libraries
