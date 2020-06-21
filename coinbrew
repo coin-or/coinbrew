@@ -37,6 +37,7 @@ function help {
     echo "             --no-third-party don't fetch third party source (run getter-scripts)"
     echo "             --skip-update skip updating projects that are already checked out (useful if you have local changes)"
     echo "             --skip-dependencies don't fetch dependencies, only main project"
+    echo "             --latest-release Fetch latest releases of projects"
     echo "             --time check out project and all dependencies at a time stamp"
     echo "             --auto-stash stash changes before switching versions (experimental)"
     echo
@@ -339,11 +340,11 @@ function parse_args {
             --skip-update)
                 skip_update=true
                 ;;
-            --latest-release)
-                get_latest_release=true
-                ;;
             --auto-stash)
                 auto_stash=true
+                ;;
+            --latest-release)
+                get_latest_release=true
                 ;;
             fetch)
                 num_actions+=1
@@ -934,7 +935,7 @@ function prompt_for_rebuild {
 function fetch_proj {
 
     current_rev=
-    if [ -d $dir ]; then
+    if [ -d $dir && get_latest_release = "true" ]; then
         # If the project is already checxked out, then check whether the checked out
         # version is the correct one. Siwtch if necessary. Otherwise, just update
         cd $dir
@@ -985,6 +986,14 @@ function fetch_proj {
         fi
         new_rev=$(git rev-parse HEAD)
     else
+        if [ $get_latest_release = "true" ]; then
+            if [[ $version != stable/* ]]; then
+                echo "Warning: Dependency is not a stable version, will not be converted to release"
+            else
+                version=$(git tag --list "${branchName/stable/releases}*" \
+                              | sort -V | tail -1)
+            fi
+        fi
         # If project is not checked out yet, just check out the correct version
         if [ $sparse = "true" ]; then
             print_action "Fetching $dir $version"
@@ -1510,6 +1519,10 @@ if [ "$main_proj_version" != "" ] && [ $build = "true" ] && [ $fetch != "true" ]
     echo "It appears that a main project version has been specified, but"
     echo "fetching was not requested. Build will proceed with current version."
     echo
+fi
+
+if [[ $main_proj_version == releases/* ]]; then
+    get_latest_release=true
 fi
 
 ###################################################################################

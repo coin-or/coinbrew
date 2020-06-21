@@ -49,6 +49,12 @@ matrix:
         apt:
           packages:
           - gfortran
+      env: PROJECT="Osi@0.108 --latest-release all" 
+    - os: linux
+      addons:
+        apt:
+          packages:
+          - gfortran
       env: PROJECT="SYMPHONY@stable/5.6" 
            BUILD_ARGS="--no-prompt"
     - os: osx
