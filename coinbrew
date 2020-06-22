@@ -991,7 +991,7 @@ function fetch_proj {
                 print_action "Updating $dir $version"
                 git pull
             else
-                print_action "Repo is not on a branch (skipping update)"
+                print_action "$dir version is a release (skipping update)"
             fi
         fi
         new_rev=$(git rev-parse HEAD)
@@ -1554,37 +1554,43 @@ if [ -d $main_proj_dir ]; then
         echo
         main_proj_url=$current_proj_url
     fi
-    if [ $skip_update = "true" ]; then
+    if [ $skip_update = "true" ] || [ $fetch = "false" ] ||
+           [ "$main_proj_version" = "" ]; then
         main_proj_version=$(get_version_git)
-    fi
-    if [ $fetch = "false" ] && [ $build = true ] || [ $install = true ] ||
-           [ $uninstall = true ]; then
-        main_proj_version=$(get_version_git)
-        echo "################################################"
-        echo "### Building version $main_proj_version"
-        echo "### with existing versions of dependencies."
-        echo "### Ctrl-c and run 'fetch' to switch versions" 
-        echo "### or to ensure correct dependencies"
-        echo "################################################"
-        echo
+        if [ $build = "true" ]; then
+            echo "################################################"
+            echo "### Building version $main_proj_version"
+            echo "### with existing versions of dependencies."
+            echo "### Ctrl-c and run 'fetch' to switch versions" 
+            echo "### or to ensure correct dependencies"
+            echo "################################################"
+            echo
+        fi
     fi
     cd $root_dir
-elif [ $fetch = "false" ] && [ $build = "true" ]; then
-    # Project is not checked out and fetching is not requested
-    echo "It appears that project has not been fetched yet."
-    if [ $configure_help = "false" ]; then
-        echo "Fetching will be done automatically..."
-        fetch=true
-    else
-        echo "Please fetch before asking for help on configuration."
-        exit 30
-    fi
-elif [ $fetch = "true" ] && [ "$main_proj_version" = "" ]; then
+else
     # If we get here without a version set, then default to latest release
-    main_proj_version=releases/$latest_release
-    echo "NOTE: You didn't provide a version."
-    echo "      Checking out the release version by default."
-    echo
+    if [ "$main_proj_version" = "" ]; then
+        if [ $no_prompt = true ]; then
+            echo "NOTE: You didn't provide a version."
+            echo "      Defaulting to the latest release $latest_release."
+            echo
+            main_proj_version=releases/$latest_release
+        else
+            prompt_for_version
+        fi
+    fi
+    if [ $fetch = "false" ]; then
+       # Project is not checked out and fetching is not requested
+       echo "It appears that project has not been fetched yet."
+       if [ $configure_help = "false" ]; then
+           echo "Fetching will be done automatically..."
+           fetch=true
+       else
+           echo "Please fetch before asking for help on configuration."
+           exit 30
+       fi
+    fi
 fi
     
 ###################################################################################
