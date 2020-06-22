@@ -935,12 +935,22 @@ function prompt_for_rebuild {
 function fetch_proj {
 
     current_rev=
-    if [ -d $dir && get_latest_release = "true" ]; then
-        # If the project is already checxked out, then check whether the checked out
+    if [ -d $dir ]; then
+        # If the project is already checked out, then check whether the checked out
         # version is the correct one. Siwtch if necessary. Otherwise, just update
         cd $dir
         current_version=$(get_version_git)
         current_rev=$(git rev-parse HEAD)
+        if [ $get_latest_release = "true" ]; then
+            if [[ $version != stable/* ]]; then
+                if [[ $version != releases/* ]]; then
+                    echo "Warning: Dependency is not a stable version, will not be converted to release"
+                fi
+            else 
+                version=$(git tag --list "${version/stable/releases}*" \
+                              | sort -V | tail -1)
+            fi
+        fi
         if [ $keep_current = "true" ]; then
             version=$current_version
         fi
@@ -986,12 +996,13 @@ function fetch_proj {
         fi
         new_rev=$(git rev-parse HEAD)
     else
-        if [ $get_latest_release = "true" ]; then
-            if [[ $version != stable/* ]]; then
-                echo "Warning: Dependency is not a stable version, will not be converted to release"
-            else
-                version=$(git tag --list "${branchName/stable/releases}*" \
-                              | sort -V | tail -1)
+        if [ $get_latest_release = "true" ] && [[ $version != releases/* ]]; then 
+            latest_release=$(git ls-remote --tags $url)
+            if echo "$latest_release" | fgrep releases &> /dev/null ; then
+                version=releases/$(echo "$latest_release" | fgrep releases | \
+	  	                       cut -d '/' -f 4 | \
+                                       sort -nr -t. -k1,1 -k2,2 -k3,3 \
+                                       | head -1)
             fi
         fi
         # If project is not checked out yet, just check out the correct version
@@ -1494,14 +1505,16 @@ if echo "$latest_release" | fgrep releases &> /dev/null ; then
 fi
 if [ $get_latest_release = "true" ] ; then
     if [ -n "$latest_release" ] ; then
-        echo 
-        if [ "$main_proj_version" != "" ]; then
-            echo "Fetching latest release $latest_release rather than specified version $main_proj_version."
-        else
-            echo "Fetching latest release $latest_release"
+        if [[ "$main_proj_version" != releases/* ]]; then
+            echo 
+            if [ "$main_proj_version" != "" ]; then
+                echo "Fetching latest release $latest_release rather than specified version $main_proj_version."
+            else
+                echo "Fetching latest release $latest_release"
+            fi
+            echo
+            main_proj_version="releases/$latest_release"
         fi
-        echo
-        main_proj_version="releases/$latest_release"
     else
 	echo
 	echo "It appears that $main_proj has no releases. You'll need to specify a branch as ${main_proj}:branch."
@@ -1510,7 +1523,7 @@ if [ $get_latest_release = "true" ] ; then
 fi
 
 if [ "$main_proj" != "" ] && [ "$main_proj_version" = "" ] && [ $fetch = true ] &&
-       [ $no_prompt = false ]; then
+       [ $no_prompt = false ] && [ $skip_update = "false" ]; then
     prompt_for_version
 fi
 
@@ -1541,6 +1554,9 @@ if [ -d $main_proj_dir ]; then
         echo
         main_proj_url=$current_proj_url
     fi
+    if [ $skip_update = "true" ]; then
+        main_proj_version=$(get_version_git)
+    fi
     if [ $fetch = "false" ] && [ $build = true ] || [ $install = true ] ||
            [ $uninstall = true ]; then
         main_proj_version=$(get_version_git)
@@ -1563,16 +1579,12 @@ elif [ $fetch = "false" ] && [ $build = "true" ]; then
         echo "Please fetch before asking for help on configuration."
         exit 30
     fi
-fi
-
-# If we get here without a version set, then default to latest release
-if [ "$main_proj_version" = "" ]; then
+elif [ $fetch = "true" ] && [ "$main_proj_version" = "" ]; then
+    # If we get here without a version set, then default to latest release
     main_proj_version=releases/$latest_release
-    if [ $fetch = "true" ]; then
-        echo "NOTE: You didn't provide a version."
-        echo "      Checking out the release version by default."
-        echo
-    fi
+    echo "NOTE: You didn't provide a version."
+    echo "      Checking out the release version by default."
+    echo
 fi
     
 ###################################################################################
