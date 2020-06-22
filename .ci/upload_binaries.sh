@@ -22,7 +22,7 @@ if [ -e $PROJECT/*/LICENSE ]; then
         else
             echo "Warning: missing file"
         fi
-    else 
+    done
 else
     for i in $PROJECT/README.md $PROJECT/LICENSE $PROJECT/AUTHORS
     do
@@ -32,7 +32,6 @@ else
             echo "Warning: missing file"
         fi
     done
-    cp $PROJECT/README.md $PROJECT/LICENSE $PROJECT/AUTHORS dist
 fi
 cd dist
 if [ $TRAVIS_OS_NAME = "linux" ] && [ $TRAVIS_DIST = precise ]; then
