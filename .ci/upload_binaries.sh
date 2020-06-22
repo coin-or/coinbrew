@@ -47,7 +47,9 @@ if [ $TRAVIS_OS_NAME = "linux" ] && [ $TRAVIS_DIST = precise ]; then
 fi
 rm lib/*.la
 echo $TGZ_FILE
-tar -czvf $TGZ_FILE lib/* bin/* include/* share/* README.md LICENSE AUTHORS
+if [ -e AUTHORS ]; then
+    tar -czvf $TGZ_FILE lib/* bin/* include/* share/* README.md LICENSE AUTHORS
+fi
 curl -T $TGZ_FILE -utkralphs:$BINTRAY_API -H "X-Bintray-Publish:1" \
      -H "X-Bintray-Override:1" \
      https://api.bintray.com/content/coin-or/download/$PROJECT/$VERSION/$TGZ_FILE
