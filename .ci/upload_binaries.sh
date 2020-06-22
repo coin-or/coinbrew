@@ -15,8 +15,23 @@ case $TRAVIS_OS_NAME in
 esac
 echo $TGZ_FILE
 if [ -e $PROJECT/*/LICENSE ]; then
-    cp $PROJECT/README.md $PROJECT/*/LICENSE $PROJECT/*/AUTHORS dist
+    for i in $PROJECT/README.md $PROJECT/*/LICENSE $PROJECT/*/AUTHORS
+    do
+        if [ -e $i ]; then 
+            cp $i dist
+        else
+            echo "Warning: missing file"
+        fi
+    else 
 else
+    for i in $PROJECT/README.md $PROJECT/LICENSE $PROJECT/AUTHORS
+    do
+        if [ -e $i ]; then 
+            cp $i dist
+        else
+            echo "Warning: missing file"
+        fi
+    done
     cp $PROJECT/README.md $PROJECT/LICENSE $PROJECT/AUTHORS dist
 fi
 cd dist
@@ -49,6 +64,8 @@ rm lib/*.la
 echo $TGZ_FILE
 if [ -e AUTHORS ]; then
     tar -czvf $TGZ_FILE lib/* bin/* include/* share/* README.md LICENSE AUTHORS
+else
+    tar -czvf $TGZ_FILE lib/* bin/* include/* share/* README.md LICENSE
 fi
 curl -T $TGZ_FILE -utkralphs:$BINTRAY_API -H "X-Bintray-Publish:1" \
      -H "X-Bintray-Override:1" \
