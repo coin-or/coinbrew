@@ -40,8 +40,7 @@ matrix:
           packages:
           - gfortran
       env: PROJECT="Osi" 
-           FETCH_ARGS="--no-prompt"
-           BUILD_ARGS="ADD_CXXFLAGS=-DFOO"
+           BUILD_ARGS="--no-prompt ADD_CXXFLAGS=-DFOO"
            INSTALL=true
     - os: linux
       addons:
