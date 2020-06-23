@@ -9,7 +9,6 @@ matrix:
           - gfortran
       env: PROJECT="Osi"
            FETCH_ARGS="--no-prompt"
-           BUILD_ARGS="--no-prompt"
            FETCH=true
     - os: linux
       addons:
@@ -17,8 +16,7 @@ matrix:
           packages:
           - gfortran
       env: PROJECT="Osi@master" 
-           FETCH_ARGS="--no-prompt"
-           BUILD_ARGS="--no-prompt --enable-relocatable"
+           BUILD_ARGS="--enable-relocatable"
            FETCH=true
     - os: linux
       addons:
@@ -26,40 +24,41 @@ matrix:
           packages:
           - gfortran
       env: PROJECT="https://github.com/tkralphs/Osi@stable/0.108" 
-           FETCH_ARGS="--no-prompt"
-           BUILD_ARGS="--no-prompt --enable-relocatable"
+           BUILD_ARGS="--enable-relocatable"
            FETCH=true
+           UPDATE=true
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
       env: PROJECT="https://github.com/tkralphs/Osi@master" 
-           BUILD_ARGS="--no-prompt --enable-debug"
+           BUILD_ARGS="--enable-debug"
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
-      env: PROJECT="Osi --no-prompt" 
-           BUILD_ARGS="--no-prompt ADD_CXXFLAGS=-DFOO"
+      env: PROJECT="Osi" 
+           FETCH_ARGS="-no-prompt"
+           BUILD_ARGS="ADD_CXXFLAGS=-DFOO"
            INSTALL=true
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
-      env: PROJECT="Osi@0.108 --latest-release all" 
+      env: PROJECT="Osi@0.108"
+           BUILD_ARGS="--latest-release"
     - os: linux
       addons:
         apt:
           packages:
           - gfortran
       env: PROJECT="SYMPHONY@stable/5.6" 
-           BUILD_ARGS="--no-prompt"
     - os: osx
       env: PROJECT="Osi --no-prompt" 
-           BUILD_ARGS="--no-prompt ADD_CXXFLAGS=-DFOO"
+           BUILD_ARGS="ADD_CXXFLAGS=-DFOO"
 
 before_script:
   - |-
@@ -80,3 +79,6 @@ script:
         bash ./coinbrew uninstall $PROJECT
         bash ./coinbrew install $PROJECT
       fi
+      if [ "${UPDATE:-}" = "true" ]; then
+         ./coinbrew fetch Osi --latest-release
+      fi         
