@@ -53,40 +53,45 @@ the most recent sources for a project, along with all its depencencies, use
 ```
 coinbrew fetch <ProjectName|URL@version>
 ```
-For example,
+Examples
 ```
-coinbrew fetch Cbc@2.10 
+coinbrew fetch Cbc                                    #get latest release
+coinbrew fetch Cbc@2.10                               #get stable version 2.10
+coinbrew fetch --ssh Cbc@2.10                         #get with ssh instead of https
+coinbrew fetch https://github.com/tkralphs/Cbc@master #get fork
+coinbrew fetch Cbc@master --skip-dependencies         #get project only
 ```
 Note that this command can be run even if you have previously fetched another
-project with overlapping dependencies. You can even fetch two projects that
-require different versions of a common dependency. Each fetch command will
-automatically check out the appropriate versions of all dependent projects,
-although this may fail if any of these projects have uncommitted local
-changes. To build a fork, specify the URL, e.g.,
-```
-coinbrew fetch https://github.com/tkralphs/Cbc@stable/2.10 
-```
+project with overlapping dependencies or a different version of the same project.
+You can even fetch two projects that require different versions of a common dependency. 
+Each fetch command will automatically check out the appropriate versions of all dependent 
+projects, although this may fail if any of these projects have uncommitted local
+changes.
 
 ### Build and install project from source
 
-To build a project that has already been fetched with the versions of all
+To build a project that has already been fetched with the existing versions of all
 dependent projects that are already checked out, do
 ```
 coinbrew build <ProjectName> <coinbrew_options> <configure_options>
 ```
-For example,
+Examples
 ```
-coinbrew build Cbc --test --enable-debug --prefix=/usr/local 
+coinbrew build Cbc --tests none --enable-debug --prefix=/usr/local 
+coinbrew build Cbc --verbosity 2 --parallel-jobs 4 --build-dir build-cbc -p
+coinbrew build Cbc ADD_CXXFLAGS=-DFOO --prefix=/usr/local 
 ```
 The build artifacts for each project will be generated in the `build`
 directory by default (a different directory can be specified with
 `--build-dir` or `-b`). Installation is done automatically at build time to
 abother installation directory, specified with `--prefix` or `-p` (`dist/` by 
-default). If you have multiple builds, then it is sometimes convenient to 
-install into the same directory as you are building in. If you put `-p` 
-on the command line with no argument after specifying a build directory,
-then the install directory will be set to the same directory as the build
-directory. If the install directory is not writable, the `install` command 
+default). If you specify `-p` (after specifying a build directory) but provide 
+no install directory, installation will be done to the build directory 
+(convenient if you have multiple build directories). 
+```
+coinbrew build Cbc --build-dir build-cbc -p
+```
+If the install directory is not writable, the `install` command 
 must be invoked via sudo and the user will be prompted for sudo authorization.
 This is only done once just after launching the script so that the install
 can be done unattended from then on. 
@@ -96,7 +101,7 @@ automatically if the project does not exist. If the project does exist,
 however, the fetch will not be done automatically. If it is desired to do an
 update of the project source before building, this can be done with
 ```
-coinbrew fetch build Cbc@master --test --enable-debug --prefix=/usr/local
+coinbrew fetch build Cbc@master --tests main --enable-debug --prefix=/usr/local
 ```
 Any option valid for a project's `configure` script can be specified as
 arguments to `coinbrew` and will be passed through. To see what arguments are
