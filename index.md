@@ -113,44 +113,48 @@ coinbrew --help
 ```
 The output is preproduced here for convenience.
 ```
-Welcome to the COIN-OR fetch and build utility
-
-For help, run script with --help.
-
 Usage: coinbrew <command> <name|URL@version> --option value ...
        Run without arguments for interactive mode
 
 Commands:
 
-  fetch: Checkout source code for project and dependencies
+  fetch: Clone repos of project and dependencies
     options: --ssh checkout git projects using ssh protocol rather than https
-             --skip='proj1 proj2' skip listed projects
+             --skip,-s <'proj1 proj2'> skip listed projects
              --no-third-party don't fetch third party source (run getter-scripts)
              --skip-update skip updating projects that are already checked out (useful if you have local changes)
              --skip-dependencies don't fetch dependencies, only main project
+             --latest-release Fetch latest releases of projects
              --time check out project and all dependencies at a time stamp
-             --auto-stash stash changes before switching version (experimental)
+             --auto-stash stash changes before switching versions (experimental)
 
-  build: Configure, build, test (optional), and pre-install all projects
+  build: Configure, build, test (optional), and install all projects
     options: --configure-help (print help on build configuration
              --xxx=yyy (will be passed through to configure)
-             --parallel-jobs=n build in parallel with maximum 'n' jobs
-             --build-dir=/dir/to/build/in where to build (default: /mnt/c/Users/tkral/Documents/Projects/coinbrew/build)
-             --tests which tests to before install all/main/none
-             --verbosity=i set verbosity level (1-4)
+             VAR=xxx (will be passed through to configure)
+             --parallel-jobs,-j <n> build in parallel with maximum 'n' jobs (default: 1)
+             --build-dir,-b </dir/to/build/in> where to build (default: /mnt/c/Users/tkral/Documents/Projects/CoinUtils/build)
+             --tests,-t <all|main|none> which tests to do before install (default: all)
+             --verbosity,-v <1-4> set verbosity level (default: 1)
              --reconfigure re-run configure
-             --prefix=/dir/to/install (where to install, default: /mnt/c/Users/tkral/Documents/Projects/coinbrew/dist)
-             --skip-dependencies don't build dependencies
+             --prefix,-p </dir/to/install> where to install (default: /mnt/c/Users/tkral/Documents/Projects/CoinUtils/dist)
+             --skip-dependencies don't build dependencies, only main project
              --no-third-party don't build third party projects
              --static build static executables on Linux and OS X
+             --download-binary <'proj1 proj2'> list of binary packages to download
+             --platform <string> string specifying platform (required for binaries)
 
-  install: Install all projects in location specified by prefix (after build and test)
+  install: Install all projects in location specified by prefix. This is done
+           done automatically after build, so probably not useful in general.
 
   uninstall: Uninstall all projects
 
-General options:
-  --debug: Turn on debugging output
-  --no-prompt: Turn off non-interactive mode
-  --help: Print help
+  download: Download project binaries (experimental, limited projects supported)
+    options: --platform <string> string specifying platform (required for binaries)
+             --prefix,-p </dir/to/install> where to install (default: /mnt/c/Users/tkral/Documents/Projects/CoinUtils/dist)
 
+General options:
+  --debug,-d Turn on debugging output (this should be the first option specified)
+  --no-prompt,-n Suppress interactive prompts
+  --help,-h Print help
 ```
