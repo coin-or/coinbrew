@@ -1900,7 +1900,6 @@ if [ $write_yaml = true ]; then
     echo "  LongDescription:" >> $yaml_file
     echo "  Manager:" >> $yaml_file
     echo "  Homepage: $main_proj_url" >> $yaml_file
-    echo "  LongDescription:" >> $yaml_file
     echo "  License: Eclipse Public License 1.0" >> $yaml_file
     echo "  LicenseURL: http://www.opensource.org/licenses/eclipse-1.0" >> $yaml_file
     echo "  Language:" >> $yaml_file
