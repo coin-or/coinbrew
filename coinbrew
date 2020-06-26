@@ -591,11 +591,11 @@ function should_fetch {
 function get_version_git {
 
     current_rev=$(git rev-parse HEAD)
-    if [[ $(git show-ref --tags | fgrep $current_rev) == *releases* ]]; then
+    if [[ "$(git show-ref --tags | fgrep $current_rev)" == *releases* ]]; then
 	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4
-    elif [[ $(git show-ref --heads | fgrep $current_rev) == *stable* ]]; then
+    elif [[ "$(git show-ref --heads | fgrep $current_rev)" == *stable* ]]; then
 	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4
-    elif [ x"$(git show-ref --heads | fgrep $current_rev)" != x ]; then
+    elif [ "$(git show-ref --heads | fgrep $current_rev)" != "" ]; then
 	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3
     else
         echo $current_rev
@@ -937,7 +937,7 @@ function fetch_proj {
     current_rev=
     if [ -d $dir ]; then
         # If the project is already checked out, then check whether the checked out
-        # version is the correct one. Siwtch if necessary. Otherwise, just update
+        # version is the correct one. Switch if necessary. Otherwise, just update
         cd $dir
         current_version=$(get_version_git)
         current_rev=$(git rev-parse HEAD)
@@ -1547,7 +1547,9 @@ if [ -d $main_proj_dir ]; then
     # Possibly switch url and version for existing projects
     current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' |\
                            tr -s ' '| cut -d ' ' -f 2 | sed s"|\.git||")
-    if [ $main_proj_url != $current_proj_url ]; then
+    if [ $(echo $main_proj_url | sed 's|https://github.com/||' | sed 's|git@github.com:||') != \
+         $(echo $current_proj_url | sed 's|https://github.com/||' | sed 's|git@github.com:||') ]
+    then
         echo
         echo "Warning: specified a fork when project is already cloned from a different repo."
         echo "Proceeding with existing repo."
@@ -1576,6 +1578,7 @@ else
             echo "      Defaulting to the latest release $latest_release."
             echo
             main_proj_version=releases/$latest_release
+            get_latest_release=true
         else
             prompt_for_version
         fi
