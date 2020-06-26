@@ -363,6 +363,9 @@ function parse_args {
                 ;;
             --no-rebase)
                 rebase=false
+            yaml)
+                num_actions+=1
+                write_yaml=true
                 ;;
             --off-line)
                 offline=true
@@ -1395,6 +1398,7 @@ download_projs=
 keep_current=false
 rebase=true
 offline=false
+write_yaml=false
 
 ###################################################################################
 # Parse the command-line arguments
@@ -1905,6 +1909,28 @@ fi
 # Skip comments (lines starting with '#').
 ###################################################################################
 
+if [ $write_yaml = true ]; then
+    mkdir -p $main_proj_dir/.coin-or
+    yaml_file=$main_proj_dir/.coin-or/projDesc.yml
+    echo "Description:" > $yaml_file
+    echo "  Slug: $main_proj" >> $yaml_file 
+    echo "  ShortName:" >> $yaml_file
+    echo "  LongName:" >> $yaml_file
+    echo "  ShortDescription:" >> $yaml_file
+    echo "  LongDescription:" >> $yaml_file
+    echo "  Manager:" >> $yaml_file
+    echo "  Homepage: $main_proj_url" >> $yaml_file
+    echo "  LongDescription:" >> $yaml_file
+    echo "  License: Eclipse Public License 1.0" >> $yaml_file
+    echo "  LicenseURL: http://www.opensource.org/licenses/eclipse-1.0" >> $yaml_file
+    echo "  Language:" >> $yaml_file
+    echo "  - C++" >> $yaml_file
+    echo "  Categories: " >> $yaml_file
+    echo "  - Optimization deterministic linear discrete" >> $yaml_file
+    coin_deps=
+    tp_deps=
+fi
+
 for entry in $deps
 do
     if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
@@ -1913,39 +1939,35 @@ do
     proj=$(echo $url | cut -d '/' -f 5)
     sha=
 
+    if [ ! -d $dir ] && [ $fetch != "true" ]; then
+        print_action "Warning: project $dir is missing, fetching automatically"
+    fi
+
+    if [ $write_yaml = true ]; then
+        tmp=$(echo $url | sed "s|https://github.com/||" | sed "s|git@github.com:||")
+        case $(echo $dir | cut -d '/' -f 1) in
+            ThirdParty)
+                tp_deps+="    -Slug: $tmp"
+                tp_deps+=$'\n'
+                tp_deps+="     Version: $version_num"
+                tp_deps+=$'\n'
+                tp_deps+="     Required: Optional"
+                tp_deps+=$'\n'
+                ;;
+            Data)
+                ;;
+            *)
+                coin_deps+="    -Slug: $tmp"
+                coin_deps+=$'\n'
+                coin_deps+="     Version: $version_num"
+                coin_deps+=$'\n'
+                ;;
+        esac
+    fi
+
     # Get the source (if requested)
     if [ $dir != $main_proj_dir ]; then
-        if should_fetch && [ $dir != $main_proj_dir ]; then
-            if [ ! -d $dir ] && [ $fetch != "true" ]; then
-                print_action "Warning: project $dir is missing, fetching automatically"
-            fi
-            # Determine the desired version
-            if [[ $url == *github* ]]; then
-                #The URL is for a git project
-                version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
-                if [ $version != "master" ]; then
-                    version_num=$(echo $version | cut -d '/' -f 2)
-                else
-                    version_num=master
-                fi
-            else
-                #The URL is for an old SVN project
-                version=$(get_version_svn $url)
-                if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
-                    version=$(echo $version | cut -d '/' -f 2)
-                fi
-                if [ $version = "trunk" ]; then
-                    version=master
-                    version_num=master
-                else
-                    version_num=$(echo $version | cut -d '/' -f 2)
-                fi
-                if [ ! -d $dir ]; then
-                    # Convert SVN URL to a Github one
-                    url=$(svn2git)
-                fi
-            fi
-            # Now fetch the project
+        if should_fetch; then
             fetch_proj
         elif [ $fetch = true ]; then
             if [ -d $dir ]; then 
@@ -1986,6 +2008,49 @@ do
         uninstall_proj
     fi
 done
+
+if [ $write_yaml = true ]; then
+    echo >> $yaml_file
+    echo "Dependencies:" >> $yaml_file
+    echo "  coin:" >> $yaml_file
+    echo "$coin_deps"  >> $yaml_file
+    echo "  thirdParty:" >> $yaml_file
+    echo "$tp_deps"  >> $yaml_file
+    echo "  other:" >> $yaml_file
+    echo "    - Description: Basic Linear Algenra Subroutines (BLAS)" >> $yaml_file
+    echo "      URL: http://www.netlib.org/blas" >> $yaml_file
+    echo "      Required: Recommended" >> $yaml_file
+    echo "    - Description: Linear Algebra Package (LAPACK)" >> $yaml_file
+    echo "      URL: http://www.netlib.org/lapack" >> $yaml_file
+    echo "      Required: Recommended" >> $yaml_file
+    echo "    - Description: GNU Readline" >> $yaml_file
+    echo "      Required: Recommended" >> $yaml_file
+    echo "    - Description: GNU History" >> $yaml_file
+    echo "      Required: Recommended" >> $yaml_file
+    echo >> $yaml_file
+    echo "DevelopmentStatus: " >> $yaml_file
+    echo "  activityStatus: Active" >> $yaml_file
+    echo "  maturityLevel: 5" >> $yaml_file
+    echo "  testedPlatforms: " >> $yaml_file
+    echo "  - operatingSystem: Linux" >> $yaml_file
+    echo "    compiler: gcc" >> $yaml_file
+    echo "  - operatingSystem: "Mac OS X"" >> $yaml_file
+    echo "    compiler:" >> $yaml_file
+    echo "    - gcc" >> $yaml_file
+    echo "    - clang" >> $yaml_file
+    echo "  - operatingSystem: Microsoft Windows" >> $yaml_file
+    echo "    compiler: cl" >> $yaml_file
+    echo "  - operatingSystem: Microsoft Windows with MSys2" >> $yaml_file
+    echo "    compiler:" >> $yaml_file
+    echo "    - gcc" >> $yaml_file
+    echo "    - cl" >> $yaml_file
+    echo "    - icl" >> $yaml_file
+    echo "  - operatingSystem: Microsoft Windows Subsystem for Linux" >> $yaml_file
+    echo "    compiler:" >> $yaml_file
+    echo "    - gcc" >> $yaml_file
+    echo "    - cl" >> $yaml_file
+    echo "    - icl" >> $yaml_file
+fi
 
 ###################################################################################
 # Clean up some directories left by uninstall
