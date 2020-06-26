@@ -1982,6 +1982,7 @@ if [ $write_yaml = true ]; then
     echo "  - Optimization deterministic linear discrete" >> $yaml_file
     coin_deps=
     tp_deps=
+    data_deps=
 fi
 
 for entry in $deps
@@ -1997,7 +1998,8 @@ do
     fi
 
     if [ $write_yaml = true ]; then
-        tmp=$(echo $url | sed "s|https://github.com/||" | sed "s|git@github.com:||")
+        tmp=$(echo $url | sed "s|https://github.com/||" | sed "s|git@github.com:||" | \
+                  cut -d "/" -f 2)
         case $(echo $dir | cut -d '/' -f 1) in
             ThirdParty)
                 tp_deps+="    -Slug: $tmp"
@@ -2008,6 +2010,12 @@ do
                 tp_deps+=$'\n'
                 ;;
             Data)
+                data_deps+="    -Slug: $tmp"
+                data_deps+=$'\n'
+                data_deps+="     Version: $version_num"
+                data_deps+=$'\n'
+                data_deps+="     Required: Required"
+                data_deps+=$'\n'
                 ;;
             *)
                 coin_deps+="    -Slug: $tmp"
@@ -2067,6 +2075,8 @@ if [ $write_yaml = true ]; then
     echo "Dependencies:" >> $yaml_file
     echo "  coin:" >> $yaml_file
     echo "$coin_deps"  >> $yaml_file
+    echo "  data:" >> $yaml_file
+    echo "$data_deps"  >> $yaml_file
     echo "  thirdParty:" >> $yaml_file
     echo "$tp_deps"  >> $yaml_file
     echo "  other:" >> $yaml_file
