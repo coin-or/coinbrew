@@ -363,6 +363,15 @@ function parse_args {
                 ;;
             --no-rebase)
                 rebase=false
+            --enable-optional)
+                get_optional=true
+                ;;
+            --disable-recommended)
+                get_recommended=false
+                ;;
+            --yaml)
+                read_yaml=true
+                ;;
             yaml)
                 num_actions+=1
                 write_yaml=true
@@ -436,7 +445,7 @@ function parse_args {
 
 parse_yaml() {
     local yaml_file=$1
-    local prefix=$2
+    local prefix=
     local s
     local w
     local fs
@@ -479,8 +488,7 @@ parse_yaml() {
 
 create_variables() {
     local yaml_file="$1"
-    local prefix="$2"
-    eval "$(parse_yaml "$yaml_file" "$prefix")"
+    eval "$(parse_yaml "$yaml_file")"
 }
 
 ###################################################################################
@@ -606,6 +614,7 @@ function find_skip_projects {
 done
 
 }
+
 ###################################################################################
 # Determine whether we're supposed to build the project
 ###################################################################################
@@ -618,6 +627,7 @@ function should_build {
     do
         if [ $1 = $i ]; then
             IFS=$TMP_IFS
+            print_action "Skipping $dir"
             return 1
         fi
     done
@@ -625,17 +635,39 @@ function should_build {
         if [ $(echo $dir | cut -d '/' -f 2) = HSL ]; then
             if [ ! -f $dir/coinhsl/common/deps.f ]; then
                 IFS=$TMP_IFS
+                print_action "Skipping $dir"
                 return 1
             fi
         elif ([ -e $dir ] && [ ! -e $dir/.build ]) ||
            [ $get_third_party = false ]; then
             IFS=$TMP_IFS
+            print_action "Skipping $dir"
             return 1
         fi
     fi
     IFS=$TMP_IFS
-    return 0
 
+    case $required in
+        *ecommended)
+            if [ $get_recommended = true ]; then
+                return 0
+            else
+                print_action "Skipping $dir (--disable-recommended was specified)"
+                return 1
+            fi
+            ;;
+        *ptional)
+            if [ $get_optional = true ]; then
+                return 0
+            else
+                print_action "Skipping $dir (--enable-optional to build)"
+                return 1
+            fi
+            ;;
+        *)
+            return 0
+            ;;
+    esac
 }
 
 ###################################################################################
@@ -658,8 +690,8 @@ function should_fetch {
         fi
     done
     IFS=$TMP_IFS
-    return 0
 
+    return 0
 }
 
 ###################################################################################
@@ -730,23 +762,11 @@ function svn2git {
 
     # Convert SVN URL to a Github one and check out with git
     if [ $proj = "BuildTools" ] || [ $proj = "Data" ]; then
-        if [ $ssh_checkout = "false" ]; then
-            new_url="https://github.com/coin-or-tools/"
-        else
-            new_url="git@github.com:coin-or-tools/"
-        fi
+        new_url=$url_prefix"-tools/"
     elif [ $proj = "CoinBazaar" ]; then
-        if [ $ssh_checkout = "false" ]; then
-            new_url="https://github.com/coin-or-bazaar/"
-        else
-            new_url="git@github.com:coin-or-bazaar/"
-        fi
+        new_url=$url_prefix"-bazaar/"
     else
-        if [ $ssh_checkout = "false" ]; then
-            new_url="https://github.com/coin-or/"
-        else
-            new_url="git@github.com:coin-or/"
-        fi
+        new_url=$url_prefix"/"
     fi
     if [ $(echo $dir | cut -d "/" -f 1) = "ThirdParty" ]; then
         new_url+=$(echo $dir | sed s"|/|-|")
@@ -1003,6 +1023,127 @@ function prompt_for_rebuild {
         4)
             exit 0
     esac
+
+}
+
+###################################################################################
+# Make list of dependencies by parsing either Dependencies or projDesc.yml
+###################################################################################
+
+function parse_dependencies_file {
+    dep_file=
+    if [ "$main_proj" = "" ]; then
+        if [ -e Dependencies ] && [ $read_yaml = false ];  then
+            dep_file=Dependencies
+        elif [ -e .coin-or/Dependencies ] && [ $read_yaml = false ]; then
+            dep_file=.coin-or/Dependencies
+        elif [ -e .coin-or/projDesc.yml ]; then
+            dep_file=.coin-or/projDesc.yml
+        fi
+    else
+        if [ -e $main_proj_dir/Dependencies ] && [ $read_yaml = false ]; then
+            dep_file=$main_proj_dir/Dependencies
+        elif [ -e $main_proj_dir/.coin-or/Dependencies ] && [ $read_yaml = false ]; then
+            dep_file=$main_proj_dir/.coin-or/Dependencies
+        elif [ -e $main_proj_dir/$main_proj_dir/Dependencies ] && [ $read_yaml = false ]; then
+            dep_file=$main_proj_dir/$main_proj_dir/Dependencies
+        elif [ -e $main_proj_dir/.coin-or/projDesc.yml ]; then
+            dep_file=$main_proj_dir/.coin-or/projDesc.yml
+        fi
+    fi
+
+    if [ "$dep_file" != "" ]; then
+        if [[ $dep_file == *Dependencies ]]; then
+            deps=$(cat $dep_file | tr '\t' ' ' | tr -s ' ')
+            if [ "$deps" != "" ]; then
+                for entry in $deps
+                do
+                    if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
+                    url=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
+                    # Determine the desired version
+                    if [[ $url == *github* ]]; then
+                        #The URL is for a git project
+                        version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
+                        if [ $version != "master" ]; then
+                            version_num=$(echo $version | cut -d '/' -f 2)
+                        else
+                            version_num=master
+                        fi
+                    else
+                        #The URL is for an old SVN project
+                        version=$(get_version_svn $url)
+                        if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
+                            version=$(echo $version | cut -d '/' -f 2)
+                        fi
+                        if [ $version = "trunk" ]; then
+                            version=master
+                            version_num=master
+                        else
+                            version_num=$(echo $version | cut -d '/' -f 2)
+                        fi
+                        if [ ! -d $dir ]; then
+                            # Convert SVN URL to a Github one
+                            url=$(svn2git)
+                        fi
+                    fi
+                    urls+=( $url )
+                    pdirs+=( $(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1) )
+                    projs+=( $(echo $url | cut -d '/' -f 5) )
+                    versions+=( $version )
+                    version_nums+=( $version_num )
+                    requireds+=( Required )
+                done
+            fi
+        else
+            create_variables $dep_file
+            
+            if [ ! -z "${Dependencies_thirdParty__Slug+x}" ]; then 
+                for ((count=0; count<${#Dependencies_thirdParty__Slug[@]}; ++count))
+                do
+                    urls+=( $url_prefix"-tools/"${Dependencies_thirdParty__Slug[count]} ) 
+                    pdirs+=( $(echo ${Dependencies_thirdParty__Slug[count]} | sed 's|-|/|') ) 
+                    projs+=( ${Dependencies_thirdParty__Slug[count]} )
+                    versions+=( ${Dependencies_thirdParty__Version[count]} )
+                    requireds+=( ${Dependencies_thirdParty__Required[count]} )
+                done
+            fi
+            
+            if [ ! -z "${Dependencies_data__Slug+x}" ]; then 
+                for ((count=0; count<${#Dependencies_data__Slug[@]}; ++count))
+                do
+                    urls+=( $url_prefix"-tools/"${Dependencies_data__Slug[count]} ) 
+                    pdirs+=( $(echo ${Dependencies_data__Slug[count]} | sed 's|-|/|') ) 
+                    projs+=( ${Dependencies_data__Slug[count]} ) 
+                    versions+=( ${Dependencies_data__Version[count]} )
+                    requireds+=( ${Dependencies_data__Required[count]} )
+                done
+            fi
+
+            if [ ! -z "${Dependencies_coin__Slug+x}" ]; then 
+                for ((count=0; count<${#Dependencies_coin__Slug[@]}; ++count))
+                do
+                    urls+=( $url_prefix"/"${Dependencies_coin__Slug}[count] ) 
+                    pdirs+=( ${Dependencies_coin__Slug[count]} )  
+                    projs+=( ${Dependencies_coin__Slug[count]} ) 
+                    versions+=( ${Dependencies_coin__Version[count]} )
+                    requireds+=( ${Dependencies_data__Required[count]} )
+                done
+            fi
+            
+            for ((count=0; count<${#versions[@]}; ++count))
+            do
+                if [ ${versions[count]} = master ]; then
+                    version_nums+=( master )
+                else
+                    version_nums+=( $(echo ${versions[count]} | cut -d '/' -f 2) )
+                fi
+            done
+        fi
+    else
+        echo "No dependencies file found, only main project will be built"
+        echo
+        deps=
+    fi
 
 }
 
@@ -1334,6 +1475,66 @@ function uninstall_proj {
 }
 
 ###################################################################################
+# Download binaries
+###################################################################################
+
+function download_binaries {
+    
+    pushd_ $prefix
+    if [ x"$download_projs" = x ]; then
+        download_projs=${main_proj}@${version_num}
+    fi
+    for dl_proj in $download_projs
+    do
+        found_proj=false
+        case $dl_proj in
+            Cbc*)
+                additional_skip_projects="Cbc Cgl Clp Osi CoinUtils Data/Sample Data/miplib3"
+                found_proj=true
+                # Why do we need to do this? It should be enough to set PKG_CONFIG_PATH
+                if [[ $platform == *msvc* ]]; then
+                    configure_options=["--with-cbc-lib='$prefix/lib/CbcSolver.lib $prefix/lib/Cbc.lib $prefix/lib/Cgl.lib $prefix/lib/OsiClp.lib $prefix/lib/Clp.lib $prefix/lib/OsiCommonTest.lib $prefix/lib/Osi.lib $prefix/lib/CoinUtils.lib $prefix/lib/coinglpk.lib $prefix/lib/coinasl.lib'"]
+                    if [ $version_num = "master" ]; then
+                        configure_options=["--with-cbc-incdir='$prefix/include/coin-or"]
+                    else
+                        configure_options=["--with-cbc-incdir='$prefix/include/coin"]
+                    fi
+                fi
+                ;;
+            *)
+                echo "Downloading of binaries for $main_proj not supported yet"
+                ;;
+        esac
+        if [ $found_proj = true ]; then
+            if [[ $dl_proj == *@* ]]; then
+                dl_proj_version=${dl_proj##*@}
+                dl_proj=${dl_proj%@*}
+                dl_proj_version_num=$(echo $dl_proj_version | cut -d '/' -f 2)
+            else
+                echo "Warning: No project version specified for $dl_proj binary, getting master"
+                dl_proj_version=master
+            fi
+            if [[ $platform == *msvc* ]]; then
+                download_file=$dl_proj-$dl_proj_version_num-$platform.zip
+            else
+                download_file=$dl_proj-$dl_proj_version_num-$platform.tgz
+            fi
+            wget https://bintray.com/coin-or/download/download_file?file_path=$download_file \
+                 -O $download_file
+            if [[ $platform == *msvc* ]]; then
+                unzip $download_file
+            else
+                tar -xzf $download_file
+            fi
+            rm $download_file
+            coin_skip_projects="${coin_skip_projects:-} $additional_skip_projects"
+        fi
+    done
+    popd_
+
+}
+
+###################################################################################
 # Get cached build options
 ###################################################################################
 
@@ -1443,7 +1644,15 @@ download_projs=
 keep_current=false
 rebase=true
 offline=false
+read_yaml=false
 write_yaml=false
+get_optional=false
+get_recommended=true
+if [ ssh_checkout = "true" ]; then
+    url_prefix="git@github.com:coin-or"
+else
+    url_prefix="https://github.com/coin-or"
+fi
 
 ###################################################################################
 # Parse the command-line arguments
@@ -1557,11 +1766,7 @@ else
             main_proj=CHiPPS-BLIS
             ;;
     esac
-    if [ $ssh_checkout = "false" ]; then
-        main_proj_url="https://github.com/coin-or/$main_proj"
-    else
-        main_proj_url="git@github.com:coin-or/$main_proj"
-    fi
+    main_proj_url=$url_prefix/$main_proj
 fi
 
 ### Main Project should now be set ###
@@ -1621,7 +1826,8 @@ if [ "$main_proj" != "" ] && [ "$main_proj_version" = "" ] && [ $fetch = true ] 
     prompt_for_version
 fi
 
-if [ "$main_proj_version" != "" ] && [ $build = "true" ] && [ $fetch != "true" ]; then
+if [ "$main_proj_version" != "" ] && [ $build = "true" ] && [ $fetch != "true" ] &&
+       [ -d $main_proj_dir ]; then
     echo
     echo "It appears that a main project version has been specified, but"
     echo "fetching was not requested. Build will proceed with current version."
@@ -1800,61 +2006,11 @@ fi
 find_skip_projects
 
 ###################################################################################
-# If we are going to download and install any binaries, do that first
+# If we're going to download and install any binaries, do that first
 ###################################################################################
 
 if [ $download = "true" ]; then
-    pushd_ $prefix
-    if [ x"$download_projs" = x ]; then
-        download_projs=${main_proj}@${version_num}
-    fi
-    for dl_proj in $download_projs
-    do
-        found_proj=false
-        case $dl_proj in
-            Cbc*)
-                additional_skip_projects="Cbc Cgl Clp Osi CoinUtils Data/Sample Data/miplib3"
-                found_proj=true
-                # Why do we need to do this? It should be enough to set PKG_CONFIG_PATH
-                if [[ $platform == *msvc* ]]; then
-                    configure_options=["--with-cbc-lib='$prefix/lib/CbcSolver.lib $prefix/lib/Cbc.lib $prefix/lib/Cgl.lib $prefix/lib/OsiClp.lib $prefix/lib/Clp.lib $prefix/lib/OsiCommonTest.lib $prefix/lib/Osi.lib $prefix/lib/CoinUtils.lib $prefix/lib/coinglpk.lib $prefix/lib/coinasl.lib'"]
-                    if [ $version_num = "master" ]; then
-                        configure_options=["--with-cbc-incdir='$prefix/include/coin-or"]
-                    else
-                        configure_options=["--with-cbc-incdir='$prefix/include/coin"]
-                    fi
-                fi
-                ;;
-            *)
-                echo "Downloading of binaries for $main_proj not supported yet"
-                ;;
-        esac
-        if [ $found_proj = true ]; then
-            if [[ $dl_proj == *@* ]]; then
-                dl_proj_version=${dl_proj##*@}
-                dl_proj=${dl_proj%@*}
-                dl_proj_version_num=$(echo $dl_proj_version | cut -d '/' -f 2)
-            else
-                echo "Warning: No project version specified for $dl_proj binary, getting master"
-                dl_proj_version=master
-            fi
-            if [[ $platform == *msvc* ]]; then
-                download_file=$dl_proj-$dl_proj_version_num-$platform.zip
-            else
-                download_file=$dl_proj-$dl_proj_version_num-$platform.tgz
-            fi
-            wget https://bintray.com/coin-or/download/download_file?file_path=$download_file \
-                 -O $download_file
-            if [[ $platform == *msvc* ]]; then
-                unzip $download_file
-            else
-                tar -xzf $download_file
-            fi
-            rm $download_file
-            coin_skip_projects="${coin_skip_projects:-} $additional_skip_projects"
-        fi
-    done
-    popd_
+    download_binaries
 fi
 
 ###################################################################################
@@ -1866,7 +2022,8 @@ if [ "$main_proj" != "" ]; then
     dir=$main_proj_dir
     proj=$main_proj
     version=$main_proj_version
-
+    required=Required
+    
     sha=$main_proj_sha
     if should_fetch; then
         fetch_proj 
@@ -1891,24 +2048,21 @@ fi
 # Build list of dependencies
 ###################################################################################
 
+declare -a pdirs
+declare -a urls
+declare -a projs
+declare -a versions
+declare -a version_nums
+declare -a required
+pdirs=()
+urls=()
+projs=()
+versions=()
+version_nums=()
+requireds=()
+
 if [ $skip_dependencies = "false" ]; then
-    if [ -e Dependencies ] && [ "$main_proj" = "" ]; then
-        deps=$(cat Dependencies | tr '\t' ' ' | tr -s ' ')
-    elif [ -e .coin-or/Dependencies ] && [ "$main_proj" = "" ]; then
-        deps=$(cat .coin-or/Dependencies | tr '\t' ' ' | tr -s ' ')
-    elif [ "$main_proj" != "" ] && [ -e $main_proj_dir/Dependencies ]; then
-        deps=$(cat $main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' ')
-    elif [ "$main_proj" != "" ] && [ -e $main_proj_dir/.coin-or/Dependencies ]; then
-        deps=$(cat $main_proj_dir/.coin-or/Dependencies | tr '\t' ' ' | tr -s ' ')
-    elif [ "$main_proj" != "" ] && [ -e $main_proj_dir/$main_proj_dir/Dependencies ]; then
-        deps=$(cat $main_proj_dir/$main_proj_dir/Dependencies | tr '\t' ' ' | tr -s ' ')
-    else
-        echo "No dependencies file found, only main project will be built"
-        echo
-        deps=
-    fi
-else
-    deps=
+    parse_dependencies_file
 fi
 
 ###################################################################################
@@ -1916,15 +2070,16 @@ fi
 ###################################################################################
 
 if [ "$main_proj" != "" ]; then
-    if [ "$deps" != "" ]; then
-        deps+=$'\n'
-    fi
-    if [ $(echo $main_proj_url | cut -d ':' -f 1) = "git@github.com" ] ||
-           [ $(echo $main_proj_url | cut -d '/' -f 3) = "github.com" ]; then    
-        deps+="$main_proj_dir $main_proj_url $main_proj_version"
+    urls+=( $main_proj_url )
+    pdirs+=( $main_proj_dir )
+    projs+=( $main_proj )
+    versions+=( $main_proj_version )
+    if [ $main_proj_version = master ]; then
+        version_nums+=( master )
     else
-        deps+="$main_proj_dir $main_proj_url"
+        version_nums+=( $(echo $main_proj_version | cut -d '/' -f 2) )
     fi
+    requireds+=( Required )
 fi
 
 ###################################################################################
@@ -1965,42 +2120,44 @@ if [ $write_yaml = true ]; then
     data_deps=
 fi
 
-for entry in $deps
+for ((count=0; count<${#urls[@]}; ++count))
 do
-    if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
-    dir=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1)
-    url=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
-    proj=$(echo $url | cut -d '/' -f 5)
+    dir=${pdirs[count]}
+    url=${urls[count]}
+    proj=${projs[count]}
+    version=${versions[count]}
+    version_num=${version_nums[count]}
+    required=${requireds[count]}
     sha=
 
     if [ ! -d $dir ] && [ $fetch != "true" ]; then
         print_action "Warning: project $dir is missing, fetching automatically"
     fi
 
-    if [ $write_yaml = true ]; then
+    if [ $write_yaml = true ] && [ $dir != $main_proj_dir ]; then
         tmp=$(echo $url | sed "s|https://github.com/||" | sed "s|git@github.com:||" | \
                   cut -d "/" -f 2)
         case $(echo $dir | cut -d '/' -f 1) in
             ThirdParty)
-                tp_deps+="    -Slug: $tmp"
+                tp_deps+="    - Slug: $tmp"
                 tp_deps+=$'\n'
-                tp_deps+="     Version: $version_num"
+                tp_deps+="      Version: $version_num"
                 tp_deps+=$'\n'
-                tp_deps+="     Required: Optional"
+                tp_deps+="      Required: Optional"
                 tp_deps+=$'\n'
                 ;;
             Data)
-                data_deps+="    -Slug: $tmp"
+                data_deps+="    - Slug: $tmp"
                 data_deps+=$'\n'
-                data_deps+="     Version: $version_num"
+                data_deps+="      Version: $version_num"
                 data_deps+=$'\n'
-                data_deps+="     Required: Required"
+                data_deps+="      Required: Required"
                 data_deps+=$'\n'
                 ;;
             *)
-                coin_deps+="    -Slug: $tmp"
+                coin_deps+="    - Slug: $tmp"
                 coin_deps+=$'\n'
-                coin_deps+="     Version: $version_num"
+                coin_deps+="      Version: $version_num"
                 coin_deps+=$'\n'
                 ;;
         esac
@@ -2032,15 +2189,12 @@ do
     if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
         if should_build $dir; then
             build_proj
-        else
-            print_action "Skipping $dir"
         fi
     fi
 
     # Install the project (if requested)
-    if ([ $install = "true" ] ||
-            ([ $build = "true" ] && [ -w $prefix ])) &&
-           [ $dir != "BuildTools" ] && [ $dir != "examples" ] && should_build $dir; then
+    if ([ $install = "true" ] || ([ $build = "true" ] && [ -w $prefix ])) &&
+           [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
         install_proj
     fi
 
