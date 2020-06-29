@@ -1065,7 +1065,9 @@ function parse_dependencies_file {
             for entry in $deps
             do
                 if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
+                dir=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1)
                 url=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
+                proj=$(echo $url | cut -d '/' -f 5)
                 # Determine the desired version
                 if [[ $url == *github* ]]; then
                     #The URL is for a git project
@@ -1093,8 +1095,8 @@ function parse_dependencies_file {
                     fi
                 fi
                 urls+=( $url )
-                pdirs+=( $(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1) )
-                projs+=( $(echo $url | cut -d '/' -f 5) )
+                pdirs+=( $dir )
+                projs+=( $proj )
                 versions+=( $version )
                 version_nums+=( $version_num )
                 requireds+=( Required )
