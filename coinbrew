@@ -1054,89 +1054,70 @@ function parse_dependencies_file {
 
     if [ "$dep_file" != "" ]; then
         if [[ $dep_file == *Dependencies ]]; then
+            #This is for parsing the old style Dependencies file
             deps=$(cat $dep_file | tr '\t' ' ' | tr -s ' ')
-            if [ "$deps" != "" ]; then
-                for entry in $deps
-                do
-                    if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
-                    url=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
-                    # Determine the desired version
-                    if [[ $url == *github* ]]; then
-                        #The URL is for a git project
-                        version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
-                        if [ $version != "master" ]; then
-                            version_num=$(echo $version | cut -d '/' -f 2)
-                        else
-                            version_num=master
-                        fi
-                    else
-                        #The URL is for an old SVN project
-                        version=$(get_version_svn $url)
-                        if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
-                            version=$(echo $version | cut -d '/' -f 2)
-                        fi
-                        if [ $version = "trunk" ]; then
-                            version=master
-                            version_num=master
-                        else
-                            version_num=$(echo $version | cut -d '/' -f 2)
-                        fi
-                        if [ ! -d $dir ]; then
-                            # Convert SVN URL to a Github one
-                            url=$(svn2git)
-                        fi
-                    fi
-                    urls+=( $url )
-                    pdirs+=( $(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1) )
-                    projs+=( $(echo $url | cut -d '/' -f 5) )
-                    versions+=( $version )
-                    version_nums+=( $version_num )
-                    requireds+=( Required )
-                done
-            fi
-        else
-            create_variables $dep_file
-            
-            if [ ! -z "${Dependencies_thirdParty__Slug+x}" ]; then 
-                for ((count=0; count<${#Dependencies_thirdParty__Slug[@]}; ++count))
-                do
-                    urls+=( $url_prefix"-tools/"${Dependencies_thirdParty__Slug[count]} ) 
-                    pdirs+=( $(echo ${Dependencies_thirdParty__Slug[count]} | sed 's|-|/|') ) 
-                    projs+=( ${Dependencies_thirdParty__Slug[count]} )
-                    versions+=( ${Dependencies_thirdParty__Version[count]} )
-                    requireds+=( ${Dependencies_thirdParty__Required[count]} )
-                done
-            fi
-            
-            if [ ! -z "${Dependencies_data__Slug+x}" ]; then 
-                for ((count=0; count<${#Dependencies_data__Slug[@]}; ++count))
-                do
-                    urls+=( $url_prefix"-tools/"${Dependencies_data__Slug[count]} ) 
-                    pdirs+=( $(echo ${Dependencies_data__Slug[count]} | sed 's|-|/|') ) 
-                    projs+=( ${Dependencies_data__Slug[count]} ) 
-                    versions+=( ${Dependencies_data__Version[count]} )
-                    requireds+=( ${Dependencies_data__Required[count]} )
-                done
-            fi
-
-            if [ ! -z "${Dependencies_coin__Slug+x}" ]; then 
-                for ((count=0; count<${#Dependencies_coin__Slug[@]}; ++count))
-                do
-                    urls+=( $url_prefix"/"${Dependencies_coin__Slug}[count] ) 
-                    pdirs+=( ${Dependencies_coin__Slug[count]} )  
-                    projs+=( ${Dependencies_coin__Slug[count]} ) 
-                    versions+=( ${Dependencies_coin__Version[count]} )
-                    requireds+=( ${Dependencies_data__Required[count]} )
-                done
-            fi
-            
-            for ((count=0; count<${#versions[@]}; ++count))
+            for entry in $deps
             do
+                if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
+                url=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
+                # Determine the desired version
+                if [[ $url == *github* ]]; then
+                    #The URL is for a git project
+                    version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
+                    if [ $version != "master" ]; then
+                        version_num=$(echo $version | cut -d '/' -f 2)
+                    else
+                        version_num=master
+                    fi
+                else
+                    #The URL is for an old SVN project
+                    version=$(get_version_svn $url)
+                    if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
+                        version=$(echo $version | cut -d '/' -f 2)
+                    fi
+                    if [ $version = "trunk" ]; then
+                        version=master
+                        version_num=master
+                    else
+                        version_num=$(echo $version | cut -d '/' -f 2)
+                    fi
+                    if [ ! -d $dir ]; then
+                        # Convert SVN URL to a Github one
+                        url=$(svn2git)
+                    fi
+                fi
+                urls+=( $url )
+                pdirs+=( $(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1) )
+                projs+=( $(echo $url | cut -d '/' -f 5) )
+                versions+=( $version )
+                version_nums+=( $version_num )
+                requireds+=( Required )
+            done
+        else
+            #This is for parsing the new YAML file
+            create_variables $dep_file
+            for ((count=0; count<${#Dependencies__URL[@]}; ++count))
+            do
+                if [[ ${Dependencies__URL[count]} != *github* ]]; then
+                    continue
+                fi
+                
+                if [ $ssh_checkout = true ]; then
+                    urls+=( $(echo ${Dependencies__URL[count]} |
+                                  sed 's|https://github.com/|git@github.com:|') )
+                else
+                    urls+=( ${Dependencies__URL[count]} )
+                fi
+                pdirs+=( $(echo ${Dependencies__URL[count]} | cut -d '/' -f 5 |
+                               sed 's|-|/|') ) 
+                projs+=( $(echo ${pdirs[count]} | cut -d '/' -f 2) )
+                versions+=( ${Dependencies__Version[count]} )
                 if [ ${versions[count]} = master ]; then
                     version_nums+=( master )
                 else
                     version_nums+=( $(echo ${versions[count]} | cut -d '/' -f 2) )
                 fi
+                requireds+=( ${Dependencies__Required[count]} )
             done
         fi
     else
