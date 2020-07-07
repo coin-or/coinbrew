@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+
+parse_yaml() {
+    local yaml_file=$1
+    local prefix=
+    local s
+    local w
+    local fs
+
+    s='[[:space:]]*'
+    w='[a-zA-Z0-9_.-]*'
+    fs="$(echo @|tr @ '\034')"
+
+    (
+        sed -e '/- [^\“]'"[^\']"'.*: /s|\([ ]*\)- \([[:space:]]*\)|\1-\'$'\n''  \1\2|g' |
+
+        sed -ne '/^--/s|--||g; s|\"|\\\"|g; s/[[:space:]]*$//g;' \
+            -e "/#.*[\"\']/!s| #.*||g; /^#/s|#.*||g;" \
+            -e "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+            -e "s|^\($s\)\($w\)${s}[:-]$s\(.*\)$s\$|\1$fs\2$fs\3|p" |
+
+        awk -F"$fs" '{
+            indent = length($1)/2;
+            if (length($2) == 0) { conj[indent]="+";} else {conj[indent]="";}
+            vname[indent] = $2;
+            for (i in vname) {if (i > indent) {delete vname[i]}}
+                if (length($3) > 0) {
+                    vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+                    printf("%s%s%s%s=(\"%s\")\n", "'"$prefix"'",vn, $2, conj[indent-1],$3);
+                }
+            }' |
+
+        sed -e 's/_=/+=/g' |
+
+        awk 'BEGIN {
+                FS="=";
+                OFS="="
+            }
+            /(-|\.).*=/ {
+                gsub("-|\\.", "_", $1)
+            }
+            { print }'
+    ) < "$yaml_file"
+}
+
+create_variables() {
+    local yaml_file="$1"
+    eval "$(parse_yaml "$yaml_file")"
+}
+
+create_variables $1
+
+lower_case=$(echo $Description_Slug | tr '[:upper:]' '[:lower:]')
+
+echo "# $Description_ShortName 
+
+[![A COIN-OR Project](https://coin-or.github.io/coin-or-badge.png)](https://www.coin-or.org)
+
+[![Latest Release](https://img.shields.io/github/v/release/coin-or/$Description_Slug?sort=semver)](https://github.com/coin-or/$Description_Slug/releases)
+
+_This file is auto-generated from .coin-or/config.yml using the script
+https://github.com/coin-or/coinbrew/tree/master/scripts/generate_readme.
+To make changes, please edit .coin-or/config.yml or the generation script.
+" 
+#for i in "${Description_LongDescription[@]}"
+#do
+#    echo "$i" 
+#done
+awk 'BEGIN{on=0;lead=0} /LongDescription:*/{on=1; match($0, /^ */); lead=RLENGTH; getline} {match($0, /^ */); if (RLENGTH==lead && on==1){ on=0}; if (on==1) print}' $1 |
+sed 's/^    //' 
+
+echo "
+$Description_ShortName is written in $Description_Language and is released as open source under the [$Description_License]($Description_LicenseURL).
+
+It is distributed under the auspices of the [COIN-OR Foundation](https://www.coin-or.org)
+
+The $Description_ShortName website is https://github.com/coin-or/$Description_Slug.
+
+## CITE
+
+[![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
+
+## CURRENT BUILD STATUS
+
+[![Build Status](https://travis-ci.org/coin-or/$Description_Slug.svg?branch=master)](https://travis-ci.org/coin-or/$Description_Slug)
+
+[![Build status](https://ci.appveyor.com/api/projects/status/$Description_Appveyor_Status/branch/master?svg=true)](https://ci.appveyor.com/project/tkralphs/$Description_Appveyor_Slug/branch/master)
+
+## DOWNLOAD
+
+Binaries for most platforms are available as part of [$Description_Bintray_Package](https://bintray.com/coin-or/download/$Description_Bintray_Package). 
+
+ * *Linux*: On Debian/Ubuntu, CoinUtils is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
+ * *Windows*: The easiest way to get $Description_ShortName on Windows is to download from *[Bintray](https://bintray.com/coin-or/download/$Description_Bintray_Package)*.
+ * *Mac OS X*: The easiest way to get Cbc on Mac OS X is through [Homebrew](https://brew.sh).
+   * \`brew tap coin-or-tools/coinor\`
+   * \`brew install $lower_case\`
+
+Due to license incompatibilities, pre-compiled binaries lack some functionality.
+If binaries are not available for your platform for the latest version and you would like to request them to be built and posted, feel free to let us know on the mailing list.
+
+*Source code* can be obtained either by
+
+ * Downloading a snapshot of the source code for the latest release version of $Description_ShortName from the
+ [releases](https://github.com/coin-or/$Description_Slug/releases) page.
+ * Cloning the repository from [Github](https://github.com/coin-or/$Description_Slug) or using the 
+\`coinbrew\` script (recommended).  
+
+Below is a quick start guide for building on common platforms. More detailed
+build instructions are
+[here](https://coin-or.github.io/user_introduction.html).
+
+## BUILDING from source
+
+The quick start assumes you are in a bash shell. 
+
+### Using \`coinbrew\`
+
+To build CoinUtils from source, obtain the \`coinbrew\` script, do
+\`\`\`
+wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
+chmod u+x coinbrew
+./coinbrew fetch $Description_Slug@stable/2.10
+./coinbrew build $Description_Slug
+\`\`\`
+For more detailed instructions on coinbrew, see https://coin-or.github.io/coinbrew.
+The \`coinbrew\` script will fetch [these](Dependencies) additional projects.
+
+### Without \`coinbrew\` (Expert users)
+
+Obtain the source code, e.g., by cloning the git repo https://github.com/coin-or/$Description_Slug
+\`\`\`
+./configure -C
+make
+make test
+make install
+\`\`\`
+
+## Doxygen Documentation
+
+If you have \`Doxygen\` available, you can build a HTML documentation by typing
+
+\`make doxygen-docs\` 
+
+in the build directory. If $Description_ShortName was built via \`coinbrew\`, then the build
+directory will be \`./build/$Description_Slug/version\` by default. The doxygen documentation main file
+is found at \`<build-dir>/doxydoc/html/index.html\`.
+
+If you don't have \`doxygen\` installed locally, you can use also find the
+documentation [here](http://coin-or.github.io/$Description_Slug/Doxygen).
+
+## Project Links
+
+ * [COIN-OR Initiative](http://www.coin-or.org/)
+ * [Mailing list](http://list.coin-or.org/mailman/listinfo/$lower_case)
+ * [Report a bug](https://github.com/coin-or/$Description_Slug/issues/new)
+ * [Doxygen-generated html documentation](http://coin-or.github.io/$Description_Slug/Doxygen)
+" 
+
+
+
+
+
