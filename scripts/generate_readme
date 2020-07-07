@@ -58,13 +58,15 @@ echo "# $Description_ShortName
 
 [![Latest Release](https://img.shields.io/github/v/release/coin-or/$Description_Slug?sort=semver)](https://github.com/coin-or/$Description_Slug/releases)
 
-_This file is auto-generated from .coin-or/config.yml. To make 
+_This file is auto-generated from .coin-or/config.yml using the script
+https://github.com/coin-or/coinbrew/tree/master/scripts/generate_readme.
+To make changes, please edit .coin-or/config.yml or the generation script.
 " 
 #for i in "${Description_LongDescription[@]}"
 #do
 #    echo "$i" 
 #done
-awk 'BEGIN{on=0;lead=0} /LongDescription:*/{on=1; match($0, /^ */); lead=RLENGTH; getline} {match($0, /^ */); if (RLENGTH==lead && on==1){ on=0}; if (on==1) print}' projDesc.yml |
+awk 'BEGIN{on=0;lead=0} /LongDescription:*/{on=1; match($0, /^ */); lead=RLENGTH; getline} {match($0, /^ */); if (RLENGTH==lead && on==1){ on=0}; if (on==1) print}' $1 |
 sed 's/^    //' 
 
 echo "
