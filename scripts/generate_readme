@@ -58,9 +58,9 @@ echo "# $Description_ShortName
 
 [![Latest Release](https://img.shields.io/github/v/release/coin-or/$Description_Slug?sort=semver)](https://github.com/coin-or/$Description_Slug/releases)
 
-_This file is auto-generated from .coin-or/config.yml using the script
-https://github.com/coin-or/coinbrew/tree/master/scripts/generate_readme.
-To make changes, please edit .coin-or/config.yml or the generation script.
+_This file is auto-generated from [config.yml](.coin-or/config.yml) using the 
+[generate_readme](https://github.com/coin-or/coinbrew/tree/master/scripts/generate_readme).
+To make changes, please edit [config.yml](.coin-or/config.yml) or the generation script._
 " 
 #for i in "${Description_LongDescription[@]}"
 #do
@@ -134,7 +134,7 @@ chmod u+x coinbrew
 ./coinbrew build $Description_Slug
 \`\`\`
 For more detailed instructions on coinbrew, see https://coin-or.github.io/coinbrew.
-The \`coinbrew\` script will fetch [these](Dependencies) additional projects.
+The \`coinbrew\` script will fetch the additional projects specified in the Dependencies section of [config.yml](.coin-or/config.yml).
 
 ### Without \`coinbrew\` (Expert users)
 
