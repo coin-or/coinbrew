@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 
+function get_version_git {
+
+    current_rev=$(git rev-parse HEAD)
+    if [[ "$(git show-ref --tags | fgrep $current_rev)" == *releases* ]]; then
+	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 3-4
+    elif [[ "$(git show-ref --heads | fgrep $current_rev)" == *stable* ]]; then
+	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 3-4
+    elif [ "$(git show-ref --heads | fgrep $current_rev)" != "" ]; then
+	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3
+    else
+        echo $current_rev
+    fi
+
+}
+
 parse_yaml() {
     local yaml_file=$1
     local prefix=
@@ -52,8 +67,16 @@ create_variables $1
 
 lower_case=$(echo $Description_Slug | tr '[:upper:]' '[:lower:]')
 
-echo "# $Description_ShortName 
+version=$(get_version_git)
+version_num=$(echo $version | cut -d '/' -f 2)
 
+if [ $version = master ]; then
+   echo "# $Description_ShortName"
+else
+   echo "# $Description_ShortName $version_num"
+fi
+   
+echo "
 [![A COIN-OR Project](https://coin-or.github.io/coin-or-badge.png)](https://www.coin-or.org)
 
 [![Latest Release](https://img.shields.io/github/v/release/coin-or/$Description_Slug?sort=semver)](https://github.com/coin-or/$Description_Slug/releases)
@@ -82,9 +105,9 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 
 ## CURRENT BUILD STATUS
 
-[![Build Status](https://travis-ci.com/coin-or/$Description_Slug.svg?branch=master)](https://travis-ci.com/coin-or/$Description_Slug)
+[![Build Status](https://travis-ci.com/coin-or/$Description_Slug.svg?branch=$version)](https://travis-ci.com/coin-or/$Description_Slug)
 
-[![Build status](https://ci.appveyor.com/api/projects/status/$Description_Appveyor_Status/branch/master?svg=true)](https://ci.appveyor.com/project/coin-or/$Description_Slug/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/$Description_Appveyor_Status/branch/$version?svg=true)](https://ci.appveyor.com/project/coin-or/$Description_Slug/branch/$version)
 
 ## DOWNLOAD
 
