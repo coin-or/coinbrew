@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+#########################################################################
+#########################################################################
+
 function get_version_git {
 
     current_rev=$(git rev-parse HEAD)
@@ -15,7 +18,10 @@ function get_version_git {
 
 }
 
-parse_yaml() {
+#########################################################################
+#########################################################################
+
+function parse_yaml {
     local yaml_file=$1
     local prefix=
     local s
@@ -58,41 +64,44 @@ parse_yaml() {
     ) < "$yaml_file"
 }
 
-create_variables() {
+#########################################################################
+#########################################################################
+
+function create_variables {
     local yaml_file="$1"
     eval "$(parse_yaml "$yaml_file")"
+    lower_case=$(echo $Description_Slug | tr '[:upper:]' '[:lower:]')
+
+    version=$(get_version_git)
+    version_num=$(echo $version | cut -d '/' -f 2)
 }
 
-create_variables $1
+#########################################################################
+#########################################################################
 
-lower_case=$(echo $Description_Slug | tr '[:upper:]' '[:lower:]')
-
-version=$(get_version_git)
-version_num=$(echo $version | cut -d '/' -f 2)
-
-if [ $version = master ]; then
-   echo "# $Description_ShortName"
-else
-   echo "# $Description_ShortName $version_num"
-fi
-   
-echo "
+function make_header {
+    if [ $version = master ]; then
+        echo "# $Description_ShortName"
+    else
+        echo "# $Description_ShortName $version_num"
+    fi
+    
+    echo "
 [![A COIN-OR Project](https://coin-or.github.io/coin-or-badge.png)](https://www.coin-or.org)
 
 [![Latest Release](https://img.shields.io/github/v/release/coin-or/$Description_Slug?sort=semver)](https://github.com/coin-or/$Description_Slug/releases)
 
 _This file is auto-generated from [config.yml](.coin-or/config.yml) using the 
-[generate_readme](https://github.com/coin-or/coinbrew/tree/master/scripts/generate_readme).
+[generate_readme](.coin-or/generate_readme).
 To make changes, please edit [config.yml](.coin-or/config.yml) or the generation script._
 " 
-#for i in "${Description_LongDescription[@]}"
-#do
-#    echo "$i" 
-#done
-awk 'BEGIN{on=0;lead=0} /LongDescription:*/{on=1; match($0, /^ */); lead=RLENGTH; getline} {match($0, /^ */); if (RLENGTH==lead && on==1){ on=0}; if (on==1) print}' $1 |
-sed 's/^    //' 
+}
 
-echo "
+#########################################################################
+#########################################################################
+
+function make_build_info {
+    echo "
 $Description_ShortName is written in $Description_Language and is released as open source under the [$Description_License]($Description_LicenseURL).
 
 It is distributed under the auspices of the [COIN-OR Foundation](https://www.coin-or.org)
@@ -121,11 +130,11 @@ Suite](https://github.com/coin-or/COIN-OR-OptimizationSuite) [here](https://hub.
 
 Binaries for most platforms are available as part of [$Description_Bintray_Package](https://bintray.com/coin-or/download/$Description_Bintray_Package). 
 
- * *Linux*: On Debian/Ubuntu, CoinUtils is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
+ * *Linux*: On Debian/Ubuntu, $Description_ShortName is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
  * *Windows*: The easiest way to get $Description_ShortName on Windows is to download from *[Bintray](https://bintray.com/coin-or/download/$Description_Bintray_Package)*.
  * *Mac OS X*: The easiest way to get Cbc on Mac OS X is through [Homebrew](https://brew.sh).
    * \`brew tap coin-or-tools/coinor\`
-   * \`brew install $lower_case\`
+   * \`brew install coin-or-tools/coinor/$lower_case\`
 
 Due to license incompatibilities, pre-compiled binaries lack some functionality.
 If binaries are not available for your platform for the latest version and you would like to request them to be built and posted, feel free to let us know on the mailing list.
@@ -153,7 +162,7 @@ To build CoinUtils from source, obtain the \`coinbrew\` script, do
 \`\`\`
 wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
 chmod u+x coinbrew
-./coinbrew fetch $Description_Slug@stable/2.10
+./coinbrew fetch $Description_Slug@$version
 ./coinbrew build $Description_Slug
 \`\`\`
 For more detailed instructions on coinbrew, see https://coin-or.github.io/coinbrew.
@@ -161,27 +170,43 @@ The \`coinbrew\` script will fetch the additional projects specified in the Depe
 
 ### Without \`coinbrew\` (Expert users)
 
-Obtain the source code, e.g., by cloning the git repo https://github.com/coin-or/$Description_Slug
+ * Download the source code, e.g., by cloning the git repo https://github.com/coin-or/$Description_Slug
+ * Download and install the source code for the dependencies listed in [config.yml](.coin-or/config.yml)
+ * Build the code as follows (make sure to set PKG_CONFIG_PTH to install directory for dependencies).
+
 \`\`\`
 ./configure -C
 make
 make test
 make install
 \`\`\`
+"
+}
 
-## Doxygen Documentation
+#########################################################################
+#########################################################################
+
+function make_doxygen_info {
+    echo "## Doxygen Documentation
 
 If you have \`Doxygen\` available, you can build a HTML documentation by typing
 
 \`make doxygen-docs\` 
 
 in the build directory. If $Description_ShortName was built via \`coinbrew\`, then the build
-directory will be \`./build/$Description_Slug/version\` by default. The doxygen documentation main file
+directory will be \`./build/$Description_Slug/$version_num\` by default. The doxygen documentation main file
 is found at \`<build-dir>/doxydoc/html/index.html\`.
 
 If you don't have \`doxygen\` installed locally, you can use also find the
 documentation [here](http://coin-or.github.io/$Description_Slug/Doxygen).
+"
+}
 
+#########################################################################
+#########################################################################
+
+function make_links {
+    echo "
 ## Project Links
 
  * [COIN-OR Initiative](http://www.coin-or.org/)
@@ -189,7 +214,7 @@ documentation [here](http://coin-or.github.io/$Description_Slug/Doxygen).
  * [Report a bug](https://github.com/coin-or/$Description_Slug/issues/new)
  * [Doxygen-generated html documentation](http://coin-or.github.io/$Description_Slug/Doxygen)
 " 
-
+}
 
 
 

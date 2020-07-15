@@ -1119,12 +1119,18 @@ function parse_dependencies_file {
                 pdirs+=( $(echo ${Dependencies__URL[count]} | cut -d '/' -f 5 |
                                sed 's|-|/|') ) 
                 projs+=( $(echo ${pdirs[count]} | cut -d '/' -f 2) )
-                versions+=( ${Dependencies__Version[count]} )
-                if [ ${versions[count]} = master ]; then
-                    version_nums+=( master )
-                else
-                    version_nums+=( $(echo ${versions[count]} | cut -d '/' -f 2) )
-                fi
+                version_nums+=( ${Dependencies__Version[count]} )
+                case $(echo ${version_nums[count]} | tr -cd '.' | wc -c) in
+                    1)
+                        versions+=( stable/${version_nums[count]} )
+                        ;;
+                    2)
+                        versions+=( releases/${version_nums[count]} )
+                        ;;
+                    *)
+                        versions+=( ${version_nums[count]} )
+                        ;;
+                esac
                 requireds+=( ${Dependencies__Required[count]} )
             done
         fi
@@ -2112,7 +2118,8 @@ if [ $write_yaml = true ]; then
     echo -n "  ShortDescription: " >> $yaml_file
     awk 'BEGIN{on=0} /<projectShortDescription>/{on=1; getline;} /<\/projectShortDescription>/{on=0} {if (on==1) print}' $xml_file | sed 's/^ *//g' >> $yaml_file
     echo "  LongDescription: |2" >> $yaml_file
-    awk 'BEGIN{on=0} /<projectDescription>/{on=1} /<\/projectDescription>/{on=0} {if (on==1) print}' $xml_file | sed -e 's/^ */    /g' -e 's/<projectDescription>//' >> $yaml_file
+    tmp=$(awk 'BEGIN{on=0} /<projectDescription>/{on=1} /<\/projectDescription>/{on=0} {if (on==1) print}' $xml_file | sed -e 's/^ */    /g' -e 's/<projectDescription>//' -e 's/"/\\\"/g' -e "s/'/\\\'/g")
+    echo "\"$tmp\"" >> $yaml_file
     echo -n "  Manager:" >> $yaml_file
     awk 'BEGIN{on=0} /<projectManager>/{print}' $xml_file | sed -e 's/<projectManager>//' -e 's/<\/projectManager>//' -e 's/^ */ /' >> $yaml_file
     echo "  Homepage: $main_proj_url" >> $yaml_file
