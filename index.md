@@ -27,10 +27,10 @@ include the following commands.
   
 ## Download
 
-`coinbrew` consists of a single bash script. To use it, download the file
-
-   [https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew](https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew)
-
+`coinbrew` consists of a single bash script. To use it, download the file with, e.g.,
+```
+wget [https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew](https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew)
+```
 to your system and make sure that it is executable (`chmod u+x coinbrew`).
 
 ## Usage: Interactive mode
