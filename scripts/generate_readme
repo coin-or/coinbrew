@@ -145,8 +145,8 @@ Source code can be obtained either by
 
  * Downloading a snapshot of the source code for the latest release version of $Description_ShortName from the
  [releases](https://github.com/coin-or/$Description_Slug/releases) page.
- * Cloning the repository from [Github](https://github.com/coin-or/$Description_Slug) or using the 
-\`coinbrew\` script (recommended).  
+ * Cloning this repository from [Github](https://github.com/coin-or/$Description_Slug) or 
+ * Using the [coinbrew](https://github.com/coin-or/coinbrew) script to get the project and all dependencies (recommended, see below).   
 
 Below is a quick start guide for building on common platforms. More detailed
 build instructions are

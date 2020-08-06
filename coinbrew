@@ -1083,10 +1083,7 @@ function parse_dependencies_file {
                     else
                         version_num=$(echo $version | cut -d '/' -f 2)
                     fi
-                    if [ ! -d $dir ]; then
-                        # Convert SVN URL to a Github one
-                        url=$(svn2git)
-                    fi
+                    url=$(svn2git)
                 fi
                 urls+=( $url )
                 pdirs+=( $dir )
@@ -2114,7 +2111,8 @@ if [ $write_yaml = true ]; then
     echo "  Language:" >> $yaml_file
     awk 'BEGIN{on=0} /<projectLanguage>/{print}' $xml_file | sed -e 's/<projectLanguage>//' -e 's/<\/projectLanguage>//' -e 's/^ */    - /g' >> $yaml_file
     echo "  Categories: " >> $yaml_file
-    awk 'BEGIN{on=0} /<category>/{on=1; getline;} /<\/category>/{on=0} {if (on==1) print}' $xml_file | sed 's/^ */    - /g' >> $yaml_file
+#    awk 'BEGIN{on=0} /<category>/{on=1; getline;} /<\/category>/{on=0} {if (on==1) print}' $xml_file | sed 's/^ */    - /g' >> $yaml_file
+    awk 'BEGIN{on=0} /<category>/{print}' $xml_file | sed -e 's/<category>//' -e 's/<\/category>//' -e 's/^ */    - /g' >> $yaml_file
     deps=
 fi
 
