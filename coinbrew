@@ -6,11 +6,8 @@
 #
 # TODO
 # - fix dependency-tracking or remove it from configure
-# - consider using pushd/popd instead of cd somewhere/cd ..
-# - look at TODO and FIXME below
 # - Read config.site
 # - Make it possible to build a series of projects
-# - Think about whether to switch Dependencies file to some JSON or YAML format.
 # - Provide an option to build Python extensions
 # - Provide an option to download dependencies in binary format (this is started)
 # - Make autostash work better https://stackoverflow.com/questions/53049088/can-git-remind-me-about-or-auto-apply-a-stash-when-switching-back-into-the-corre/53050054
@@ -71,6 +68,22 @@ function help {
     echo "  --no-prompt,-n Suppress interactive prompts"
     echo "  --help,-h Print help"
     echo 
+
+}
+
+###################################################################################
+# Helpers to switch directories 
+###################################################################################
+
+function pushd_ {
+
+    pushd $1 > /dev/null
+
+}
+
+function popd_ {
+
+    popd > /dev/null
 
 }
 
@@ -938,7 +951,7 @@ function fetch_proj {
     if [ -d $dir ]; then
         # If the project is already checked out, then check whether the checked out
         # version is the correct one. Switch if necessary. Otherwise, just update
-        cd $dir
+        pushd_ $dir
         current_version=$(get_version_git)
         current_rev=$(git rev-parse HEAD)
         if [ $get_latest_release = "true" ] && [[ $version != releases/* ]]; then
@@ -1011,14 +1024,13 @@ function fetch_proj {
         if [ $sparse = "true" ]; then
             print_action "Fetching $dir $version"
             mkdir $dir
-            cd $dir
+            pushd_ $dir
             git init
             git remote add origin $url
             git config core.sparsecheckout true
             echo $proj/ >> .git/info/sparse-checkout
             git fetch --tags
             git checkout $version
-            cd -
         else
             if [ "$sha" = "" ]; then
                 print_action "Fetching $dir $version"
@@ -1026,15 +1038,15 @@ function fetch_proj {
             else
                 print_action "Fetching $dir SHA $sha"
                 git clone $url $dir
-                cd $dir
+                pushd_ $dir
                 git checkout $sha
-                cd -
+                popd_
             fi
-            cd $dir
+            pushd_ $dir
         fi     
         new_rev=$(git rev-parse HEAD)
     fi
-    cd $root_dir
+    popd_
 
     # If this is a third party project, fetch the source if desired
     if [ $get_third_party = "true" ] &&
@@ -1043,10 +1055,10 @@ function fetch_proj {
            [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
         tp_proj=$(echo $dir | cut -d '/' -f 2)
         if [ -e $dir/get.$tp_proj ]; then
-            cd $dir
+            pushd_ $dir
             ./get.$tp_proj
             touch .build
-            cd -
+            popd_
         else
             echo "Not downloading source for $tp_proj..."
         fi
@@ -1096,12 +1108,9 @@ function invoke_make {
 
 function build_proj {
 
-    cd $dir
-    version_num=$(get_version_git)
-    cd $root_dir
     mkdir -p $build_dir/$dir/$version_num
     echo -n $dir/$version_num" " >> $build_dir/coin_subdirs.txt
-    cd $build_dir/$dir/$version_num
+    pushd_ $build_dir/$dir/$version_num
     
     if [ ! -e config.status ] || [ $reconfigure = "true" ]; then
         if [ $reconfigure = "true" ]; then
@@ -1189,7 +1198,7 @@ function build_proj {
             invoke_make 1 test
         fi
     fi
-    cd $root_dir
+    popd_
 
 }
 
@@ -1201,7 +1210,7 @@ function install_proj {
 
     if [ -d $build_dir/$dir/$version_num ]; then
         print_action "Installing $dir $version_num"
-        cd $build_dir/$dir/$version_num
+        pushd_ $build_dir/$dir/$version_num
         sudo=""
         if [ ! -w $prefix ]; then
             if [ ! $(id -u) = 0 ]; then
@@ -1215,7 +1224,7 @@ function install_proj {
         else
             invoke_make 1 install
         fi
-        cd $root_dir
+        popd_
     fi
 }
 
@@ -1227,7 +1236,7 @@ function uninstall_proj {
 
     if [ -d $build_dir/$dir/$version_num ]; then
         print_action "Uninstalling $dir"
-        cd $build_dir/$dir/$version_num
+        pushd_ $build_dir/$dir/$version_num
         sudo=""
         if [ ! -w $prefix ]; then
             if [ ! $(id -u) = 0 ]; then
@@ -1241,7 +1250,7 @@ function uninstall_proj {
         else
             invoke_make 1 uninstall
         fi
-        cd $root_dir
+        popd_
     fi
 
 }
@@ -1279,7 +1288,7 @@ function get_cached_options {
 
 echo "Welcome to the COIN-OR fetch and build utility"
 echo 
-echo "For help, run script with --help."
+echo "For help, run script with --help or see https://coin-or.github.io/coinbrew"
 echo "Please report issues at https://github.com/coin-or/coinbrew"
 echo "Detailed build documentation at https://coin-or.github.io"
 echo 
@@ -1545,7 +1554,7 @@ fi
 ###################################################################################
 
 if [ -d $main_proj_dir ]; then
-    cd $main_proj_dir
+    pushd_ $main_proj_dir
     # Possibly switch url and version for existing projects
     current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' |\
                            tr -s ' '| cut -d ' ' -f 2 | sed s"|\.git||")
@@ -1574,7 +1583,7 @@ if [ -d $main_proj_dir ]; then
             echo
         fi
     fi
-    cd $root_dir
+    popd_
 else
     # If we get here without a version set, then default to latest release
     if [ "$main_proj_version" = "" ]; then
@@ -1712,7 +1721,7 @@ find_skip_projects
 ###################################################################################
 
 if [ $download = "true" ]; then
-    cd $prefix
+    pushd_ $prefix
     if [ x"$download_projs" = x ]; then
         download_projs=${main_proj}@${version_num}
     fi
@@ -1762,7 +1771,7 @@ if [ $download = "true" ]; then
             coin_skip_projects="${coin_skip_projects:-} $additional_skip_projects"
         fi
     done
-    cd -
+    popd_
 fi
 
 ###################################################################################
@@ -1843,7 +1852,6 @@ fi
 if ([ $install = "true" ] && [ $build = "true" ] || [[ $prefix == $root_dir/* ]]) &&
        [ $disable_uninstalled = "true" ]; then
     export PKG_CONFIG_DISABLE_UNINSTALLED=TRUE
-    echo
     echo "Disabling uninstalled packages"
 fi
 
@@ -1861,46 +1869,53 @@ do
     sha=
 
     # Get the source (if requested)
-    if should_fetch && [ $dir != $main_proj_dir ]; then
-        if [ ! -d $dir ] && [ $fetch != "true" ]; then
-            print_action "Warning: project $dir is missing, fetching automatically"
-        fi
-        # Determine the desired version
-        if [[ $url == *github* ]]; then
-            #The URL is for a git project
-            version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
-            if [ $version != "master" ]; then
-                version_num=$(echo $version | cut -d '/' -f 2)
+    if [ $dir != $main_proj_dir ]; then
+        if should_fetch && [ $dir != $main_proj_dir ]; then
+            if [ ! -d $dir ] && [ $fetch != "true" ]; then
+                print_action "Warning: project $dir is missing, fetching automatically"
+            fi
+            # Determine the desired version
+            if [[ $url == *github* ]]; then
+                #The URL is for a git project
+                version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
+                if [ $version != "master" ]; then
+                    version_num=$(echo $version | cut -d '/' -f 2)
+                else
+                    version_num=master
+                fi
             else
-                version_num=master
+                #The URL is for an old SVN project
+                version=$(get_version_svn $url)
+                if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
+                    version=$(echo $version | cut -d '/' -f 2)
+                fi
+                if [ $version = "trunk" ]; then
+                    version=master
+                    version_num=master
+                else
+                    version_num=$(echo $version | cut -d '/' -f 2)
+                fi
+                if [ ! -d $dir ]; then
+                    # Convert SVN URL to a Github one
+                    url=$(svn2git)
+                fi
             fi
-        else
-            #The URL is for an old SVN project
-            version=$(get_version_svn $url)
-            if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
-                version=$(echo $version | cut -d '/' -f 2)
-            fi
-            if [ $version = "trunk" ]; then
-                version=master
-                version_num=master
+            # Now fetch the project
+            fetch_proj
+        elif [ $fetch = true ]; then
+            if [ -d $dir ]; then 
+                print_action "Skipping update of $dir"
             else
-                version_num=$(echo $version | cut -d '/' -f 2)
+                print_action "Skipping $dir"
             fi
-            if [ ! -d $dir ]; then
-                # Convert SVN URL to a Github one
-                url=$(svn2git)
-            fi
-        fi
-        # Now fetch the project
-        fetch_proj
-    elif [ $fetch = true ] && [ $dir != $main_proj_dir ]; then
-        if [ -d $dir ]; then 
-            print_action "Skipping update of $dir"
-        else
-            print_action "Skipping $dir"
         fi
     fi
-    
+
+    #Now set the version number according to the version we currently have checked out
+    pushd_ $dir
+    version_num=$(get_version_git)
+    popd_
+
     # Build the project (if requested)
     if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
         if should_build $dir; then
