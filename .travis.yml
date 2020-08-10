@@ -47,6 +47,14 @@ matrix:
         apt:
           packages:
           - gfortran
+      env: PROJECT="Cbc@master" 
+           BUILD_ARGS="--skip='ThirdParty/Metis ThirdParty/Mumps'"
+           INSTALL=true
+    - os: linux
+      addons:
+        apt:
+          packages:
+          - gfortran
       env: PROJECT="Osi@0.108"
            BUILD_ARGS="--latest-release"
     - os: linux
