@@ -1912,9 +1912,13 @@ do
     fi
 
     #Now set the version number according to the version we currently have checked out
-    pushd_ $dir
-    version_num=$(get_version_git)
-    popd_
+    if [ -d $dir ]; then
+        pushd_ $dir
+        version_num=$(get_version_git)
+        popd_
+    else
+        continue
+    fi
 
     # Build the project (if requested)
     if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
