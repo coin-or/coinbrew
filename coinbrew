@@ -706,7 +706,8 @@ function get_version_git {
     elif [[ "$(git show-ref --heads | fgrep $current_rev)" == *stable* ]]; then
 	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4
     elif [ "$(git show-ref --heads | fgrep $current_rev)" != "" ]; then
-	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3
+        # If more than one version matches, just take the last
+	git show-ref --heads | fgrep $current_rev | cut -d '/' -f 3 | tail -1
     else
         echo $current_rev
     fi
