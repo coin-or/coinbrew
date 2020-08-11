@@ -3,15 +3,15 @@
 case $CC in
     gcc*)
         if [ $TRAVIS_OS_NAME = osx ]; then
-            export CC=gcc-9
-            export CXX=g++-9
-            export CCVERSION=gcc9
+            CC=gcc-9
+            CXX=g++-9
+            CCVERSION=gcc9
         else
-            export CCVERSION=gcc$($CC -dumpversion)
+            CCVERSION=gcc$($CC -dumpversion)
         fi
         ;;
     clang)
-        export CCVERSION=clang$(clang --version | fgrep version | \
+        CCVERSION=clang$(clang --version | fgrep version | \
                                 sed "s/.*version \([0-9]*\.[0-9]*\).*/\1/" | \
                                 cut -d "." -f 1)
         ;;
@@ -19,32 +19,32 @@ esac
 declare -a DBG_ARGS
 declare -a ADD_ARGS
 declare -a COMMON_ARGS
-export DBG_ARGS=()
-export ADD_ARGS=()
-export COMMON_ARGS=()
+DBG_ARGS=()
+ADD_ARGS=()
+COMMON_ARGS=()
 if [ "$DEBUG" = "true" ]; then
-    export DBGN="-dbg"
-    export DBG_ARGS+=( --enable-debug )
-    export CXXFLAGS="-Og -g"
+    DBGN="-dbg"
+    DBG_ARGS+=( --enable-debug )
+    CXXFLAGS="-Og -g"
 fi
 if [ "$ASAN" = "true" ]; then
-    export ASN="-asan"
-    export ADD_CXXFLAGS="${ADD_CXXFLAGS} -fsanitize=address"
-    export LDFLAGS="-lasan"
+    ASN="-asan"
+    ADD_CXXFLAGS="${ADD_CXXFLAGS} -fsanitize=address"
+    LDFLAGS="-lasan"
 fi
 if [ "$BUILD_STATIC" = "true" ]; then
-    export STATIC="-static"
-    export ADD_ARGS+=( --static --with-lapack='-llapack -lblas -lgfortran -lquadmath -lm' )
+    STATIC="-static"
+    ADD_ARGS+=( --static --with-lapack='-llapack -lblas -lgfortran -lquadmath -lm' )
 fi
 if [ "$CXX_FLAGS" != "" ]; then
-    export ADD_ARGS+=( CXXFLAGS=${CXXFLAGS} )
+    ADD_ARGS+=( CXXFLAGS=${CXXFLAGS} )
 fi
 if [ "$LD_FLAGS" != "" ]; then
-    export ADD_ARGS+=( LDFLAGS=${LDFLAGS} )
+    ADD_ARGS+=( LDFLAGS=${LDFLAGS} )
 fi
-export COMMON_ARGS=( --no-prompt --verbosity ${VERBOSITY:-2} --tests main --enable-relocatable )
-export PLATFORM=$TRAVIS_OS_NAME${OSX:-}-x86_64-$CCVERSION
-export PROJECT_URL=https://github.com/$TRAVIS_REPO_SLUG
+COMMON_ARGS=( --no-prompt --verbosity ${VERBOSITY:-2} --tests main --enable-relocatable )
+PLATFORM=$TRAVIS_OS_NAME${OSX:-}-x86_64-$CCVERSION
+PROJECT_URL=https://github.com/$TRAVIS_REPO_SLUG
 if [ $TRAVIS_OS_NAME = windows ]; then
-    export PATH=/C/tools/msys64/mingw64/bin:$PATH
+    PATH=/C/tools/msys64/mingw64/bin:$PATH
 fi
