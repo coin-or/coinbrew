@@ -37,6 +37,7 @@ function help {
     echo "             --latest-release Fetch latest releases of projects"
     echo "             --time check out project and all dependencies at a time stamp"
     echo "             --auto-stash stash changes before switching versions (experimental)"
+    echo "             --no-rebase Pull without rebase (default is with rebase)"
     echo
     echo "  build: Configure, build, test (optional), and install all projects"
     echo "    options: --configure-help (print help on build configuration"
@@ -358,6 +359,9 @@ function parse_args {
                 ;;
             --latest-release)
                 get_latest_release=true
+                ;;
+            --no-rebase)
+                rebase=false
                 ;;
             fetch)
                 num_actions+=1
@@ -987,20 +991,35 @@ function fetch_proj {
                 git checkout $(git rev-list -n 1 --first-parent --before="$checkout_time" \
                                    remotes/origin/$version)
             else
-                print_action "Switching $dir to $version"
+                if [ $rebase = "true" ]; then
+                    print_action "Switching $dir to $version and rebasing"
+                    git pull --rebase
+                else
+                    print_action "Switching $dir to $version and updating"
+                    git pull
+                fi
                 git checkout $version
-            fi
-            if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
-                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
-                # We should somehow check whether this causes conflicts
-                git pull
+                if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
+                       [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
+                    # We should somehow check whether this causes conflicts
+                    if [ $rebase = "true" ]; then
+                        git pull --rebase
+                    else
+                        git pull
+                    fi
+                fi
             fi
         else
             if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
                    [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
                 # We should somehow check whether this causes conflicts
-                print_action "Updating $dir $version"
-                git pull
+                if [ $rebase = "true" ]; then
+                    print_action "Rebasing $dir $version"
+                    git pull --rebase
+                else
+                    print_action "Updating $dir $version"
+                    git pull
+                fi
             else
                 print_action "$dir version is a release (skipping update)"
             fi
@@ -1363,6 +1382,7 @@ get_latest_release=false
 auto_stash=false
 download_projs=
 keep_current=false
+rebase=true
 
 ###################################################################################
 # Parse the command-line arguments
