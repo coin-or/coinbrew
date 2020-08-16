@@ -363,6 +363,7 @@ function parse_args {
                 ;;
             --no-rebase)
                 rebase=false
+                ;;
             --enable-optional)
                 get_optional=true
                 ;;
