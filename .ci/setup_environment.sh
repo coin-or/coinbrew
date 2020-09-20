@@ -2,7 +2,7 @@
 
 case $CC in
     gcc*)
-        if [ $TRAVIS_OS_NAME = osx ]; then
+        if [ "$TRAVIS_OS_NAME" = "osx" ]; then
             export CC=gcc-9
             export CXX=g++-9
             export CCVERSION=gcc9
@@ -19,12 +19,12 @@ esac
 declare -a DBG_ARGS
 declare -a ADD_ARGS
 declare -a COMMON_ARGS
-export DBG_ARGS=()
-export ADD_ARGS=()
-export COMMON_ARGS=()
+DBG_ARGS=()
+ADD_ARGS=()
+COMMON_ARGS=()
 if [ "$DEBUG" = "true" ]; then
     export DBGN="-dbg"
-    export DBG_ARGS+=( --enable-debug )
+    DBG_ARGS+=( --enable-debug )
     export CXXFLAGS="-Og -g"
 fi
 if [ "$ASAN" = "true" ]; then
@@ -34,17 +34,17 @@ if [ "$ASAN" = "true" ]; then
 fi
 if [ "$BUILD_STATIC" = "true" ]; then
     export STATIC="-static"
-    export ADD_ARGS+=( --static --with-lapack='-llapack -lblas -lgfortran -lquadmath -lm' )
+    ADD_ARGS+=( --static --with-lapack='-llapack -lblas -lgfortran -lquadmath -lm' )
 fi
 if [ "$CXX_FLAGS" != "" ]; then
-    export ADD_ARGS+=( CXXFLAGS=${CXXFLAGS} )
+    ADD_ARGS+=( CXXFLAGS=${CXXFLAGS} )
 fi
 if [ "$LD_FLAGS" != "" ]; then
-    export ADD_ARGS+=( LDFLAGS=${LDFLAGS} )
+    ADD_ARGS+=( LDFLAGS=${LDFLAGS} )
 fi
-export COMMON_ARGS=( --no-prompt --verbosity ${VERBOSITY:-2} --tests main --enable-relocatable )
+COMMON_ARGS=( --no-prompt --verbosity ${VERBOSITY:-2} --tests main --enable-relocatable )
 export PLATFORM=$TRAVIS_OS_NAME${OSX:-}-x86_64-$CCVERSION
 export PROJECT_URL=https://github.com/$TRAVIS_REPO_SLUG
-if [ $TRAVIS_OS_NAME = windows ]; then
+if [ "$TRAVIS_OS_NAME" = "windows" ]; then
     export PATH=/C/tools/msys64/mingw64/bin:$PATH
 fi
