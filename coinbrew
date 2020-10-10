@@ -6,6 +6,7 @@
 #
 # TODO
 # - fix dependency-tracking or remove it from configure
+# - Add option to update all current checkouts (like fetch, but no version checks) 
 # - Read config.site
 # - Make it possible to build a series of projects
 # - Provide an option to build Python extensions
@@ -362,6 +363,9 @@ function parse_args {
                 ;;
             --no-rebase)
                 rebase=false
+                ;;
+            --off-line)
+                offline=true
                 ;;
             fetch)
                 num_actions+=1
@@ -1383,6 +1387,7 @@ auto_stash=false
 download_projs=
 keep_current=false
 rebase=true
+offline=false
 
 ###################################################################################
 # Parse the command-line arguments
@@ -1529,7 +1534,9 @@ fi
 # Figure out what version the user really wants
 ###################################################################################
 
-latest_release=$(git ls-remote --tags $main_proj_url)
+if [ $offline = "false" ]; then
+    latest_release=$(git ls-remote --tags $main_proj_url)
+fi
 if echo "$latest_release" | fgrep releases &> /dev/null ; then
     latest_release=$(echo "$latest_release" | fgrep releases | \
 	  	         cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
