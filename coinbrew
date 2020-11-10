@@ -995,6 +995,7 @@ function fetch_proj {
                 git checkout $(git rev-list -n 1 --first-parent --before="$checkout_time" \
                                    remotes/origin/$version)
             else
+                git checkout $version
                 if [ $rebase = "true" ]; then
                     print_action "Switching $dir to $version and rebasing"
                     git pull --rebase
