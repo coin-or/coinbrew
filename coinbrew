@@ -997,20 +997,18 @@ function fetch_proj {
             else
                 if [ $rebase = "true" ]; then
                     print_action "Switching $dir to $version and rebasing"
-                    git pull --rebase
                 else
                     print_action "Switching $dir to $version and updating"
-                    git pull
                 fi
                 git checkout $version
-                if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
-                       [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
-                    # We should somehow check whether this causes conflicts
-                    if [ $rebase = "true" ]; then
-                        git pull --rebase
-                    else
-                        git pull
-                    fi
+            fi
+            if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
+                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
+                # We should somehow check whether this causes conflicts
+                if [ $rebase = "true" ]; then
+                    git pull --rebase
+                else
+                    git pull
                 fi
             fi
         else
