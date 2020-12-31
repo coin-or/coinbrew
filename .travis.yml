@@ -64,8 +64,17 @@ matrix:
           - gfortran
       env: PROJECT="SYMPHONY@stable/5.6" 
     - os: osx
-      env: PROJECT="Osi --no-prompt" 
+      osx_image: xcode12
+      env: OSX=10.15 
+           CC=gcc 
+           CXX=g++ 
+           PROJECT="Osi --no-prompt" 
            BUILD_ARGS="ADD_CXXFLAGS=-DFOO"
+    - os: osx
+      osx_image: xcode12
+      env: OSX=10.15  
+           PROJECT="Osi --no-prompt" 
+      compiler: clang
 
 before_script:
   - |-
