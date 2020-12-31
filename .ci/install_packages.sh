@@ -4,7 +4,7 @@ case $TRAVIS_OS_NAME in
     osx)
         brew update
         for pkg in metis bash gcc; do
-            if [ x$(brew list | fgrep $pkg) != x$pkg ]; then
+            if [ x$(brew list --formula | fgrep $pkg) != x$pkg ]; then
                 brew install $pkg
             fi
         done
