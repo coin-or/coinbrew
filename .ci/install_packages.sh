@@ -3,11 +3,11 @@
 case $TRAVIS_OS_NAME in
     osx)
         brew update
-        for pkg in metis bash gcc; do
-            if [ x$(brew list --formula | fgrep $pkg) != x$pkg ]; then
-                brew install $pkg
-            fi
-        done
+#        for pkg in metis bash gcc; do
+#            if [ x$(brew list --formula | fgrep $pkg) != x$pkg ]; then
+#                brew install $pkg
+#            fi
+#        done
         ;;
     windows)
         [[ ! -f C:/tools/msys64/msys2_shell.cmd ]] && rm -rf C:/tools/msys64
