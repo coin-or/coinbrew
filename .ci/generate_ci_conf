@@ -48,7 +48,7 @@ do
         if [ -e .ci/.travis.post ]; then
             eacho "Warning: .travis.post still exists"
         fi
-        git add .travis.yml
+        #git add .travis.yml
         if [ -e .ci/appveyor.pre ]; then
             cat .ci/appveyor.pre > appveyor.yml
             echo >> appveyor.yml
@@ -76,8 +76,8 @@ do
         if [ -e .ci/appveyor.post ]; then
             eacho "Warning: appveyor.post still exists"
         fi
-        git add appveyor.yml
-        git commit -m "Updating Travis and Appveyor"
+        #git add appveyor.yml
+        #git commit -m "Updating Travis and Appveyor"
         cd -
     fi
     shift

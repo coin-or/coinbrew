@@ -82,9 +82,9 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 
 ## CURRENT BUILD STATUS
 
-[![Build Status](https://travis-ci.org/coin-or/$Description_Slug.svg?branch=master)](https://travis-ci.org/coin-or/$Description_Slug)
+[![Build Status](https://travis-ci.com/coin-or/$Description_Slug.svg?branch=master)](https://travis-ci.com/coin-or/$Description_Slug)
 
-[![Build status](https://ci.appveyor.com/api/projects/status/$Description_Appveyor_Status/branch/master?svg=true)](https://ci.appveyor.com/project/tkralphs/$Description_Appveyor_Slug/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/$Description_Appveyor_Status/branch/master?svg=true)](https://ci.appveyor.com/project/coin-or/$Description_Slug/branch/master)
 
 ## DOWNLOAD
 
