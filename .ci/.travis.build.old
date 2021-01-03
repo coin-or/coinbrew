@@ -2,7 +2,7 @@ matrix:
   include:
     - os: linux
       dist: bionic
-      env: BUILD_STATIC=true DEBUG=false ASAN=false ADD_CXXFLAGS=-fvisibility=hidden
+      env: BUILD_STATIC=true DEBUG=false ASAN=false
       addons:
         apt:
           packages:
@@ -12,7 +12,7 @@ matrix:
             - libnauty2-dev
     - os: linux
       dist: bionic
-      env: BUILD_STATIC=false DEBUG=false ASAN=false ADD_CXXFLAGS=-fvisibility=hidden
+      env: BUILD_STATIC=false DEBUG=false ASAN=false
       addons:
         apt:
           packages:
@@ -22,7 +22,7 @@ matrix:
             - libnauty2-dev
     - os: linux
       dist: xenial
-      env: BUILD_STATIC=true DEBUG=false ASAN=false ADD_CXXFLAGS=-fvisibility=hidden
+      env: BUILD_STATIC=true DEBUG=false ASAN=false
       addons:
         apt:
           packages:
@@ -92,7 +92,7 @@ before_install:
 before_script:
 - |-
     ############# Fetching Dependencies ##############
-    $BASH coinbrew/coinbrew fetch $PROJECT --no-prompt --skip-update
+    $BASH coinbrew/coinbrew fetch $PROJECT --no-prompt --skip-update --skip='ThirdParty/Metis ThirdParty/Mumps ThirdParty/Blas ThirdParty/Lapack'
 
 script:
 - |-
@@ -101,4 +101,4 @@ script:
     if [ "$BUILD_STATIC" = "true" ]; then 
        ADD_ARGS=( --no-third-party --enable-static --disable-shared --without-lapack --disable-readline --disable-bzlib --disable-zlib --without-cholmod --without-amd --static CXXFLAGS="-static -O2 -DNDEBUG" )
     fi
-    $BASH coinbrew/coinbrew build $PROJECT "${COMMON_ARGS[@]}" "${ADD_ARGS[@]}" "${DBG_ARGS[@]}" ADD_CXXFLAGS="${ADD_CXXFLAGS}" CC=${CC} CXX=${CXX}
+    $BASH coinbrew/coinbrew build $PROJECT --skip='ThirdParty/Metis ThirdParty/Mumps ThirdParty/Blas ThirdParty/Lapack' "${COMMON_ARGS[@]}" "${ADD_ARGS[@]}" "${DBG_ARGS[@]}" ADD_CXXFLAGS="${ADD_CXXFLAGS}" CC=${CC} CXX=${CXX} 
