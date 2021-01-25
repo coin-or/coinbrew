@@ -1006,7 +1006,7 @@ function fetch_proj {
                    [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
                 # We should somehow check whether this causes conflicts
                 if [ $rebase = "true" ]; then
-                    git pull --rebase
+                    git pull --rebase --autostash
                 else
                     git pull
                 fi
@@ -1017,7 +1017,7 @@ function fetch_proj {
                 # We should somehow check whether this causes conflicts
                 if [ $rebase = "true" ]; then
                     print_action "Rebasing $dir $version"
-                    git pull --rebase
+                    git pull --rebase --autostash
                 else
                     print_action "Updating $dir $version"
                     git pull
