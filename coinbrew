@@ -1180,7 +1180,8 @@ function fetch_proj {
                 git checkout $version
             fi
             if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
-                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
+                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ] &&
+                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(detached" ]; then
                 # We should somehow check whether this causes conflicts
                 if [ $rebase = "true" ]; then
                     git pull --rebase --autostash
@@ -1190,7 +1191,8 @@ function fetch_proj {
             fi
         else
             if [ $(git branch | grep \* | cut -d ' ' -f 2) != "(HEAD" ] &&
-                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ]; then
+                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(no" ] &&
+                   [ $(git branch | grep \* | cut -d ' ' -f 2) != "(detached" ]; then
                 # We should somehow check whether this causes conflicts
                 if [ $rebase = "true" ]; then
                     print_action "Rebasing $dir $version"
