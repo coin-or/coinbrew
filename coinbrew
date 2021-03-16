@@ -1410,7 +1410,7 @@ function install_proj {
         if [ ! -w $prefix ]; then
             if [ ! $(id -u) = 0 ]; then
                 echo "Prefix is not writable."
-                echo "Install step needs to be run with sudo"
+                echo "Install step will be run with sudo"
                 sudo=sudo
             fi
         fi
