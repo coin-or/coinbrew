@@ -124,14 +124,18 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 
 There is a Docker image that provides $Description_ShortName, as well as other projects
 in the [COIN-OR Optimization
-Suite](https://github.com/coin-or/COIN-OR-OptimizationSuite)[here](https://hub.docker.com/repository/docker/coinor/coin-or-optimization-suite)
+Suite](https://github.com/coin-or/COIN-OR-OptimizationSuite) [here](https://hub.docker.com/repository/docker/coinor/coin-or-optimization-suite)
 
 ### Binaries
 
-Binaries for most platforms are available as part of [$Description_Bintray_Package](https://bintray.com/coin-or/download/$Description_Bintray_Package). 
+For newer releases, binaries will be made available as assets attached to
+releases in Github
+[here](https://github.com/coin-or/$Description_Slug/releases). Older binaries
+are archived as part of $Description_Bintray_Package
+[here](https://www.coin-or.org/download/binary/$Description_Bintray_Package).
 
  * *Linux*: On Debian/Ubuntu, $Description_ShortName is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
- * *Windows*: The easiest way to get $Description_ShortName on Windows is to download from *[Bintray](https://bintray.com/coin-or/download/$Description_Bintray_Package)*.
+ * *Windows*: The easiest way to get $Description_ShortName on Windows is to download an archive as described above.
  * *Mac OS X*: The easiest way to get Cbc on Mac OS X is through [Homebrew](https://brew.sh).
    * \`brew tap coin-or-tools/coinor\`
    * \`brew install coin-or-tools/coinor/$lower_case\`
