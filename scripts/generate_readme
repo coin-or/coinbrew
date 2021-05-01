@@ -114,7 +114,7 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 
 ## CURRENT BUILD STATUS
 
-[![Build Status](https://travis-ci.com/coin-or/$Description_Slug.svg?branch=$version)](https://travis-ci.com/coin-or/$Description_Slug)
+[![Build Status](https://github.com/coin-or/CoinUtils/actions/workflows/ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/CoinUtils/actions/workflows/ci.yml?query=branch%3A$version)
 
 [![Build status](https://ci.appveyor.com/api/projects/status/$Description_Appveyor_Status/branch/$version?svg=true)](https://ci.appveyor.com/project/coin-or/$Description_Slug/branch/$version)
 
