@@ -96,10 +96,10 @@ Suite](https://github.com/coin-or/COIN-OR-OptimizationSuite) [here](https://hub.
 
 ### Binaries
 
-Binaries for most platforms are available as part of [$Description_Bintray_Package](https://bintray.com/coin-or/download/$Description_Bintray_Package). 
+Binaries for most platforms are available on the [COIN-OR website](https://www.coin-or.org/download/binary/$Description_IncludedIn_Package), or as a [Github Release](https://github.com/coin-or/$Description_Slug/releases).
 
  * *Linux*: On Debian/Ubuntu, CoinUtils is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
- * *Windows*: The easiest way to get $Description_ShortName on Windows is to download from *[Bintray](https://bintray.com/coin-or/download/$Description_Bintray_Package)*.
+ * *Windows*: The easiest way to get $Description_ShortName on Windows is to download from the above links.
  * *Mac OS X*: The easiest way to get Cbc on Mac OS X is through [Homebrew](https://brew.sh).
    * \`brew tap coin-or-tools/coinor\`
    * \`brew install $lower_case\`

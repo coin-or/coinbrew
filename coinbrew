@@ -1785,9 +1785,9 @@ if [ $download = "true" ]; then
             if [[ $platform == *msvc* ]]; then
                 download_file=$dl_proj-$dl_proj_version_num-$platform.zip
             else
-                download_file=$dl_proj-$dl_proj_version_num-$platform.tgz
+                download_file=$dl_proj-$dl_proj_version_num-$platform.tar.gz
             fi
-            wget https://bintray.com/coin-or/download/download_file?file_path=$download_file \
+            wget https://github.com/coin-or/$dl_proj/releases/download/$dl_proj_version_num/$download_file \
                  -O $download_file
             if [[ $platform == *msvc* ]]; then
                 unzip $download_file
