@@ -82,9 +82,7 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 
 ## CURRENT BUILD STATUS
 
-[![Build Status](https://travis-ci.com/coin-or/$Description_Slug.svg?branch=master)](https://travis-ci.com/coin-or/$Description_Slug)
-
-[![Build status](https://ci.appveyor.com/api/projects/status/$Description_Appveyor_Status/branch/master?svg=true)](https://ci.appveyor.com/project/coin-or/$Description_Slug/branch/master)
+[![Build Status](https://github.com/coin-or/$Description_Slug/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/coin-or/$Description_Slug/actions/workflows/ci.yml?query=branch%3Amaster)
 
 ## DOWNLOAD
 
@@ -96,10 +94,13 @@ Suite](https://github.com/coin-or/COIN-OR-OptimizationSuite) [here](https://hub.
 
 ### Binaries
 
-Binaries for most platforms are available on the [COIN-OR website](https://www.coin-or.org/download/binary/$Description_IncludedIn_Package), or as a [Github Release](https://github.com/coin-or/$Description_Slug/releases).
+For newer releases, binaries will be made available as assets attached to
+releases in [Github Release](https://github.com/coin-or/$Description_Slug/releases).
+Older binaries are archived as part of $Description_IncludedIn_Package
+[here](https://www.coin-or.org/download/binary/$Description_IncludedIn_Package).
 
- * *Linux*: On Debian/Ubuntu, CoinUtils is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
- * *Windows*: The easiest way to get $Description_ShortName on Windows is to download from the above links.
+ * *Linux*: On Debian/Ubuntu, $Description_ShortName is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
+ * *Windows*: The easiest way to get $Description_ShortName on Windows is to download [the latest release](https://github.com/coin-or/$Description_Slug/releases).
  * *Mac OS X*: The easiest way to get Cbc on Mac OS X is through [Homebrew](https://brew.sh).
    * \`brew tap coin-or-tools/coinor\`
    * \`brew install $lower_case\`
@@ -126,7 +127,7 @@ The quick start assumes you are in a bash shell.
 
 ### Using \`coinbrew\`
 
-To build CoinUtils from source, obtain the \`coinbrew\` script, do
+To build $Description_ShortName from source, obtain the \`coinbrew\` script, do
 \`\`\`
 wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
 chmod u+x coinbrew
