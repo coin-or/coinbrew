@@ -879,8 +879,11 @@ function prompt_for_version {
         esac
     done
     case $choice in
-        y) main_proj_version=releases/$(git ls-remote --tags $main_proj_url | fgrep releases | \
-                                            cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | \
+        y) main_proj_version=releases/$(git ls-remote --tags $main_proj_url | \
+                                            fgrep releases | \
+                                            fgrep -v -e "^{}" | \
+                                            cut -d '/' -f 4 | \
+                                            sort -nr -t. -k1,1 -k2,2 -k3,3 | \
                                             head -1)
            ;;
         n) echo "Please enter another version name in the form of"
