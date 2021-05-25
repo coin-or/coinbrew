@@ -695,6 +695,9 @@ function get_version_git {
     current_rev=$(git rev-parse HEAD)
     if [[ "$(git show-ref --tags | fgrep $current_rev)" == *releases* ]]; then
 	git show-ref --tags | fgrep $current_rev | fgrep releases | cut -d '/' -f 4
+    elif [[ "$(git ls-remote --tags | fgrep $current_rev)" == *releases* ]]; then
+	git ls-remote --tags | fgrep $current_rev | fgrep releases | \
+            cut -d '/' -f 4 | cut -d '^' -f 1
     elif [[ "$(git show-ref --heads | fgrep $current_rev)" == *stable* ]]; then
 	git show-ref --heads | fgrep $current_rev | fgrep stable | cut -d '/' -f 4
     elif [ "$(git show-ref --heads | fgrep $current_rev)" != "" ]; then
@@ -1214,6 +1217,7 @@ function fetch_proj {
             latest_release=$(git ls-remote --tags $url)
             if echo "$latest_release" | fgrep releases &> /dev/null ; then
                 tmp=$(echo "$latest_release" | fgrep releases | \
+                          fgrep -v -e "^{}" | \
 	  	          cut -d '/' -f 4 | awk "/^$version_num/{print;}" | \
                           sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
                 if [ "$tmp" != "" ]; then
@@ -1827,7 +1831,9 @@ if [ $offline = "false" ]; then
 fi
 if echo "$latest_release" | fgrep releases &> /dev/null ; then
     latest_release=$(echo "$latest_release" | fgrep releases | \
-	  	         cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
+                         fgrep -v -e "^{}" | \
+	  	         cut -d '/' -f 4 | sort -nr -t. -k1,1 -k2,2 -k3,3 | \
+                         head -1)
 fi
 if [ $get_latest_release = "true" ] ; then
     if [ -n "$latest_release" ] ; then
