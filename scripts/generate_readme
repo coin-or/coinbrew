@@ -114,9 +114,9 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 
 ## CURRENT BUILD STATUS
 
-[![Windows Builds](https://github.com/coin-or/CoinUtils/actions/workflows/windows-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/CoinUtils/actions/workflows/windows-ci.yml?query=branch%3A$version)
+[![Windows Builds](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml?query=branch%3A$version)
 
-[![Linux and MacOS Builds](https://github.com/coin-or/CoinUtils/actions/workflows/linux-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/CoinUtils/actions/workflows/linux-ci.yml?query=branch%3A$version)
+[![Linux and MacOS Builds](https://github.com/coin-or/$Description_Slug/actions/workflows/linux-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/$Description_Slug/actions/workflows/linux-ci.yml?query=branch%3A$version)
 
 ## DOWNLOAD
 
