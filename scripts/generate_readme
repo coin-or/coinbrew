@@ -93,7 +93,8 @@ function make_header {
 
 _This file is auto-generated from [config.yml](.coin-or/config.yml) using the 
 [generate_readme](.coin-or/generate_readme) script.
-To make changes, please edit [config.yml](.coin-or/config.yml) or the generation script._
+To make changes, please edit [config.yml](.coin-or/config.yml) or the generation scripts
+[here](.coin-or/generate_readme) and [here](https://github.com/coin-or/coinbrew/blob/master/scripts/generate_readme)._
 " 
 }
 
