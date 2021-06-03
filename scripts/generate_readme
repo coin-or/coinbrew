@@ -137,7 +137,7 @@ are archived as part of $Description_Bintray_Package
 
  * *Linux*: On Debian/Ubuntu, $Description_ShortName is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
  * *Windows*: The easiest way to get $Description_ShortName on Windows is to download an archive as described above.
- * *Mac OS X*: The easiest way to get Cbc on Mac OS X is through [Homebrew](https://brew.sh).
+ * *Mac OS X*: The easiest way to get $Description_ShortName on Mac OS X is through [Homebrew](https://brew.sh).
    * \`brew tap coin-or-tools/coinor\`
    * \`brew install coin-or-tools/coinor/$lower_case\`
 
@@ -163,7 +163,7 @@ The quick start assumes you are in a bash shell.
 
 ### Using \`coinbrew\`
 
-To build CoinUtils from source, obtain the \`coinbrew\` script, do
+To build $Description_ShortName from source, obtain the \`coinbrew\` script, do
 \`\`\`
 wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
 chmod u+x coinbrew
