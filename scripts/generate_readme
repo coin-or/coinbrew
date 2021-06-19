@@ -132,8 +132,8 @@ Suite](https://github.com/coin-or/COIN-OR-OptimizationSuite) [here](https://hub.
 For newer releases, binaries will be made available as assets attached to
 releases in Github
 [here](https://github.com/coin-or/$Description_Slug/releases). Older binaries
-are archived as part of $Description_Bintray_Package
-[here](https://www.coin-or.org/download/binary/$Description_Bintray_Package).
+are archived as part of $Description_IncludedIn_Package
+[here](https://www.coin-or.org/download/binary/$Description_IncludedIn_Package).
 
  * *Linux*: On Debian/Ubuntu, $Description_ShortName is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
  * *Windows*: The easiest way to get $Description_ShortName on Windows is to download an archive as described above.
