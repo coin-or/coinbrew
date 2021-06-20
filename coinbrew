@@ -1809,19 +1809,19 @@ fi
 if [ "$(echo $main_proj | cut -d '-' -f 1)" = "CHiPPS" ]; then
     case $(echo $main_proj | cut -d '-' -f 2) in
         ALPS)
-            if [ -d CHiPPS-ALPS ]; then
+            if [ -d CHiPPS-ALPS ] && [ ! -d Alps ]; then
                 ln -s CHiPPS-ALPS Alps
             fi
             main_proj_dir=Alps
             ;;
         BiCePS)
-            if [ -d CHiPPS-BiCePS ]; then
+            if [ -d CHiPPS-BiCePS ] && [ ! -d Bcps ]; then
                 ln -s CHiPPS-BiCePS Bcps
             fi
             main_proj_dir=Bcps
             ;;
         BLIS)
-            if [ -d CHiPPS-BLIS ]; then
+            if [ -d CHiPPS-BLIS ] && [ ! -d Blis ]; then
                 ln -s CHiPPS-BLIS Blis
             fi
             main_proj_dir=Blis
