@@ -1810,24 +1810,21 @@ if [ "$(echo $main_proj | cut -d '-' -f 1)" = "CHiPPS" ]; then
     case $(echo $main_proj | cut -d '-' -f 2) in
         ALPS)
             if [ -d CHiPPS-ALPS ]; then
-                main_proj_dir=CHiPPS-ALPS
-            else
-                main_proj_dir=Alps
+                ln -s CHiPPS-ALPS Alps
             fi
+            main_proj_dir=Alps
             ;;
         BiCePS)
             if [ -d CHiPPS-BiCePS ]; then
-                main_proj_dir=CHiPPS-BiCePS
-            else
-                main_proj_dir=Bcps
+                ln -s CHiPPS-BiCePS Bcps
             fi
+            main_proj_dir=Bcps
             ;;
         BLIS)
             if [ -d CHiPPS-BLIS ]; then
-                main_proj_dir=CHiPPS-BLIS
-            else
-                main_proj_dir=Blis
+                ln -s CHiPPS-BLIS Blis
             fi
+            main_proj_dir=Blis
             ;;
     esac
 else
