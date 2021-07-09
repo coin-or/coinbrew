@@ -1127,7 +1127,7 @@ function invoke_make {
         fi
         set -e
     else
-        $sudo $MAKE V=1 -j $jobs $@
+        $sudo $MAKE V=$(($v-3)) -j $jobs $@
     fi
 
 }
@@ -1220,7 +1220,7 @@ function build_proj {
         export LD_LIBRARY_PATH="$prefix/lib:${LD_LIBRARY_PATH:-}"
         if [ $verbosity -ge 2 ]; then
             if [ "$main_proj" != "" ] && [ $main_proj_dir = $dir ]; then
-                invoke_make $((verbosity+1)) test
+                invoke_make $((verbosity)) test
             else
                 invoke_make 1 test
             fi
