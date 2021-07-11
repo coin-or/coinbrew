@@ -1342,7 +1342,7 @@ function build_proj {
                 "$config_script" --disable-dependency-tracking --prefix=$prefix \
                                  "${!configure_options[@]}"
                 msg ""
-                msg"Here is the contents of config.log"
+                msg "Here is the contents of config.log"
                 msg ""
                 cat config.log
                 if [ "$(command -v pkg-config)" = "" ] &&
