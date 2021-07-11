@@ -1338,7 +1338,7 @@ function build_proj {
             if [ $? -ne 0 ]; then
                 msg ""
                 msg "Configuration failed, re-running with output enabled"
-                meg ""
+                msg ""
                 "$config_script" --disable-dependency-tracking --prefix=$prefix \
                                  "${!configure_options[@]}"
                 msg ""
