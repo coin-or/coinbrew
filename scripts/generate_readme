@@ -95,7 +95,11 @@ _This file is auto-generated from [config.yml](.coin-or/config.yml) using the
 [generate_readme](.coin-or/generate_readme) script.
 To make changes, please edit [config.yml](.coin-or/config.yml) or the generation scripts
 [here](.coin-or/generate_readme) and [here](https://github.com/coin-or/coinbrew/blob/master/scripts/generate_readme)._
-" 
+
+## CITE
+
+[![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
+"
 }
 
 #########################################################################
@@ -109,10 +113,6 @@ It is distributed under the auspices of the [COIN-OR Foundation](https://www.coi
 
 The $Description_ShortName development site is https://github.com/coin-or/$Description_Slug.
 
-## CITE
-
-[![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
-
 ## CURRENT BUILD STATUS
 
 [![Windows Builds](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml?query=branch%3A$version)
@@ -120,6 +120,10 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 [![Linux and MacOS Builds](https://github.com/coin-or/$Description_Slug/actions/workflows/linux-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/$Description_Slug/actions/workflows/linux-ci.yml?query=branch%3A$version)
 
 ## DOWNLOAD
+
+What follows is a quick start guide for obtaining or building
+$Description_ShortName on common platforms. More detailed information is
+available [here](https://coin-or.github.io/user_introduction.html).
 
 ### Docker image
 
@@ -153,9 +157,16 @@ Source code can be obtained either by
  * Cloning this repository from [Github](https://github.com/coin-or/$Description_Slug) or 
  * Using the [coinbrew](https://github.com/coin-or/coinbrew) script to get the project and all dependencies (recommended, see below).   
 
-Below is a quick start guide for building on common platforms. More detailed
-build instructions are
-[here](https://coin-or.github.io/user_introduction.html).
+### Dependencies
+
+$Description_ShortName has a number of dependencies, which are detailed in
+[config.yml](.coin-or/config.yml). Dependencies on other COIN-OR projects are
+automatically downloaded when obtaining the source with `coinbrew`. For some
+of the remaining third-party dependencies, automatic download scripts and
+build wrappers are provided (and will also be automatically run for required
+and recommended dependencies), while other libraries that are aeasy to obtain
+must be installed using an appropriate package manager (or may come with your
+OS by default). 
 
 ## BUILDING from source
 
