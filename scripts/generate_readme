@@ -81,8 +81,8 @@ function create_variables {
             ;;
     esac
 
-    if [ x"${2-}" != x ];then
-        version=$2
+    if [ x"${COIN_VERSION_OVERRIDE-}" != x ];then
+        version=$COIN_VERSION_OVERRIDE
     else
         version=$(get_version_git)
     fi
