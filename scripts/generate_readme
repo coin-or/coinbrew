@@ -81,7 +81,11 @@ function create_variables {
             ;;
     esac
 
-    version=$(get_version_git)
+    if [ x"${2-}" != x ];then
+        version=$2
+    else
+        version=$(get_version_git)
+    fi
     version_num=$(echo $version | cut -d '/' -f 2)
 }
 
@@ -123,9 +127,15 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 
 Code: [![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
 
-Paper: $Description_PaperCite
+"
+    
+    if [ x"${Description_PaperCite-}" != x ]; then
+        echo "Paper: $Description_PaperCite
 
-## CURRENT BUILD STATUS
+"
+    fi
+
+    echo "## CURRENT BUILD STATUS
 
 [![Windows Builds](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml?query=branch%3A$version)
 
@@ -227,9 +237,15 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 
 Code: [![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
 
-Paper: $Description_PaperCite
+"
+    
+    if [ -z "$Description_PaperCite" ]; then
+        echo "Paper: $Description_PaperCite
 
-## CURRENT BUILD STATUS
+"
+    fi
+
+    echo"## CURRENT BUILD STATUS
 
 [![Windows Builds](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml?query=branch%3A$version)
 
@@ -338,6 +354,7 @@ function make_links {
     echo "
 ## Project Links
 
+ * [Code of Conduct](https://www.coin-or.org/code-of-conduct/)
  * [COIN-OR Web Site](http://www.coin-or.org/)
  * [Discussion formum](https://github.com/coin-or/$Description_Slug/discussions)
  * [Report a bug](https://github.com/coin-or/$Description_Slug/issues/new)
