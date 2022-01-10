@@ -201,7 +201,7 @@ following on the command line.
 \`\`\`
 wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
 chmod u+x coinbrew
-./coinbrew fetch $Coinbrew_ShortName@$version
+./coinbrew fetch $Coinbrew_ShortName@$version_num
 ./coinbrew build $Coinbrew_ShortName
 \`\`\`
 For more detailed instructions on coinbrew, see https://coin-or.github.io/coinbrew.
@@ -307,7 +307,7 @@ following on the command line.
 \`\`\`
 wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
 chmod u+x coinbrew
-./coinbrew fetch $Coinbrew_ShortName@$version
+./coinbrew fetch $Coinbrew_ShortName@$version_num
 ./coinbrew build $Coinbrew_ShortName
 \`\`\`
 For more detailed instructions on coinbrew, see https://coin-or.github.io/coinbrew.
