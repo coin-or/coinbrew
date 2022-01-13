@@ -173,8 +173,8 @@ If binaries are not available for your platform for the latest version and you w
 Source code can be obtained either by
 
  * Downloading a snapshot of the source code for the latest release version of $Description_ShortName from the
- [releases](https://github.com/coin-or/$Description_Slug/releases) page.
- * Cloning this repository from [Github](https://github.com/coin-or/$Description_Slug) or 
+ [releases](https://github.com/coin-or/$Description_Slug/releases) page,
+ * Cloning this repository from [Github](https://github.com/coin-or/$Description_Slug), or 
  * Using the [coinbrew](https://github.com/coin-or/coinbrew) script to get the project and all dependencies (recommended, see below).   
 
 ### Dependencies
