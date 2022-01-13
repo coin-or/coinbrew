@@ -42,7 +42,7 @@ fi
 if [ "$LD_FLAGS" != "" ]; then
     ADD_ARGS+=( LDFLAGS=${LDFLAGS} )
 fi
-COMMON_ARGS=( --no-prompt --verbosity ${VERBOSITY:-2} --tests main --enable-relocatable )
+COMMON_ARGS=( --no-prompt --verbosity ${VERBOSITY:-2} --tests main --enable-relocatable --disable-mysql )
 export PLATFORM=$TRAVIS_OS_NAME${OSX:-}-x86_64-$CCVERSION
 export PROJECT_URL=https://github.com/$TRAVIS_REPO_SLUG
 if [ "$TRAVIS_OS_NAME" = "windows" ]; then
