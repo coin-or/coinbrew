@@ -126,14 +126,12 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 ## CITE
 
 Code: [![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
-
 "
     
-    if [ x"${Description_PaperCite-}" != x ]; then
-        echo "Paper: $Description_PaperCite
-
+   if [ x"${Description_PaperCite-}" != x ]; then
+       echo "Paper: $Description_PaperCite
 "
-    fi
+   fi
 
     echo "## CURRENT BUILD STATUS
 
@@ -236,16 +234,14 @@ The $Description_ShortName development site is https://github.com/coin-or/$Descr
 ## CITE
 
 Code: [![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
-
 "
     
-    if [ -z "$Description_PaperCite" ]; then
-        echo "Paper: $Description_PaperCite
-
+   if [ x"${Description_PaperCite-}" != x ]; then
+       echo "Paper: $Description_PaperCite
 "
     fi
 
-    echo"## CURRENT BUILD STATUS
+    echo "## CURRENT BUILD STATUS
 
 [![Windows Builds](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml/badge.svg?branch=$version)](https://github.com/coin-or/$Description_Slug/actions/workflows/windows-ci.yml?query=branch%3A$version)
 
