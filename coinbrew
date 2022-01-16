@@ -361,8 +361,8 @@ function parse_args {
             --disable-recommended)
                 get_recommended=false
                 ;;
-            --yaml)
-                read_yaml=true
+            --no-yaml)
+                read_yaml=false
                 ;;
             yaml)
                 num_actions+=1
@@ -1675,7 +1675,7 @@ keep_current=false
 rebase=true
 use_color=true
 offline=false
-read_yaml=false
+read_yaml=true
 write_yaml=false
 get_optional=false
 get_recommended=true
