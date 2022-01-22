@@ -1112,10 +1112,18 @@ function parse_dependencies_file {
                 version_nums+=( ${Dependencies__Version[count]} )
                 case $(echo ${version_nums[count]} | tr -cd '.' | wc -c) in
                     1)
-                        versions+=( stable/${version_nums[count]} )
+			if [[ ${version_nums[count]} != stable* ]]; then
+                            versions+=( stable/${version_nums[count]} )
+			else
+			    versions+=( ${version_nums[count]} )
+			fi
                         ;;
                     2)
-                        versions+=( releases/${version_nums[count]} )
+			if [[ ${version_nums[count]} != releases* ]]; then
+                            versions+=( releases/${version_nums[count]} )
+			else
+			    versions+=( ${version_nums[count]} )
+			fi
                         ;;
                     *)
                         versions+=( ${version_nums[count]} )
@@ -1156,7 +1164,8 @@ function fetch_proj {
         if [ $keep_current = "true" ]; then
             version=$current_version
         fi
-        if [[ $version != *$current_version ]] ||
+        if ([[ $version != *$current_version ]] &&
+                [ $(git rev-parse $version) != $current_rev ]) ||
                ([ "$sha" != "" ] && [[ $current_rev != $sha* ]]) ||
                [ "$checkout_time" != "" ]; then
             git fetch --tags
@@ -1257,8 +1266,7 @@ function fetch_proj {
 
     # If this is a third party project, fetch the source if desired
     if [ $get_third_party = "true" ] &&
-           ([ "$current_rev" != "$new_rev" ] ||
-                [[ $version != *$current_version ]]) &&
+           [ "$current_rev" != "$new_rev" ] &&
            [ $(echo $dir | cut -d '/' -f 1) = ThirdParty ]; then
         tp_proj=$(echo $dir | cut -d '/' -f 2)
         if [ -e $dir/get.$tp_proj ]; then
