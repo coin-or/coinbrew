@@ -1598,8 +1598,9 @@ die() {
 # Main script starts here
 ###########################################################################
 
-echo "Welcome to the COIN-OR fetch and build utility"
+echo "Welcome to the COIN-OR fetch and build utility, version 2"
 echo 
+echo "To use the legacy version of coinbrew, '$ wget https://raw.githubusercontent.com/coin-or/coinbrew/1.0/coinbrew'"
 echo "For help, run script with --help or see https://coin-or.github.io/coinbrew"
 echo "Please report issues at https://github.com/coin-or/coinbrew"
 echo "Detailed build documentation at https://coin-or.github.io"
