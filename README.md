@@ -10,8 +10,15 @@ not mentioned here, so please feel free to ask questions!
 
 ## Quick start example
 
+To use the latest version of coinbrew, simply download the `coinbrew` script from `master` and select the desired build target.
 ```
 wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
+./coinbrew build Cbc@stable/2.10
+```
+
+To use the legacy version, grab the 1.0 tag.
+```
+wget https://raw.githubusercontent.com/coin-or/coinbrew/1.0/coinbrew
 ./coinbrew build Cbc@stable/2.10
 ```
 
