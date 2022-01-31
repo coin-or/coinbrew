@@ -16,9 +16,9 @@ wget https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
 ./coinbrew build Cbc@stable/2.10
 ```
 
-To use the legacy version, grab the 1.0 tag.
+To use the legacy version, grab the v1.0 tag.
 ```
-wget https://raw.githubusercontent.com/coin-or/coinbrew/1.0/coinbrew
+wget https://raw.githubusercontent.com/coin-or/coinbrew/v1.0/coinbrew
 ./coinbrew build Cbc@stable/2.10
 ```
 
