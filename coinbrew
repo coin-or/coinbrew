@@ -1157,8 +1157,11 @@ function fetch_proj {
             if [[ $version != stable/* ]]; then
                 echo "Warning: Dependency is not a stable version, will not be converted to release"
             else 
-                version=$(git tag --list "${version/stable/releases}*" \
-                              | sort -V | tail -1)
+                tmp=$(git tag --list "${version/stable/releases}*" \
+                          | sort -V | tail -1)
+                if [ x$tmp != x ]; then
+                    version=$tmp
+                fi
             fi
         fi
         if [ $keep_current = "true" ]; then
