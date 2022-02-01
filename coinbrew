@@ -1227,7 +1227,7 @@ function fetch_proj {
             if echo "$latest_release" | fgrep releases &> /dev/null ; then
                 tmp=$(echo "$latest_release" | fgrep releases | \
                           fgrep -v -e "^{}" | \
-	  	          cut -d '/' -f 4 | awk "/^$version_num/{print;}" | \
+	  	          cut -d '/' -f 4 | awk "/^${versionnum/\//\\\/}/{print;}" | \
                           sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
                 if [ "$tmp" != "" ]; then
                     version=releases/$tmp
