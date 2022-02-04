@@ -1110,7 +1110,7 @@ function parse_dependencies_file {
                                sed 's|-|/|') ) 
                 projs+=( $(echo ${pdirs[count]} | cut -d '/' -f 2) )
                 version_nums+=( ${Dependencies__Version[count]} )
-                case $(echo ${version_nums[count]} | tr -cd '.' | wc -c) in
+                case $(echo ${version_nums[count]} | tr -cd '.' | wc -c | tr -d ' ') in
                     1)
 			if [[ ${version_nums[count]} != stable* ]]; then
                             versions+=( stable/${version_nums[count]} )
