@@ -1032,22 +1032,23 @@ function prompt_for_rebuild {
 function parse_dependencies_file {
     dep_file=
     if [ "$main_proj" = "" ]; then
-        if [ -e Dependencies ] && [ $read_yaml = false ];  then
-            dep_file=Dependencies
-        elif [ -e .coin-or/Dependencies ] && [ $read_yaml = false ]; then
-            dep_file=.coin-or/Dependencies
-        elif [ -e .coin-or/config.yml ]; then
+        if [ -e .coin-or/config.yml ] && [ $read_yaml = true ]; then
             dep_file=.coin-or/config.yml
+        elif [ -e Dependencies ];  then
+            dep_file=Dependencies
+        elif [ -e .coin-or/Dependencies ]; then
+            dep_file=.coin-or/Dependencies
         fi
     else
-        if [ -e $main_proj_dir/Dependencies ] && [ $read_yaml = false ]; then
+        if [ -e $main_proj_dir/.coin-or/config.yml ] &&
+               [ $read_yaml = true ]; then
+            dep_file=$main_proj_dir/.coin-or/config.yml
+        elif [ -e $main_proj_dir/Dependencies ]; then
             dep_file=$main_proj_dir/Dependencies
-        elif [ -e $main_proj_dir/.coin-or/Dependencies ] && [ $read_yaml = false ]; then
+        elif [ -e $main_proj_dir/.coin-or/Dependencies ]; then
             dep_file=$main_proj_dir/.coin-or/Dependencies
         elif [ -e $main_proj_dir/$main_proj_dir/Dependencies ] && [ $read_yaml = false ]; then
             dep_file=$main_proj_dir/$main_proj_dir/Dependencies
-        elif [ -e $main_proj_dir/.coin-or/config.yml ]; then
-            dep_file=$main_proj_dir/.coin-or/config.yml
         fi
     fi
 
