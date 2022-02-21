@@ -2193,10 +2193,6 @@ do
     required=${requireds[count]}
     sha=
 
-    if [ ! -d $dir ] && [ $fetch != "true" ]; then
-        print_action "Warning: project $dir is missing, fetching automatically"
-    fi
-
     if [ $write_yaml = true ] && [ $dir != $main_proj_dir ]; then
         tmp=$(echo $url | sed "s|https://github.com/||" | sed "s|git@github.com:||" | \
                   cut -d "/" -f 2)
@@ -2229,6 +2225,9 @@ do
     # Get the source (if requested)
     if [ $dir != $main_proj_dir ]; then
         if should_fetch; then
+            if [ ! -d $dir ]; then
+                print_action "Warning: project $dir is missing, fetching automatically"
+            fi
             fetch_proj
         elif [ $fetch = true ]; then
             if [ -d $dir ]; then 
