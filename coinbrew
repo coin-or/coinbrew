@@ -2225,7 +2225,7 @@ do
     # Get the source (if requested)
     if [ $dir != $main_proj_dir ]; then
         if should_fetch; then
-            if [ ! -d $dir ]; then
+            if [ ! -d $dir ] && [ $fetch != "true" ]; then
                 print_action "Warning: project $dir is missing, fetching automatically"
             fi
             fetch_proj
