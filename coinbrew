@@ -710,7 +710,7 @@ function get_version_git {
 }
 
 ###################################################################################
-# Determine version from an SVN URL (there are still some SVN URLs in Dependencies
+# Determine version from an SVN URL (there are still some SVN URLs in Dependencies)
 ###################################################################################
 
 function get_version_svn {
@@ -2193,6 +2193,18 @@ do
     required=${requireds[count]}
     sha=
 
+    case $proj in
+        ALPS)
+            dir=Alps
+            ;;
+        BiCePS)
+            dir=Bcps
+            ;;
+        BLIS)
+            dir=Blis
+            ;;
+    esac
+    
     if [ $write_yaml = true ] && [ $dir != $main_proj_dir ]; then
         tmp=$(echo $url | sed "s|https://github.com/||" | sed "s|git@github.com:||" | \
                   cut -d "/" -f 2)
