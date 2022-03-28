@@ -119,7 +119,7 @@ function make_build_info {
     echo "
 $Description_ShortName is written in $Description_Language and is released as open source under the [$Description_License]($Description_LicenseURL).
 
-It is distributed under the auspices of the [COIN-OR Foundation](https://www.coin-or.org)
+It is distributed under the auspices of the [COIN-OR Foundation](https://www.coin-or.org).
 
 The $Description_ShortName development site is https://github.com/coin-or/$Description_Slug.
 
@@ -190,7 +190,7 @@ OS by default).
 
 ## BUILDING from source
 
-The quick start assumes you are in a bash shell. 
+These quick start instructions assumes you are in a bash shell. 
 
 ### Using \`coinbrew\`
 
@@ -352,7 +352,7 @@ function make_links {
 
  * [Code of Conduct](https://www.coin-or.org/code-of-conduct/)
  * [COIN-OR Web Site](http://www.coin-or.org/)
- * [Discussion formum](https://github.com/coin-or/$Description_Slug/discussions)
+ * [Discussion forum](https://github.com/coin-or/$Description_Slug/discussions)
  * [Report a bug](https://github.com/coin-or/$Description_Slug/issues/new)
  * [Doxygen-generated html documentation](http://coin-or.github.io/$Description_Slug/Doxygen)
 " 
