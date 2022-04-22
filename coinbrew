@@ -52,6 +52,7 @@ function help {
     echo "             --prefix,-p </dir/to/install> where to install (default: $PWD/dist)"
     echo "             --skip-dependencies don't build dependencies, only main project"
     echo "             --no-third-party don't build third party projects"
+    echo "             --off-line build in offline mode (no network access)"
     echo "             --static build static executables on Linux and OS X" 
     echo "             --download-binary <'proj1 proj2'> list of binary packages to download"
     echo "             --platform <string> string specifying platform (required for binaries)"
