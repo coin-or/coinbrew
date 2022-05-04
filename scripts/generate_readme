@@ -102,6 +102,11 @@ function make_header {
     echo "
 [![A COIN-OR Project](https://coin-or.github.io/coin-or-badge.png)](https://www.coin-or.org)
 
+Projects such as this one are maintained by a small group of volunteers under
+the auspices of the non-profit [COIN-OR Foundation](https://www.coin-or.org)
+and we need your help! Please consider [sponsoring our
+activities](https://github.com/sponsors/coin-or).
+
 [![Latest Release](https://img.shields.io/github/v/release/coin-or/$Description_Slug?sort=semver)](https://github.com/coin-or/$Description_Slug/releases)
 
 _This file is auto-generated from [config.yml](.coin-or/config.yml) using the 
@@ -159,11 +164,37 @@ releases in Github
 are archived as part of $Description_IncludedIn_Package
 [here](https://www.coin-or.org/download/binary/$Description_IncludedIn_Package).
 
- * *Linux*: On Debian/Ubuntu, $Description_ShortName is available in the package \`coinor-$lower_case\` and can be installed with apt. On Fedora, $Description_ShortName is available in the package \`coin-or-$Description_Slug\`.
+ * *Linux* (see https://repology.org/project/coin-or-$lower_case/versions for a complete listing): 
+   * arch:
+     \`\`\`
+     $ sudo pacman -S  coin-or-$lower_case
+     \`\`\`
+   * Debian/Ubuntu:
+     \`\`\`
+     $ sudo apt-get install  coinor-$lower_case coinor-lib$lower_case-dev
+     \`\`\`
+   * Fedora/Redhat/CentOS:
+     \`\`\`
+     $ sudo yum install  coin-or-$Description_Slug coin-or-$Description_Slug-devel
+     \`\`\`
+   * freebsd:
+     \`\`\`
+     $ sudo pkg install math/$lower_case
+     \`\`\`
+   * linuxbrew:
+     \`\`\`
+     $ brew install $lower_case
+     \`\`\`
  * *Windows*: The easiest way to get $Description_ShortName on Windows is to download an archive as described above.
  * *Mac OS X*: The easiest way to get $Description_ShortName on Mac OS X is through [Homebrew](https://brew.sh).
-   * \`brew tap coin-or-tools/coinor\`
-   * \`brew install coin-or-tools/coinor/$lower_case\`
+     \`\`\`
+     $ brew tap coin-or-tools/coinor
+     $ brew install coin-or-tools/coinor/$lower_case
+     \`\`\`
+ * *conda* (cross-platform, no Windows for now):
+     \`\`\`
+     $ conda install coin$lower_case
+     \`\`\`
 
 Due to license incompatibilities, pre-compiled binaries lack some functionality.
 If binaries are not available for your platform for the latest version and you would like to request them to be built and posted, feel free to let us know on the mailing list.
@@ -352,7 +383,8 @@ function make_links {
 
  * [Code of Conduct](https://www.coin-or.org/code-of-conduct/)
  * [COIN-OR Web Site](http://www.coin-or.org/)
- * [Discussion forum](https://github.com/coin-or/$Description_Slug/discussions)
+ * [COIN-OR general discussion forum](https://github.com/orgs/coin-or/discussions)
+ * [$Description_ShortName Discussion forum](https://github.com/coin-or/$Description_Slug/discussions)
  * [Report a bug](https://github.com/coin-or/$Description_Slug/issues/new)
  * [Doxygen-generated html documentation](http://coin-or.github.io/$Description_Slug/Doxygen)
 " 
