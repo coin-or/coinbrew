@@ -867,7 +867,7 @@ function prompt_for_main {
     echo " 18. Optimization Services"
     echo " 19. MibS"
     echo " 20. DisCO"
-    echo " 21. All"
+    echo " 21. COIN-OR-OptimizationSuite (everything)"
     echo " 22. Let me enter another project"
     echo -n "=> "
     read choice
