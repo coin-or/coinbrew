@@ -191,13 +191,19 @@ are archived as part of $Description_IncludedIn_Package
      $ brew tap coin-or-tools/coinor
      $ brew install coin-or-tools/coinor/$lower_case
      \`\`\`
- * *conda* (cross-platform, no Windows for now):
+"
+   if [ "${1-}" != "no_conda" ]; then
+       echo "* *conda* (cross-platform, no Windows for now):
      \`\`\`
-     $ conda install coin$lower_case
+     $ conda install coin-or-$lower_case
      \`\`\`
-
-Due to license incompatibilities, pre-compiled binaries lack some functionality.
-If binaries are not available for your platform for the latest version and you would like to request them to be built and posted, feel free to let us know on the mailing list.
+"
+   fi
+   
+   echo "Due to license incompatibilities, pre-compiled binaries lack some 
+functionality. If binaries are not available for your platform for the latest 
+version and you would like to request them to be built and posted, feel free 
+to let us know on the mailing list. 
 
 ### Source
 
@@ -221,7 +227,7 @@ OS by default).
 
 ## BUILDING from source
 
-These quick start instructions assumes you are in a bash shell. 
+These quick start instructions assume you are in a bash shell. 
 
 ### Using \`coinbrew\`
 
@@ -386,7 +392,7 @@ function make_links {
  * [COIN-OR general discussion forum](https://github.com/orgs/coin-or/discussions)
  * [$Description_ShortName Discussion forum](https://github.com/coin-or/$Description_Slug/discussions)
  * [Report a bug](https://github.com/coin-or/$Description_Slug/issues/new)
- * [Doxygen-generated html documentation](http://coin-or.github.io/$Description_Slug/Doxygen)
+ * [Doxygen generated documentation](http://coin-or.github.io/$Description_Slug/Doxygen)
 " 
 }
 
