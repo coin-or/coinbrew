@@ -1111,21 +1111,13 @@ function parse_dependencies_file {
                 pdirs+=( $(echo ${Dependencies__URL[count]} | cut -d '/' -f 5 |
                                sed 's|-|/|') ) 
                 projs+=( $(echo ${pdirs[count]} | cut -d '/' -f 2) )
-                version_nums+=( ${Dependencies__Version[count]} )
+                version_nums+=( $(echo ${Dependencies__Version[count]} | cut -d '/' -f 2) )
                 case $(echo ${version_nums[count]} | tr -cd '.' | wc -c | tr -d ' ') in
                     1)
-			if [[ ${version_nums[count]} != stable* ]]; then
-                            versions+=( stable/${version_nums[count]} )
-			else
-			    versions+=( ${version_nums[count]} )
-			fi
+                        versions+=( stable/${version_nums[count]} )
                         ;;
                     2)
-			if [[ ${version_nums[count]} != releases* ]]; then
-                            versions+=( releases/${version_nums[count]} )
-			else
-			    versions+=( ${version_nums[count]} )
-			fi
+                        versions+=( releases/${version_nums[count]} )
                         ;;
                     *)
                         versions+=( ${version_nums[count]} )
@@ -1232,7 +1224,7 @@ function fetch_proj {
             if echo "$latest_release" | fgrep releases &> /dev/null ; then
                 tmp=$(echo "$latest_release" | fgrep releases | \
                           fgrep -v -e "^{}" | \
-	  	          cut -d '/' -f 4 | awk "/^${version_num/\//\\\/}/{print;}" | \
+	  	          cut -d '/' -f 4 | awk "/^${version_num}/{print;}" | \
                           sort -nr -t. -k1,1 -k2,2 -k3,3 | head -1)
                 if [ "$tmp" != "" ]; then
                     version=releases/$tmp
