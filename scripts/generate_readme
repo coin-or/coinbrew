@@ -369,7 +369,7 @@ function make_doxygen_info {
 
 If you have \`Doxygen\` available, you can build a HTML documentation by typing
 
-\`make doxygen-docs\` 
+\`make doxydoc\` 
 
 in the build directory. If $Description_ShortName was built via \`coinbrew\`, then the build
 directory will be \`./build/$Description_Slug/$version_num\` by default. The doxygen documentation main file
