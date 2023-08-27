@@ -1881,10 +1881,6 @@ if [ "$main_proj_version" != "" ] && [ $build = "true" ] && [ $fetch != "true" ]
     echo
 fi
 
-if [[ $main_proj_version == releases/* ]]; then
-    get_latest_release=true
-fi
-
 ###################################################################################
 # Check whether project is already checked out and set URL appropriately
 ###################################################################################
@@ -1945,6 +1941,10 @@ else
     fi
 fi
     
+if [[ $main_proj_version == releases/* ]]; then
+    get_latest_release=true
+fi
+
 ###################################################################################
 # This changes the default separator used in for loops to carriage return.
 # We need this later.
