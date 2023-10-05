@@ -2362,7 +2362,7 @@ fi
 
 if [ $install = "true" ]; then
     if command -v ld >/dev/null 2>&1; then
-        if [[ $(ld --verbose | grep SEARCH_DIR) =~ $prefix/lib ]]; then
+        if [[ $(ld --verbose 2>/dev/null | grep SEARCH_DIR) =~ $prefix/lib ]]; then
             if command -v /sbin/ldconfig >/dev/null 2>&1; then
                 echo
                 echo "Running ldconfig to update library cache"
