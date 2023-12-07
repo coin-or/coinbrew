@@ -2,7 +2,7 @@
 
 This script works like a package manager to fetch, build, and install COIN-OR
 projects, along with their dependencies, from their respective git
-repositories. The projects are intalled in subdirectories at the same level as
+repositories. The projects are installed in subdirectories at the same level as
 the `coinbrew` script, which fetches the source from GitHub, builds the code,
 and installs the binaries, libraries, and header files. It has many features
 that are yet to be documented. It can probably do what you need even if it is
