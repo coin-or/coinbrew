@@ -41,9 +41,8 @@ function help {
     echo "             --no-rebase Pull without rebase (default is with rebase)"
     echo
     echo "  build: Configure, build, test (optional), and install all projects"
-    echo "    options: --configure-help (print help on build configuration"
-    echo "             --xxx=yyy (will be passed through to configure)"
-    echo "             VAR=xxx (will be passed through to configure)"
+    echo "    options: ** Any unrecognized option beginning with '--' or containing an '='"
+    echo "             ** will be passed straight through to the configure command"
     echo "             --parallel-jobs,-j <n> build in parallel with maximum 'n' jobs (default: 1)"
     echo "             --build-dir,-b </dir/to/build/in> where to build (default: $PWD/build)"
     echo "             --tests,-t <all|main|none> which tests to do before install (default: all)"
