@@ -1157,7 +1157,7 @@ function fetch_proj {
                 fi
             fi
         fi
-        if [ $keep_current = "true" ]; then
+        if [ $keep_current = "true" ] || [ $version = "master" ]; then
             version=$current_version
         fi
         if ([[ $version != *$current_version ]] &&
