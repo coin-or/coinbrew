@@ -1250,6 +1250,7 @@ function fetch_proj {
                     git clone $url $dir
                 else
                     git clone --branch=$version $url $dir
+                fi
             else
                 print_action "Fetching $dir SHA $sha"
                 git clone $url $dir
