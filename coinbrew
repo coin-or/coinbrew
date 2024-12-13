@@ -1157,7 +1157,7 @@ function fetch_proj {
                 fi
             fi
         fi
-        if [ $keep_current = "true" ]; then
+        if [ $keep_current = "true" ] || [ $version = "master" ]; then
             version=$current_version
         fi
         if ([[ $version != *$current_version ]] &&
@@ -1246,7 +1246,11 @@ function fetch_proj {
         else
             if [ "$sha" = "" ]; then
                 print_action "Fetching $dir $version"
-                git clone --branch=$version $url $dir
+                if [ "$version" = "master" ]; then
+                    git clone $url $dir
+                else
+                    git clone --branch=$version $url $dir
+                fi
             else
                 print_action "Fetching $dir SHA $sha"
                 git clone $url $dir
