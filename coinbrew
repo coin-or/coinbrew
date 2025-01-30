@@ -1246,7 +1246,7 @@ function fetch_proj {
         else
             if [ "$sha" = "" ]; then
                 print_action "Fetching $dir $version"
-                git clone --branch=$version $url $dir
+                git clone -c advice.detachedHead=false --branch=$version $url $dir
             else
                 print_action "Fetching $dir SHA $sha"
                 git clone $url $dir
