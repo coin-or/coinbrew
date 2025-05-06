@@ -683,6 +683,28 @@ function should_fetch {
     done
     IFS=$TMP_IFS
 
+    case $required in
+        *ecommended)
+            if [ $get_recommended = true ]; then
+                return 0
+            else
+                print_action "Skipping $dir (--disable-recommended was specified)"
+                return 1
+            fi
+            ;;
+        *ptional)
+            if [ $get_optional = true ]; then
+                return 0
+            else
+                print_action "Skipping $dir (--enable-optional to fetch)"
+                return 1
+            fi
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+
     return 0
 }
 
