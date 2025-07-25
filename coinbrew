@@ -14,7 +14,7 @@
 # - Make autostash work better https://stackoverflow.com/questions/53049088/can-git-remind-me-about-or-auto-apply-a-stash-when-switching-back-into-the-corre/53050054
 
 # script debugging
-#set -x
+set -x
 #PS4='${LINENO}:${PWD}: '
 
 ###################################################################################
@@ -1524,11 +1524,11 @@ function download_binaries {
                 dl_proj_version=master
             fi
             if [[ $platform == *msvc* ]]; then
-                download_file=$dl_proj-$dl_proj_version_num-$platform.zip
+                download_file=$dl_proj-releases.$dl_proj_version_num-$platform.zip
             else
-                download_file=$dl_proj-$dl_proj_version_num-$platform.tgz
+                download_file=$dl_proj-releases.$dl_proj_version_num-$platform.tgz
             fi
-            wget https://bintray.com/coin-or/download/download_file?file_path=$download_file \
+            wget https://github.com/coin-or/Cbc/releases/download/releases/$dl_proj_version_num/$download_file \
                  -O $download_file
             if [[ $platform == *msvc* ]]; then
                 unzip $download_file
@@ -1907,36 +1907,38 @@ fi
 ###################################################################################
 
 if [ -d $main_proj_dir ]; then
-    pushd_ $main_proj_dir
-    # Possibly switch url and version for existing projects
-    current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' |\
+    if [ $download = "false" ]; then 
+        pushd_ $main_proj_dir
+        # Possibly switch url and version for existing projects
+        current_proj_url=$(git remote -v |  fgrep origin | fgrep fetch | tr '\t' ' ' |\
                            tr -s ' '| cut -d ' ' -f 2 | sed s"|\.git||")
-    if [ $(echo $main_proj_url | sed 's|https://github.com/||' | sed 's|git@github.com:||') != \
-         $(echo $current_proj_url | sed 's|https://github.com/||' | sed 's|git@github.com:||') ]
-    then
-        echo
-        echo "Warning: specified a fork when project is already cloned from a different repo."
-        echo "Proceeding with existing repo."
-        echo
-        main_proj_url=$current_proj_url
-    fi
-    if [ $skip_update = "true" ] || [ $fetch = "false" ] ||
-           [ "$main_proj_version" = "" ]; then
-        main_proj_version=$(get_version_git)
-        if [[ $main_proj_version == releases/* ]]; then
-           get_latest_release=true
-        fi
-        if [ $build = "true" ]; then
-            echo "################################################"
-            echo "### Building version $main_proj_version"
-            echo "### with existing versions of dependencies."
-            echo "### Ctrl-c and run 'fetch' to switch versions" 
-            echo "### or to ensure correct dependencies"
-            echo "################################################"
+        if [ $(echo $main_proj_url | sed 's|https://github.com/||' | sed 's|git@github.com:||') != \
+             $(echo $current_proj_url | sed 's|https://github.com/||' | sed 's|git@github.com:||') ]
+        then
             echo
+            echo "Warning: specified a fork when project is already cloned from a different repo."
+            echo "Proceeding with existing repo."
+            echo
+            main_proj_url=$current_proj_url
         fi
+        if [ $skip_update = "true" ] || [ $fetch = "false" ] ||
+               [ "$main_proj_version" = "" ]; then
+            main_proj_version=$(get_version_git)
+            if [[ $main_proj_version == releases/* ]]; then
+                get_latest_release=true
+            fi
+            if [ $build = "true" ]; then
+                echo "################################################"
+                echo "### Building version $main_proj_version"
+                echo "### with existing versions of dependencies."
+                echo "### Ctrl-c and run 'fetch' to switch versions" 
+                echo "### or to ensure correct dependencies"
+                echo "################################################"
+                echo
+            fi
+        fi
+        popd_
     fi
-    popd_
 else
     # If we get here without a version set, then default to latest release
     if [ "$main_proj_version" = "" ]; then
