@@ -14,7 +14,7 @@
 # - Make autostash work better https://stackoverflow.com/questions/53049088/can-git-remind-me-about-or-auto-apply-a-stash-when-switching-back-into-the-corre/53050054
 
 # script debugging
-set -x
+#set -x
 #PS4='${LINENO}:${PWD}: '
 
 ###################################################################################
