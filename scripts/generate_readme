@@ -175,7 +175,7 @@ are archived as part of $Description_IncludedIn_Package
      \`\`\`
    * Fedora/Redhat/CentOS:
      \`\`\`
-     $ sudo yum install  coin-or-$Description_Slug coin-or-$Description_Slug-devel
+     $ sudo dnf install  coin-or-$Description_Slug coin-or-$Description_Slug-devel
      \`\`\`
    * freebsd:
      \`\`\`
@@ -193,17 +193,25 @@ are archived as part of $Description_IncludedIn_Package
      \`\`\`
 "
    if [ "${1-}" != "no_conda" ]; then
-       echo "* *conda* (cross-platform, no Windows for now):
+      if [ $lower_case = "coinutils" ]; then     
+         echo "* *conda* (cross-platform):
+     \`\`\`
+     $ conda install coin-or-utils
+     \`\`\`
+"
+      else
+         echo "* *conda* (cross-platform):
      \`\`\`
      $ conda install coin-or-$lower_case
      \`\`\`
 "
+      fi
    fi
    
    echo "Due to license incompatibilities, pre-compiled binaries lack some 
 functionality. If binaries are not available for your platform for the latest 
 version and you would like to request them to be built and posted, feel free 
-to let us know on the mailing list. 
+to open a discussion on Github. 
 
 ### Source
 
