@@ -300,7 +300,29 @@ function parse_args {
             --static)
                 configure_options["--disable-shared"]=""
                 configure_options["LT_LDFLAGS=-all-static"]=""
-                configure_options["LDFLAGS=-static"]=""
+                if [[ "$OSTYPE" == linux* ]]; then
+                    # In a fully static executable, a weak reference does not
+                    # pull a function out of libc.a. libgfortran and libgcc call
+                    # these pthread functions through weak references once the
+                    # program creates threads, so without this they stay NULL
+                    # (e.g. libgfortran's exit handler then calls a NULL
+                    # pthread_mutex_destroy). pthread_create and
+                    # pthread_key_create are deliberately not forced, so
+                    # programs without threads are unaffected.
+                    local static_ldflags="-static" sym
+                    for sym in pthread_cond_broadcast pthread_cond_destroy \
+                             pthread_cond_init pthread_cond_wait \
+                             pthread_getspecific pthread_join pthread_key_delete \
+                             pthread_mutex_destroy pthread_mutex_init \
+                             pthread_mutex_lock pthread_mutex_trylock \
+                             pthread_mutex_unlock pthread_once pthread_self \
+                             pthread_setspecific pthread_sigmask; do
+                        static_ldflags+=" -Wl,-u,$sym"
+                    done
+                    configure_options["LDFLAGS=$static_ldflags"]=""
+                else
+                    configure_options["LDFLAGS=-static"]=""
+                fi
                 ;;
             -h|--help)
                 help
