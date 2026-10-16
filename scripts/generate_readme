@@ -127,12 +127,18 @@ $Description_ShortName is written in $Description_Language and is released as op
 It is distributed under the auspices of the [COIN-OR Foundation](https://www.coin-or.org).
 
 The $Description_ShortName development site is https://github.com/coin-or/$Description_Slug.
-
-## CITE
-
-Code: [![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
 "
-    
+
+   # The CITE section is only written if there is something to cite. A project
+   # gets a Zenodo DOI only once a release of it has been archived there.
+   if [ x"${Description_Zenodo-}" != x ] || [ x"${Description_PaperCite-}" != x ]; then
+       echo "## CITE
+"
+   fi
+   if [ x"${Description_Zenodo-}" != x ]; then
+       echo "Code: [![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
+"
+   fi
    if [ x"${Description_PaperCite-}" != x ]; then
        echo "Paper: $Description_PaperCite
 "
@@ -275,12 +281,18 @@ $Description_ShortName is written in $Description_Language and is released as op
 It is distributed under the auspices of the [COIN-OR Foundation](https://www.coin-or.org)
 
 The $Description_ShortName development site is https://github.com/coin-or/$Description_Slug.
-
-## CITE
-
-Code: [![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
 "
-    
+
+   # The CITE section is only written if there is something to cite. A project
+   # gets a Zenodo DOI only once a release of it has been archived there.
+   if [ x"${Description_Zenodo-}" != x ] || [ x"${Description_PaperCite-}" != x ]; then
+       echo "## CITE
+"
+   fi
+   if [ x"${Description_Zenodo-}" != x ]; then
+       echo "Code: [![DOI](https://zenodo.org/badge/$Description_Zenodo.svg)](https://zenodo.org/badge/latestdoi/$Description_Zenodo)
+"
+   fi
    if [ x"${Description_PaperCite-}" != x ]; then
        echo "Paper: $Description_PaperCite
 "
