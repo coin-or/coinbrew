@@ -120,6 +120,22 @@ To make changes, please edit [config.yml](.coin-or/config.yml) or the generation
 #########################################################################
 #########################################################################
 
+# The sentence about the archive of older binaries at coin-or.org. A project
+# whose archive is not accessible sets Binary_Archive=no.
+
+function binary_archive_text {
+    if [ x"${Binary_Archive-}" = xno ]; then
+        echo "."
+    else
+        echo ". Older binaries
+are archived as part of $Description_IncludedIn_Package
+[here](https://www.coin-or.org/download/binary/$Description_IncludedIn_Package)."
+    fi
+}
+
+#########################################################################
+#########################################################################
+
 # Lists the binary packages of the project. The names differ between
 # distributions and many projects are not packaged everywhere, so they are not
 # derived from the project name. Instead, the project's generate_readme sets
@@ -247,9 +263,7 @@ Suite](https://github.com/coin-or/COIN-OR-OptimizationSuite) [here](https://hub.
 
 For newer releases, binaries will be made available as assets attached to
 releases in Github
-[here](https://github.com/coin-or/$Description_Slug/releases). Older binaries
-are archived as part of $Description_IncludedIn_Package
-[here](https://www.coin-or.org/download/binary/$Description_IncludedIn_Package).
+[here](https://github.com/coin-or/$Description_Slug/releases)$(binary_archive_text)
 "
    make_binary_packages
 
@@ -355,9 +369,7 @@ Suite](https://github.com/coin-or/COIN-OR-OptimizationSuite) [here](https://hub.
 
 For newer releases, binaries will be made available as assets attached to
 releases in Github
-[here](https://github.com/coin-or/$Description_Slug/releases). Older binaries
-are archived as part of $Description_IncludedIn_Package
-[here](https://www.coin-or.org/download/binary/$Description_IncludedIn_Package).
+[here](https://github.com/coin-or/$Description_Slug/releases)$(binary_archive_text)
 
 Due to license incompatibilities, pre-compiled binaries may lack some
 functionality. If binaries are not available for your platform for the latest
