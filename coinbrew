@@ -2326,6 +2326,16 @@ do
         continue
     fi
 
+    # A project without a configure script, such as COIN-OR-OptimizationSuite
+    # (which only lists the projects of the Suite as its dependencies), has
+    # nothing to build or install
+    if [ ! -e $root_dir/$dir/$dir/configure ] && [ ! -e $root_dir/$dir/configure ]; then
+        if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
+            print_action "Nothing to build for $dir"
+        fi
+        continue
+    fi
+
     # Build the project (if requested)
     if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
         if should_build $dir; then
