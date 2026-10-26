@@ -383,13 +383,6 @@ function parse_args {
             --disable-recommended)
                 get_recommended=false
                 ;;
-            --no-yaml)
-                read_yaml=false
-                ;;
-            yaml)
-                num_actions+=1
-                write_yaml=true
-                ;;
             --off-line)
                 offline=true
                 ;;
@@ -754,86 +747,6 @@ function get_version_git {
 }
 
 ###################################################################################
-# Determine version from an SVN URL (there are still some SVN URLs in Dependencies)
-###################################################################################
-
-function get_version_svn {
-
-    if [ $proj = "BuildTools" ] &&
-           [ $(echo $1 | cut -d '/' -f 6) = 'ThirdParty' ]; then
-        if [ $(echo $1 | cut -d '/' -f 8) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 8-9
-        fi
-    elif [ $proj = "CHiPPS" ]; then
-        if [ $(echo $1 | cut -d '/' -f 7) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 7-8
-        fi
-    elif [ $proj = "Data" ]; then
-        if [ $(echo $1 | cut -d '/' -f 7) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 7-8
-        fi
-    elif [ $proj = "CoinBazaar" ]; then
-        if [ $(echo $1 | cut -d '/' -f 9) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 8-9
-        fi
-    else
-        if [ $(echo $1 | cut -d '/' -f 6) = trunk ]; then
-            echo "trunk"
-        else
-            echo $1 | cut -d '/' -f 6-7
-        fi
-    fi
-
-}
-
-###################################################################################
-# Convert an SVN URL to a git URL
-###################################################################################
-
-function svn2git {
-
-    # Convert SVN URL to a Github one and check out with git
-    if [ $proj = "BuildTools" ] || [ $proj = "Data" ]; then
-        new_url=$url_prefix"-tools/"
-    elif [ $proj = "CoinBazaar" ]; then
-        new_url=$url_prefix"-bazaar/"
-    else
-        new_url=$url_prefix"/"
-    fi
-    if [ $(echo $dir | cut -d "/" -f 1) = "ThirdParty" ]; then
-        new_url+=$(echo $dir | sed s"|/|-|")
-    elif [ $proj = "Data" ]; then
-        new_url+=$(echo $dir | sed s"|/|-|")
-    elif [ $proj = "CHiPPS" ]; then
-        if [ $dir = "Alps" ]; then
-            new_url+="CHiPPS-ALPS"
-        elif [ $dir = "Bcps" ]; then
-            new_url+="CHiPPS-BiCePS"
-        else
-            new_url+="CHiPPS-BLIS"
-        fi
-    elif [ $proj = "FlopC++" ]; then
-        new_url+="FlopCpp"
-    elif [ $proj = "CoinBazaar" ]; then
-        if [ $dir = "examples" ]; then
-            new_url+="ApplicationTemplates"
-        fi
-    else
-        new_url+=$proj
-    fi
-    echo $new_url
-
-}
-
-###################################################################################
 # Prompt user for what actionas to perform
 ###################################################################################
 
@@ -1070,110 +983,71 @@ function prompt_for_rebuild {
 }
 
 ###################################################################################
-# Make list of dependencies by parsing either Dependencies or config.yml
+# Make list of dependencies by parsing the main project's .coin-or/config.yml
 ###################################################################################
 
 function parse_dependencies_file {
-    dep_file=
-    if [ "$main_proj" = "" ]; then
-        if [ -e .coin-or/config.yml ] && [ $read_yaml = true ]; then
-            dep_file=.coin-or/config.yml
-        elif [ -e Dependencies ];  then
-            dep_file=Dependencies
-        elif [ -e .coin-or/Dependencies ]; then
-            dep_file=.coin-or/Dependencies
-        fi
-    else
-        if [ -e $main_proj_dir/.coin-or/config.yml ] &&
-               [ $read_yaml = true ]; then
-            dep_file=$main_proj_dir/.coin-or/config.yml
-        elif [ -e $main_proj_dir/Dependencies ]; then
-            dep_file=$main_proj_dir/Dependencies
-        elif [ -e $main_proj_dir/.coin-or/Dependencies ]; then
-            dep_file=$main_proj_dir/.coin-or/Dependencies
-        elif [ -e $main_proj_dir/$main_proj_dir/Dependencies ] && [ $read_yaml = false ]; then
-            dep_file=$main_proj_dir/$main_proj_dir/Dependencies
-        fi
-    fi
 
-    if [ "$dep_file" != "" ]; then
-        if [[ $dep_file == *Dependencies ]]; then
-            #This is for parsing the old style Dependencies file
-            deps=$(cat $dep_file | tr '\t' ' ' | tr -s ' ')
-            for entry in $deps
-            do
-                if expr "$entry" : '^#' > /dev/null 2>&1; then continue ; fi
-                dir=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 1)
-                url=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 2)
-                proj=$(echo $url | cut -d '/' -f 5)
-                # Determine the desired version
-                if [[ $url == *github* ]]; then
-                    #The URL is for a git project
-                    version=$(echo $entry | tr '\t' ' ' | tr -s ' '| cut -d ' ' -f 3)
-                    if [ $version != "master" ]; then
-                        version_num=$(echo $version | cut -d '/' -f 2)
-                    else
-                        version_num=master
-                    fi
-                else
-                    #The URL is for an old SVN project
-                    version=$(get_version_svn $url)
-                    if [ $(echo $version | cut -d '/' -f 1) = "branches" ]; then
-                        version=$(echo $version | cut -d '/' -f 2)
-                    fi
-                    if [ $version = "trunk" ]; then
-                        version=master
-                        version_num=master
-                    else
-                        version_num=$(echo $version | cut -d '/' -f 2)
-                    fi
-                    url=$(svn2git)
-                fi
-                urls+=( $url )
-                pdirs+=( $dir )
-                projs+=( $proj )
-                versions+=( $version )
-                version_nums+=( $version_num )
-                requireds+=( Required )
-            done
-        else
-            #This is for parsing the new YAML file
-            create_variables $dep_file
-            for ((count=0; count<${#Dependencies__URL[@]}; ++count))
-            do
-                if [[ ${Dependencies__URL[count]} != *github* ]]; then
-                    continue
-                fi
-                
-                if [ $ssh_checkout = true ]; then
-                    urls+=( $(echo ${Dependencies__URL[count]} |
-                                  sed 's|https://github.com/|git@github.com:|') )
-                else
-                    urls+=( ${Dependencies__URL[count]} )
-                fi
-                pdirs+=( $(echo ${Dependencies__URL[count]} | cut -d '/' -f 5 |
-                               sed 's|-|/|') ) 
-                projs+=( $(echo ${pdirs[count]} | cut -d '/' -f 2) )
-                version_nums+=( $(echo ${Dependencies__Version[count]} | cut -d '/' -f 2) )
-                case $(echo ${version_nums[count]} | tr -cd '.' | wc -c | tr -d ' ') in
-                    1)
-                        versions+=( stable/${version_nums[count]} )
-                        ;;
-                    2)
-                        versions+=( releases/${version_nums[count]} )
-                        ;;
-                    *)
-                        versions+=( ${version_nums[count]} )
-                        ;;
-                esac
-                requireds+=( ${Dependencies__Required[count]} )
-            done
+    local proj_dir=${main_proj_dir:-.}
+    local dep_file=$proj_dir/.coin-or/config.yml
+    local dep_url dep_dir dep_version_num suggestion release
+
+    if [ ! -e $dep_file ]; then
+        if [ -e $proj_dir/Dependencies ] || [ -e $proj_dir/.coin-or/Dependencies ]; then
+            # Releases made before the move to config.yml only have the old
+            # Dependencies file, which coinbrew no longer reads
+            suggestion="$main_proj@master"
+            if [[ $main_proj_version == releases/* ]]; then
+                release=${main_proj_version#releases/}
+                suggestion="$main_proj@${release%.*}"
+            fi
+            msg ""
+            msg "Error: ${RED}$main_proj $main_proj_version has no .coin-or/config.yml, only an"
+            msg "old-style Dependencies file, which coinbrew no longer reads."
+            msg "$main_proj has not had a release in some time, so for now, the tip"
+            msg "of its stable branch or master is recommended instead, for example"
+            msg "  coinbrew fetch $suggestion"
+            msg "(without --latest-release).${NOFORMAT}"
+            die "Exiting." 32
         fi
-    else
         echo "No dependencies file found, only main project will be built"
         echo
-        deps=
+        return
     fi
+
+    create_variables $dep_file
+    for ((count=0; count<${#Dependencies__URL[@]}; ++count))
+    do
+        dep_url=${Dependencies__URL[count]}
+        # Dependencies that are not on GitHub, such as BLAS, LAPACK or CPLEX,
+        # are listed for information only; coinbrew can't fetch them
+        if [[ $dep_url != *github* ]]; then
+            continue
+        fi
+
+        if [ $ssh_checkout = true ]; then
+            urls+=( $(echo $dep_url | sed 's|https://github.com/|git@github.com:|') )
+        else
+            urls+=( $dep_url )
+        fi
+        dep_dir=$(echo $dep_url | cut -d '/' -f 5 | sed 's|-|/|')
+        pdirs+=( $dep_dir )
+        projs+=( $(echo $dep_dir | cut -d '/' -f 2) )
+        dep_version_num=$(echo ${Dependencies__Version[count]} | cut -d '/' -f 2)
+        version_nums+=( $dep_version_num )
+        case $(echo $dep_version_num | tr -cd '.' | wc -c | tr -d ' ') in
+            1)
+                versions+=( stable/$dep_version_num )
+                ;;
+            2)
+                versions+=( releases/$dep_version_num )
+                ;;
+            *)
+                versions+=( $dep_version_num )
+                ;;
+        esac
+        requireds+=( ${Dependencies__Required[count]} )
+    done
 
 }
 
@@ -1724,15 +1598,8 @@ keep_current=false
 rebase=true
 use_color=true
 offline=false
-read_yaml=true
-write_yaml=false
 get_optional=false
 get_recommended=true
-if [ ssh_checkout = "true" ]; then
-    url_prefix="git@github.com:coin-or"
-else
-    url_prefix="https://github.com/coin-or"
-fi
 
 ###################################################################################
 # Parse the command-line arguments
@@ -1740,6 +1607,12 @@ fi
 
 setup_colors
 parse_args "$@"
+
+if [ $ssh_checkout = "true" ]; then
+    url_prefix="git@github.com:coin-or"
+else
+    url_prefix="https://github.com/coin-or"
+fi
 
 ###################################################################################
 # Set the default build directory
@@ -2144,7 +2017,7 @@ declare -a urls
 declare -a projs
 declare -a versions
 declare -a version_nums
-declare -a required
+declare -a requireds
 pdirs=()
 urls=()
 projs=()
@@ -2186,40 +2059,7 @@ fi
 
 ###################################################################################
 # Finally, go through each project in order and fetch, build, install (as instructed).
-# Skip comments (lines starting with '#').
 ###################################################################################
-
-if [ $write_yaml = true ]; then
-    mkdir -p $main_proj_dir/.coin-or
-    yaml_file=$main_proj_dir/.coin-or/config.yml
-    xml_file=$main_proj_dir/.coin-or/projDesc.xml
-    echo "Description:" > $yaml_file
-    echo "  Slug: $main_proj" >> $yaml_file 
-    echo "  ShortName: $main_proj" >> $yaml_file
-    echo "  LongName:" >> $yaml_file
-    echo -n "  ShortDescription: " >> $yaml_file
-    awk 'BEGIN{on=0} /<projectShortDescription>/{on=1; getline;} /<\/projectShortDescription>/{on=0} {if (on==1) print}' $xml_file | sed 's/^ *//g' >> $yaml_file
-    echo "  LongDescription: |2" >> $yaml_file
-    tmp=$(awk 'BEGIN{on=0} /<projectDescription>/{on=1} /<\/projectDescription>/{on=0} {if (on==1) print}' $xml_file | sed -e 's/^ */    /g' -e 's/<projectDescription>//' -e 's/"/\\\"/g' -e "s/'/\\\'/g")
-    echo "\"$tmp\"" >> $yaml_file
-    echo -n "  Manager:" >> $yaml_file
-    awk 'BEGIN{on=0} /<projectManager>/{print}' $xml_file | sed -e 's/<projectManager>//' -e 's/<\/projectManager>//' -e 's/^ */ /' >> $yaml_file
-    echo "  Homepage: $main_proj_url" >> $yaml_file
-    echo "  License: Eclipse Public License 2.0" >> $yaml_file
-    echo "  LicenseURL: http://www.opensource.org/licenses/eclipse-2.0" >> $yaml_file
-    echo "  Zenodo:" >> $yaml_file
-    echo "  Appveyor:" >> $yaml_file
-    echo "    Status:" >> $yaml_file
-    echo "    Slug:" >> $yaml_file
-    echo "  Bintray:" >> $yaml_file
-    echo "    Package:" >> $yaml_file
-    echo "  Language:" >> $yaml_file
-    awk 'BEGIN{on=0} /<projectLanguage>/{print}' $xml_file | sed -e 's/<projectLanguage>//' -e 's/<\/projectLanguage>//' -e 's/^ */    - /g' >> $yaml_file
-    echo "  Categories: " >> $yaml_file
-#    awk 'BEGIN{on=0} /<category>/{on=1; getline;} /<\/category>/{on=0} {if (on==1) print}' $xml_file | sed 's/^ */    - /g' >> $yaml_file
-    awk 'BEGIN{on=0} /<category>/{print}' $xml_file | sed -e 's/<category>//' -e 's/<\/category>//' -e 's/^ */    - /g' >> $yaml_file
-    deps=
-fi
 
 for ((count=0; count<${#urls[@]}; ++count))
 do
@@ -2242,35 +2082,6 @@ do
             dir=Blis
             ;;
     esac
-    
-    if [ $write_yaml = true ] && [ $dir != $main_proj_dir ]; then
-        tmp=$(echo $url | sed "s|https://github.com/||" | sed "s|git@github.com:||" | \
-                  cut -d "/" -f 2)
-        case $(echo $dir | cut -d '/' -f 1) in
-            ThirdParty)
-                tp_deps+="    - Slug: $tmp"
-                tp_deps+=$'\n'
-                tp_deps+="      Version: $version_num"
-                tp_deps+=$'\n'
-                tp_deps+="      Required: Optional"
-                tp_deps+=$'\n'
-                ;;
-            Data)
-                data_deps+="    - Slug: $tmp"
-                data_deps+=$'\n'
-                data_deps+="      Version: $version_num"
-                data_deps+=$'\n'
-                data_deps+="      Required: Required"
-                data_deps+=$'\n'
-                ;;
-            *)
-                coin_deps+="    - Slug: $tmp"
-                coin_deps+=$'\n'
-                coin_deps+="      Version: $version_num"
-                coin_deps+=$'\n'
-                ;;
-        esac
-    fi
 
     # Get the source (if requested)
     if [ $dir != $main_proj_dir ]; then
@@ -2288,35 +2099,6 @@ do
         fi
     fi
 
-    if [ $write_yaml = true ] && [ $dir != $main_proj_dir ]; then
-        case $dir in
-            Data*)
-                data_proj=$(echo $dir | cut -d '/' -f 2)
-                deps+="  - Description: $data_proj data files"$'\n'
-                deps+="    URL: $url"$'\n'
-                deps+="    Version: $version_num"$'\n'
-                deps+="    Required: Required"$'\n'
-                ;;
-            ThirdParty*)
-                tp_proj=$(echo $dir | cut -d '/' -f 2)
-                deps+="  - Description: ThirdParty wrapper for building $tp_proj"$'\n'
-                deps+="    URL: $url"$'\n'
-                deps+="    Version: $version_num"$'\n'
-                deps+="    Required: Optional"$'\n'
-                ;;
-            BuildTools)
-                ;;
-            *)
-                create_variables $dir/.coin-or/config.yml
-                deps+="  - Description: $Description_LongName"$'\n'
-                deps+="    URL: $url"$'\n'
-                deps+="    Version: $version_num"$'\n'
-                deps+="    Required: Required"$'\n'
-                ;;
-        esac
-        
-    fi
-
     #Now set the version number according to the version we currently have checked out
     if [ -d $dir ]; then
         pushd_ $dir
@@ -2330,22 +2112,21 @@ do
     # (which only lists the projects of the Suite as its dependencies), has
     # nothing to build or install
     if [ ! -e $root_dir/$dir/$dir/configure ] && [ ! -e $root_dir/$dir/configure ]; then
-        if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
+        if [ $build = "true" ]; then
             print_action "Nothing to build for $dir"
         fi
         continue
     fi
 
     # Build the project (if requested)
-    if [ $build = "true" ] && [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
+    if [ $build = "true" ]; then
         if should_build $dir; then
             build_proj
         fi
     fi
 
     # Install the project (if requested)
-    if ([ $install = "true" ] || ([ $build = "true" ] && [ -w $prefix ])) &&
-           [ $dir != "BuildTools" ] && [ $dir != "examples" ]; then
+    if [ $install = "true" ] || ([ $build = "true" ] && [ -w $prefix ]); then
         install_proj
     fi
 
@@ -2354,45 +2135,6 @@ do
         uninstall_proj
     fi
 done
-
-if [ $write_yaml = true ]; then
-    echo >> $yaml_file
-    echo "Dependencies:" >> $yaml_file
-    echo -n "$deps"  >> $yaml_file
-    echo "  - Description: Basic Linear Algebra Subroutines (BLAS)" >> $yaml_file
-    echo "    URL: http://www.netlib.org/blas" >> $yaml_file
-    echo "    Required: Recommended" >> $yaml_file
-    echo "  - Description: Linear Algebra Package (LAPACK)" >> $yaml_file
-    echo "    URL: http://www.netlib.org/lapack" >> $yaml_file
-    echo "    Required: Recommended" >> $yaml_file
-    echo "  - Description: GNU Readline" >> $yaml_file
-    echo "    Required: Recommended" >> $yaml_file
-    echo "  - Description: GNU History" >> $yaml_file
-    echo "    Required: Recommended" >> $yaml_file
-    echo >> $yaml_file
-    echo "DevelopmentStatus: " >> $yaml_file
-    echo "  activityStatus: Active" >> $yaml_file
-    echo "  maturityLevel: 5" >> $yaml_file
-    echo "  testedPlatforms: " >> $yaml_file
-    echo "  - operatingSystem: Linux" >> $yaml_file
-    echo "    compiler: gcc" >> $yaml_file
-    echo "  - operatingSystem: "Mac OS X"" >> $yaml_file
-    echo "    compiler:" >> $yaml_file
-    echo "    - gcc" >> $yaml_file
-    echo "    - clang" >> $yaml_file
-    echo "  - operatingSystem: Microsoft Windows" >> $yaml_file
-    echo "    compiler: cl" >> $yaml_file
-    echo "  - operatingSystem: Microsoft Windows with MSys2" >> $yaml_file
-    echo "    compiler:" >> $yaml_file
-    echo "    - gcc" >> $yaml_file
-    echo "    - cl" >> $yaml_file
-    echo "    - icl" >> $yaml_file
-    echo "  - operatingSystem: Microsoft Windows Subsystem for Linux" >> $yaml_file
-    echo "    compiler:" >> $yaml_file
-    echo "    - gcc" >> $yaml_file
-    echo "    - cl" >> $yaml_file
-    echo "    - icl" >> $yaml_file
-fi
 
 ###################################################################################
 # Clean up some directories left by uninstall
